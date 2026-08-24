@@ -1,49 +1,66 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
+import { AppShell } from '../Components/AppShell';
+import { Icon } from '../Components/Icon';
+import { Badge, GlassCard } from '../Components/ui';
 
 export default function Welcome() {
     return (
         <>
             <Head title="Tender Finder" />
-            <main className="min-h-screen bg-stone-50 text-slate-900">
-                <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8 sm:px-10">
-                    <header className="flex items-center justify-between border-b border-slate-200 pb-6">
-                        <div className="flex items-center gap-3">
-                            <span className="grid size-9 place-items-center rounded-lg bg-slate-900 text-sm font-semibold text-white">
-                                TF
-                            </span>
-                            <span className="text-lg font-semibold tracking-tight">
-                                Tender Finder
-                            </span>
-                        </div>
-                        <span className="text-sm text-slate-500">
-                            Подготовка сервиса
+            <AppShell
+                navigationVisible={false}
+                title="Tender Finder"
+                eyebrow="Ваш радар закупок"
+            >
+                <section className="welcome-hero page-enter">
+                    <div aria-hidden="true" className="welcome-hero__signal">
+                        <span className="signal-ring signal-ring--one" />
+                        <span className="signal-ring signal-ring--two" />
+                        <span className="signal-core">
+                            <Icon name="wave" size={35} />
                         </span>
-                    </header>
+                    </div>
+                    <Badge tone="accent">Mini App · beta</Badge>
+                    <h2>
+                        Находите тендеры,
+                        <br />
+                        <em>а не шум.</em>
+                    </h2>
+                    <p>
+                        Соберём важные закупки в один спокойный поток — с понятными
+                        сигналами, сроками и контекстом.
+                    </p>
+                </section>
 
-                    <section className="flex flex-1 items-center py-20 sm:py-28">
-                        <div className="max-w-2xl">
-                            <p className="mb-5 text-sm font-medium uppercase tracking-[0.18em] text-teal-700">
-                                В разработке
-                            </p>
-                            <h1 className="text-4xl font-semibold tracking-tight text-slate-950 sm:text-6xl">
-                                Тендеры, которые подходят именно вам.
-                            </h1>
-                            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
-                                Tender Finder поможет отслеживать закупки и получать
-                                релевантные результаты без лишнего шума.
-                            </p>
-                            <div className="mt-10 flex items-center gap-3 text-sm text-slate-500">
-                                <span className="size-2 rounded-full bg-teal-600" />
-                                Базовая инфраструктура готовится к запуску.
-                            </div>
-                        </div>
-                    </section>
+                <GlassCard
+                    className="welcome-promise page-enter page-enter--delay"
+                    tone="accent"
+                >
+                    <div className="welcome-promise__icon">
+                        <Icon name="spark" size={20} />
+                    </div>
+                    <div>
+                        <p>Сфокусированный поиск</p>
+                        <strong>Релевантность — прежде количества</strong>
+                    </div>
+                </GlassCard>
 
-                    <footer className="border-t border-slate-200 pt-6 text-sm text-slate-500">
-                        Tender Finder
-                    </footer>
+                <div className="welcome-actions page-enter page-enter--later">
+                    <Link
+                        className="button button--primary button--lg"
+                        href="/onboarding"
+                    >
+                        <span>Начать знакомство</span>
+                        <Icon name="arrow-right" size={20} />
+                    </Link>
+                    <Link className="text-link" href="/dashboard">
+                        Открыть демо-обзор <Icon name="chevron-right" size={17} />
+                    </Link>
                 </div>
-            </main>
+                <p className="welcome-footnote">
+                    Работает в Telegram и в обычном браузере.
+                </p>
+            </AppShell>
         </>
     );
 }

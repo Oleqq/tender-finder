@@ -6,11 +6,12 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <meta name="theme-color" content="#081426">
 
-        <!-- Scripts -->
+        <!-- Telegram injects the API inside Mini Apps; the script also gives local
+             browser sessions the same safe, no-op-capable integration surface. -->
+        <script src="https://telegram.org/js/telegram-web-app.js?56" defer></script>
+
         @routes
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/Pages/{$page['component']}.tsx"])

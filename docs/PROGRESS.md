@@ -6,8 +6,8 @@
 
 | Поле | Значение |
 |---|---|
-| Текущий этап | Переход от этапа 0 к этапу 1: стабилизация production-контура и планирование Telegram-онбординга |
-| Статус MVP | Код этапа 0 готов; публичный Vercel health check стабилизирован. Этап 1 ждёт юридические ссылки и managed PostgreSQL/Redis; для реальных миграций локальной PostgreSQL нужны учётные данные |
+| Текущий этап | Этап 1: SPA-оболочка Telegram Mini App и дизайн-система |
+| Статус MVP | Foundation Mini App и demo-экраны готовы локально. Реальные Telegram-сессии, согласия и trial ждут юридические ссылки и managed PostgreSQL/Redis; для реальных локальных миграций PostgreSQL нужны учётные данные |
 | Стек | PHP 8.3 + Laravel, React + TypeScript |
 | Основной интерфейс клиента | Telegram Mini App на домене проекта |
 | Админка | React-раздел Laravel, входит в MVP |
@@ -32,7 +32,7 @@
 | INF-01 | Создать Laravel + React-проект и Docker-окружение | Этап 0 | BLOCKED | Laravel, Inertia/React, PostgreSQL и Redis настроены для локальной работы через Herd; Docker отложен как необязательный | Указать пароль PostgreSQL в локальном `.env` |
 | INF-02 | Настроить CI, `.env.example`, health check и логи | Этап 0 | DONE | Проверки настроены для CI, `/health` возвращает JSON, логи структурированы | Нет |
 | INF-03 | Подготовить Vercel production-контур | Переход к этапу 1 | DONE | Production `GET /health` возвращает ожидаемый JSON | Managed PostgreSQL и Redis нужны перед включением пользовательских сценариев |
-| WEB-01 | Реализовать React-каркас Mini App и проверку Telegram `initData` | Этап 1 | BLOCKED | Mini App безопасно открывается из бота | Публичные ссылки на оферту и политику, managed PostgreSQL и Redis |
+| WEB-01 | Реализовать React-каркас Mini App и проверку Telegram `initData` | Этап 1 | IN PROGRESS | Design system, SPA-экраны и безопасная серверная проверка `initData` готовы | Managed PostgreSQL/Redis и публичные юридические ссылки для серверной части |
 | BOT-01 | Подключить Telegram webhook и `/start`, `/help` | Этап 1 | BLOCKED | Бот открывает Mini App и отвечает в тестовом чате | Стабильный production health check, managed PostgreSQL и Redis |
 | BOT-02 | Реализовать согласия, trial 72 часа и напоминания | Этап 1 | BLOCKED | Trial выдаётся один раз, напоминания идемпотентны | Публичные ссылки на оферту и политику конфиденциальности |
 | QRY-01 | Реализовать мастер создания и управления запросами | Этап 2 | TODO | Запросы создаются, изменяются, ставятся на паузу | Нет |
@@ -141,6 +141,15 @@
 - Изменения: обновлён порядок шагов в CI и журнал прогресса.
 - Следующее действие: подтвердить успешный CI после push, затем завершить проверку production-корневой страницы.
 - Блокеры: managed PostgreSQL и Redis остаются обязательными до включения реальных Telegram-сессий, trial и очередей; также нужны публичные юридические ссылки.
+
+### 2026-08-24 - foundation Mini App и demo-экраны
+
+- Задача: `WEB-01` (клиентская часть).
+- Результат: реализованы оригинальная mobile-first дизайн-система с light/dark-токенами, glass-поверхностями, safe-area, reduced motion и Telegram theme parameters. Добавлены Inertia-экраны запуска, onboarding, согласий, пустых «Моих тендеров», профиля и demo-dashboard, а также общий AppShell, нижняя навигация, cards, controls, sheet, toast, skeleton и статусные компоненты.
+- Проверка: production Vite-сборка проходит; локально в мобильном viewport пройдены Inertia-переходы onboarding/consents/dashboard и интерактивные demo-состояния без console errors. Feature-тесты покрывают ответы всех новых Inertia-маршрутов.
+- Изменения: локальный рабочий блок, без серверных Telegram-данных, RSS, платежей или админки.
+- Следующее действие: после deployment повторно проверить production `GET /` — Vite-ссылки должны быть HTTPS; затем дождаться managed PostgreSQL/Redis и юридических ссылок для серверной части `WEB-01`.
+- Блокеры: managed PostgreSQL и Redis; публичные ссылки на оферту и политику конфиденциальности. Клиентские данные Telegram не считаются доверенными до будущей server-side проверки `initData`.
 
 ## Шаблон новой записи
 
