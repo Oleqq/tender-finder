@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
@@ -95,6 +95,9 @@ export default function Profile() {
                 >
                     Сохранить демо-настройки
                 </Button>
+                <Link className="profile-plans-link" href="/plans">
+                    Посмотреть планы и доступ <Icon name="chevron-right" size={17} />
+                </Link>
                 <Toast
                     message={
                         alertsEnabled

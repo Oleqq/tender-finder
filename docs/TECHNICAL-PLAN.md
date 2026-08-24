@@ -1,231 +1,207 @@
 # Tender Finder: технический план разработки
 
-## 1. Техническое решение
+## 1. Архитектурное решение
 
-### Выбранный стек
+Один репозиторий и один Laravel 12 application. React + TypeScript + Vite +
+Inertia реализуют SPA-навигацию Mini App без React Router. Laravel владеет
+данными, Telegram, проверкой `initData`, сессиями, webhook, очередями,
+платежами и Inertia endpoints. Отдельные backend- или frontend-репозитории не
+создаются до подтверждённой нагрузки.
 
-- PHP 8.3 и Laravel 11/12;
-- React + TypeScript + Vite + Inertia.js для Mini App и админ-панели;
-- PostgreSQL 16 для основных данных и полнотекстового поиска;
-- Redis для очередей, блокировок и кэша;
-- Laravel Horizon для наблюдения за очередями;
-- Laravel Scheduler для периодических задач;
-- Telegram Mini Apps и Bot API через webhook;
-- ЮKassa SDK для платежей и webhook;
-- Docker Compose, Nginx и HTTPS на VPS в РФ.
-
-### Границы приложения
-
-Один Laravel-проект в начале с React-клиентом. Отдельные backend-сервисы и отдельный React-репозиторий не нужны до подтверждённой нагрузки. React собирается Vite и работает на том же домене; Laravel реализует API, серверную авторизацию и бизнес-логику. Тяжёлые операции выполняются в очереди: импорт источников, матчинг, рассылки, напоминания и повторные попытки платежей.
+- PHP 8.3+, Laravel 12;
+- React, TypeScript, Vite и Inertia;
+- PostgreSQL 16 — данные, JSONB-фильтры и поиск;
+- Redis — sessions, cache, locks, queues и rate limits;
+- Laravel Scheduler / Horizon — jobs и наблюдение;
+- Telegram Mini Apps + Bot API;
+- Telegram Stars (`XTR`) — первая оплата цифрового доступа внутри Telegram;
+- HTTPS production-контур; Vercel — только текущий demo/foundation до
+  подключения постоянной базы и Redis.
 
 ```text
-Telegram Mini App → React на https://app.domain.ru → Laravel → PostgreSQL
-Telegram Bot      → Laravel webhook                 ↘ Redis queue → import / matching / notifications
-ЮKassa            → Laravel webhook                 → PostgreSQL
-Admin web UI      → React на https://app.domain.ru/admin → Laravel
+Telegram Mini App → React/Inertia → Laravel → PostgreSQL
+Telegram Bot      → Laravel webhook ↘ Redis queues → imports / delivery / campaigns
+Telegram Stars    → Bot API events → Laravel → entitlements / audit
+Super-admin UI    → те же Inertia endpoints → server-side policies
 ```
 
-## 2. Модули и ответственность
+## 2. Модули
 
-| Модуль | Что делает | Приоритет |
+| Модуль | Ответственность | Приоритет |
 |---|---|---|
-| Users & Consent | Пользователь, согласия, timezone, роли | MVP |
-| Client Mini App | React-кабинет: тендеры, запросы, тариф, настройки | MVP |
-| Queries | Создание и изменение поисковых запросов, лимиты | MVP |
-| Tender sources | RSS ЕИС через заменяемый адаптер; СОИ ЕИС после доступа | MVP |
-| Tender catalogue | Нормализация, дедупликация, хранение тендеров | MVP |
-| Matching | Ключевые и минус-слова, регион, НМЦК, дедлайн | MVP |
-| Notifications | Очередь Telegram-уведомлений, антиспам | MVP |
-| Billing | Trial, планы, платежи, webhook, статусы | MVP |
-| Operations | Логи, health check, мониторинг, бэкапы | MVP |
-| Digest | Ежедневные и недельные дайджесты | v1.1/v2.0 |
-| Admin | React-панель: пользователи, доступы, платежи, источники, рассылки | MVP |
-| LLM scoring | Релевантность и объяснение для PRO | v2.0 |
+| Design system | tokens, primitives, states, Telegram UX, mobile performance | Сейчас |
+| Client Mini App | preview, onboarding, tenders, queries, billing, profile | MVP |
+| Identity & consent | `initData`, session, consent versions, role bootstrap | MVP |
+| Access | trial, plan, entitlement, feature limits | MVP |
+| Tender core | queries, RSS adapter, catalogue, deduplication, rules matching | MVP |
+| Notifications | transactional delivery, anti-spam, preferences | MVP |
+| Commerce | Stars invoices, checkout events, refunds, billing audit | MVP |
+| Embedded admin | overview, users, campaigns, sources, ops, audit | После core-данных |
+| LLM scoring | evaluation, personal ranking, ToR analysis | Future PRO |
 
-## 3. Данные и статусы
+## 3. Авторизация, роли и доступ
 
-### Основные таблицы
+### Роли
 
-| Таблица | Важные поля |
+Единственный enum ролей после migration: `subscriber`, `super_admin`. План,
+trial и access state не кодируются как роль. Переход с текущего временного
+`user`/`admin` enum выполняется одной миграцией вместе с введением Telegram
+identity — до него не делать частичную смену enum.
+
+Bootstrap super-admin хранится в защищённой production-конфигурации как один
+Telegram ID. После серверной проверки `initData` domain service назначает
+`super_admin` пользователю с совпадающим ID; всех остальных создаёт как
+`subscriber`. Нельзя принимать Telegram ID, роль или entitlement из React.
+
+Политики и middleware проверяют super-admin на каждом admin read и mutation.
+Видимость navigation — UX, не средство авторизации. Доступ владельца в обычный
+продукт выдаётся отдельным audited `access_grant`/entitlement, не поддельной
+оплатой и не исключением в paywall-коде.
+
+### Данные
+
+| Таблица | Назначение |
 |---|---|
-| `users` | `telegram_id`, имя, username, роль, timezone, согласия |
-| `consents` | пользователь, версия документа, тип, дата принятия |
-| `plans` | код, цена, период, лимит запросов, возможности |
-| `subscriptions` | пользователь, план, статус, начало/окончание, автопродление |
-| `access_grants` | пользователь, тип `complimentary`, причина, кем выдан, начало/окончание |
-| `payments` | провайдер, внешний ID, сумма, статус, idempotency key |
-| `search_queries` | пользователь, название, статус, фильтры JSONB |
-| `tenders` | источник, внешний ID, название, описание, НМЦК, регион, даты, URL, исходные данные JSONB |
-| `tender_query_matches` | тендер, запрос, оценка, причина матчинга, время |
-| `notification_deliveries` | пользователь, тендер, тип, статус, время отправки |
-| `source_runs` | источник, время старта/конца, результат, количество, ошибка |
-| `admin_audit_logs` | администратор, действие, объект, старые/новые безопасные значения, время |
+| `users` | Telegram identity, profile-safe fields, `role`, `last_seen_at` |
+| `consents` | документ, версия, тип, время принятия/отзыва |
+| `plans` | code, `XTR` price, period, limits, feature flags |
+| `subscriptions` | user, plan, state, period, source of entitlement |
+| `entitlements` | конкретное право, limit/value, valid interval, source |
+| `payments` | provider `telegram_stars`, invoice, payment charge ID, amount, status, idempotency key |
+| `billing_events` | входящее Telegram-событие, safe payload digest, processing result |
+| `search_queries` | user, state, JSONB filters and limits |
+| `tenders` / `tender_query_matches` | canonical tender and explainable match reasons |
+| `notification_deliveries` | type, idempotency key, delivery lifecycle |
+| `campaigns` / `campaign_deliveries` | segment, template, consent basis, schedule, outcomes |
+| `source_runs` / `system_metrics` | source freshness, queue/system aggregates |
+| `admin_audit_logs` | actor, action, object, safe summary, correlation, timestamp |
 
-Обязательные уникальные ограничения: `users.telegram_id`, `(source, external_id)` у тендера, `(user_id, tender_id, type)` у доставки. Они защитят от повторных регистраций, тендеров и уведомлений.
-
-Внутренний бесплатный доступ реализуется записью в `access_grants`, а не подменой цены, удалением платежей или специальной проверкой Telegram ID в коде. Администратор выдаёт его себе или сотруднику с причиной и сроком; все действия попадают в аудит. Такой доступ может быть бессрочным, но должен явно отображаться в профиле пользователя.
+Индексы: `users.telegram_id`, `(source, external_id)` tender,
+`(user_id, tender_id, type)` delivery, unique external payment/charge ID и
+idempotency keys. Sensitive payloads не дублируются в audit/log tables.
 
 ### Статусы
 
-- запрос: `active`, `paused`, `frozen`, `deleted`;
-- trial/подписка: `trialing`, `active`, `past_due`, `expired`, `cancelled`;
-- платёж: `pending`, `succeeded`, `cancelled`, `failed`, `refunded`.
+- subscription/access: `preview`, `trialing`, `active`, `expired`,
+  `cancelled`;
+- payment: `created`, `pre_checkout_approved`, `succeeded`, `failed`,
+  `refunded`;
+- query: `active`, `paused`, `frozen`, `deleted`;
+- campaign: `draft`, `scheduled`, `running`, `completed`, `cancelled`.
 
-Статусы оформляются как PHP enum и меняются только сервисами домена, а не напрямую из обработчиков Telegram или React-экранов.
+Статусы — PHP enums, transitions — domain services. React получает DTO и не
+меняет state напрямую.
 
-### Авторизация
+## 4. Telegram и Stars
 
-Клиент Mini App не передаёт Telegram ID как доказательство доступа. React отправляет полученный от Telegram `initData` на Laravel, сервер проверяет его HMAC и только затем создаёт сессию пользователя. Для админки используется отдельная браузерная авторизация с ролью `admin`; Telegram ID в whitelist может быть дополнительной защитой, но не заменяет пароль и ограничение доступа. Доступ к `/admin` проверяется на сервере в каждом запросе.
+1. WebApp client передаёт `initData`; Laravel проверяет HMAC и freshness,
+   находит/создаёт пользователя, пишет `last_seen_at`, назначает роль и создаёт
+   безопасную сессию.
+2. `/start`, `/help` и menu button ведут в Mini App. Webhook валидирует secret
+   token, дедуплицирует update ID и отправляет работу в очередь.
+3. При click на plan Laravel создаёт invoice с серверно определённой ценой,
+   React открывает его через Telegram WebApp API.
+4. Laravel отвечает на `pre_checkout_query` в срок Telegram, обрабатывает
+   `successful_payment` идемпотентно и только затем активирует entitlement.
+5. Возврат использует сохранённый Telegram payment charge ID, меняет access
+   по явной business rule и создаёт billing/audit event.
 
-## 4. Этапы разработки
+До появления PostgreSQL/Redis и юридических URLs остаётся только demo Mini App:
+никаких попыток подменять persistence или включать оплату в serverless-array
+режиме.
 
-### Этап 0. Подготовка проекта
+## 5. Очередность реализации
 
-Результат: репозиторий запускается локально, а секреты не попадают в Git.
+### A. UI foundation и preview — сейчас
 
-- создать Laravel-проект, React/TypeScript-клиент и `docker-compose.yml`;
-- добавить PostgreSQL, Redis, Nginx, `.env.example`;
-- настроить код-стиль, статический анализ, PHPUnit/Pest и GitHub Actions;
-- добавить health endpoint, структурированные логи и базовые миграции;
-- подготовить домен, HTTPS, webhook URL и разрешённый URL Mini App в настройках бота.
+- снизить blur/gradient density текущих demo-экранов;
+- закрыть library primitives и states из `DESIGN-SYSTEM.md`;
+- создать preview, plan comparison, access gate, payment loading/error
+  patterns; все значения маркировать как demo;
+- добавить admin shell и read-only demo Overview/Live Ops без ложных
+  telemetry claims;
+- feature tests маршрутов, визуальная проверка mobile viewport и reduced
+  motion.
 
-Критерий готовности: чистый запуск, миграции и тесты работают одной инструкцией из README.
+### B. Identity, consents, trial
 
-### Этап 1. Telegram и онбординг
+- migrations пользователей, consents, role/access domain;
+- server validation `initData`, secure session, `/start`, `/help`, webhook;
+- consent flow, one-time 72h trial, reminders 24h/3h;
+- integration tests: forged initData, duplicate trial, repeat update.
 
-Результат: пользователь открывает Mini App, регистрируется и получает trial.
+### C. Basic tender core
 
-- зарегистрировать webhook Telegram, разрешённый домен Mini App и проверить secret token;
-- реализовать серверную проверку `initData` и клиентскую сессию;
-- собрать React-экраны: старт, согласия, список тендеров-заглушка и профиль;
-- реализовать `/start`, согласие с офертой и политикой, создание пользователя;
-- выдать 72-часовой trial только один раз на Telegram ID;
-- реализовать `/help`, понятные кнопки и обработку неизвестных сообщений;
-- запланировать напоминания за 24 и 3 часа до завершения.
+- query builder: keywords, minus words, region, budget, deadline;
+- `TenderSource`, `EisRssSource`, canonical URL validation, rate limits,
+  timeout, XML validation and deduplication;
+- explainable deterministic matching and notification queue;
+- tests: RSS first run, duplicates, filter limits, delivery anti-spam.
 
-Критерий готовности: новый пользователь проходит путь от `/start` до экрана Mini App менее чем за две минуты, а поддельный `initData` не даёт доступ.
+### D. Commerce and Basic activation
 
-### Этап 2. Поисковые запросы и каталожные данные
+- plan/entitlement services and paywall API;
+- Telegram Stars invoice, pre-checkout, successful payment and refund;
+- subscription lifecycle, frozen queries and billing notifications;
+- tests: success, failure, timeout, duplicate payment update, refund,
+  entitlement idempotency.
 
-Результат: пользователь создаёт запрос в Mini App, а система принимает тендеры.
+### E. Embedded super-admin
 
-- сделать React-мастер создания и редактирования запроса: ключевые слова обязательны, минус-слова, регион и НМЦК - опциональны;
-- команды `/queries`, `/add`, `/edit N`, `/pause N`, `/resume N`, `/del N` должны открывать соответствующие экраны Mini App или давать понятный резервный ответ;
-- контролировать лимит запросов по текущему плану;
-- реализовать интерфейс `TenderSource`, первый адаптер `EisRssSource` и диспетчер опроса лент;
-- добавить `source_feeds` и `source_feed_items`: канонизация URL, дедупликация по `regNumber`, статус первого запуска и здоровье источника;
-- ограничить HTTP-запросы к ЕИС общим Redis rate limit, добавить timeout, лимит размера ответа, повторные попытки и проверку XML;
-- загружать карточку ЕИС только для новой или изменившейся RSS-записи, затем нормализовать её поля;
-- нормализовать данные, хранить исходный ответ и дедуплицировать по источнику и внешнему ID.
+- policies, audit events and role-aware navigation;
+- business overview, users, commerce, sources and system health read models;
+- campaign composer: segment, preview, dry-run, schedule, quiet hours,
+  rate limits and delivery ledger;
+- telemetry definition for each metric, not client-side guessed values.
 
-Критерий готовности: RSS-поллинг тестовой ленты создаёт ровно один тендер для каждого `regNumber`, первый запуск не спамит историческими данными, запрос сохраняется и редактируется.
+### F. Future PRO intelligence
 
-### Этап 3. Админ-панель и внутренний доступ
+- collect opt-in feedback and an evaluation dataset;
+- build explainable rules-based ranking improvements first;
+- define measurable quality/cost/privacy gate;
+- only then implement LLM scoring and ToR analysis behind entitlement and
+  observability.
 
-Результат: владелец управляет сервисом из браузера и использует продукт бесплатно по явному правилу доступа.
+## 6. Admin information architecture
 
-- реализовать React-раздел `/admin` с серверной авторизацией и ролями;
-- добавить список и карточку пользователя: профиль, запросы, текущий доступ, платежи и уведомления;
-- добавить выдачу, изменение и отзыв `complimentary`-доступа с причиной, сроком и аудитом;
-- добавить список платежей и безопасный просмотр статуса без редактирования данных ЮKassa вручную;
-- добавить состояние источников: последняя успешная загрузка, ошибки, объём новых тендеров;
-- ограничить массовые рассылки ролью администратора и вести журнал отправок.
+| Screen | Read model / action |
+|---|---|
+| Overview | acquisition, trial, paid conversion, revenue/refunds, campaign funnel |
+| Live Ops | recent `last_seen`, jobs, heartbeat, source age, webhook errors, latency |
+| Users | safe profile, consent, access, payments, queries, notification timeline |
+| Commerce | invoices, refunds, manual grants with reason/expiry |
+| Campaigns | draft, preview, segment count, send state, failures, cancellation |
+| Sources | health, source run details, lag, errors, new tenders |
+| Audit | immutable action/event timeline with redacted context |
 
-Критерий готовности: администратор может выдать себе бесплатный PRO-доступ, увидеть его в Mini App, отозвать его и проследить каждое действие в аудите.
+Every screen has empty/loading/error/access-denied states. Aggregates use
+server-side time windows and definitions. No separate public admin domain or
+browser password flow is planned; Mini App session plus `super_admin` policy is
+the intended owner experience.
 
-### Этап 4. Матчинг и уведомления
+## 7. Mandatory verification
 
-Результат: новый релевантный тендер приходит пользователю.
+- unit: status transitions, plan limits, matching reasons, Stars money values;
+- integration: `initData`, webhook secret, duplicate updates, payment and
+  refund idempotency, server policies, campaign limits;
+- feature: onboarding → trial → query → match → paywall → entitlement;
+- feature: super-admin data access, audit event, denied subscriber request;
+- operational: queue failure/retry, RSS failure, backup/restore and metric
+  aggregation;
+- frontend: mobile navigation, skeleton/empty/error/disabled states, keyboard,
+  touch targets, Telegram fallback and reduced motion.
 
-- сопоставить ключевые слова по нормализованному заголовку и описанию;
-- исключить минус-слова, не совпадающие регион, НМЦК и недостаточный срок подачи;
-- записать причину матчинга и простую числовую оценку;
-- поставить отправку в очередь, ограничить до 20 карточек в час на пользователя;
-- при превышении отправлять сводку с топ-10;
-- добавить кнопку «Открыть» и «Скрыть запрос».
+Before every push: `php artisan test`, `vendor/bin/pint --test`,
+`vendor/bin/phpstan analyse --memory-limit=1G`, `npm run lint`,
+`npm run format:check`, `npm run build`.
 
-Критерий готовности: тестовый тендер после импорта не дублируется и доставляется подходящему пользователю через очередь.
+## 8. External decisions before backend blocks
 
-### Этап 5. Trial, paywall и ЮKassa
+1. Managed PostgreSQL and Redis for production and durable jobs/sessions.
+2. Published offer and privacy policy versions/URLs.
+3. Basic/PRO limits and prices in Stars; subscription-period business model.
+4. Verified Telegram test account and payment/refund test cases.
+5. RSS test corpus and EIS data-source terms.
 
-Результат: продукт принимает тестовую оплату и выдаёт доступ.
-
-- создать планы «Базовый» и «Про», проверить лимиты;
-- при окончании trial замораживать запросы, не удаляя их;
-- создать оплату, хранить idempotency key и внешний ID ЮKassa;
-- принимать webhook ЮKassa, проверять подлинность и идемпотентность;
-- по успешной оплате активировать подписку и разморозить запросы;
-- реализовать `/subscribe` и `/unsubscribe`;
-- создать задачу рекуррентных списаний и повторов на дни 1, 3 и 7 при неудаче;
-- провести sandbox-проверку успеха, отказа и повтора webhook.
-
-Критерий готовности: успешная sandbox-оплата один раз продлевает доступ, повторный webhook ничего не ломает.
-
-### Этап 6. Эксплуатационная готовность MVP
-
-Результат: закрытый запуск на реальных данных.
-
-- настроить ежедневный backup PostgreSQL со сроком хранения не менее 30 дней;
-- добавить uptime-пинг раз в пять минут и уведомления об ошибках парсинга, Redis и платежей;
-- маскировать ПДн в логах;
-- выставить rate limit на Telegram и платежные webhook;
-- подготовить инструкции развёртывания, восстановления и подключения ЮKassa;
-- провести нагрузочный прогон: поток импортов и рассылку на 1 000 тестовых пользователей.
-
-Критерий готовности: выполнены пункты 1-9 раздела «Тестирование» исходного ТЗ, кроме функций следующих версий.
-
-### Этап 7. v1.1
-
-- ежедневный дайджест с настройкой времени;
-- ОКПД2 и типы закупок;
-- расширенные фильтры и отчёты админки;
-- годовые планы;
-- необязательный email-дайджест.
-
-### Этап 8. v2.0
-
-- новые источники через отдельные адаптеры;
-- LLM-скоринг только для PRO, без передачи ПДн;
-- Telegram Stars;
-- недельный дайджест, промокоды и рефералы.
-
-## 5. Правила импорта и матчинга
-
-1. В закрытом MVP `EisRssSource` использует публичные RSS-ленты расширенного поиска ЕИС; после предоставления доступа приоритет получает `EisSoiSource`.
-2. Каждый адаптер возвращает единый объект тендера; остальное приложение не должно знать формат поставщика.
-3. RSS URL проходят жёсткую проверку хоста, HTTPS, порта и пути; запрещены cookie, произвольные redirect и отключение TLS-проверки.
-4. Импорт должен быть инкрементальным: сохраняйте время успешного опроса и уникальный `regNumber`/URL записи.
-5. Сначала сохраните и дедуплицируйте тендер, затем запускайте матчинг отдельной задачей.
-6. Матчинг MVP должен быть объяснимым: «совпали слова …», «регион …», «НМЦК …». AI не заменяет правила.
-7. Уведомление уникально для пары пользователь-тендер, независимо от числа совпавших запросов; в карточке можно перечислить совпавшие запросы.
-
-## 6. Тесты, которые нельзя пропустить
-
-- unit: минус-слова, регистр, несколько ключевых слов, диапазоны НМЦК, регионы, дедлайн, ОКПД2 для v1.1;
-- unit: расчёт 72 часов, переходы статусов, лимиты планов;
-- integration: RSS ЕИС на сохранённых XML-ответах, первый запуск, дедупликация по `regNumber`, HTTP/XML/timeout-ошибки;
-- integration: проверка Telegram `initData`, запрет доступа к чужому профилю и к `/admin` без роли;
-- integration: ЮKassa success/failure/refund и повтор одного webhook;
-- integration: максимум 20 карточек за час и создание сводки;
-- feature: выдача и отзыв внутреннего доступа с записью в аудит;
-- feature: весь путь `/start` → запрос → тендер → trial/paywall → оплата;
-- нагрузка: 10 000 извещений в час и дайджест для 1 000 пользователей.
-
-## 7. Безопасность и запуск
-
-- секреты только в `.env` и защищённом хранилище CI/VPS, никогда не в репозитории;
-- HTTPS, проверка Telegram secret token и подписи/уведомления ЮKassa согласно их документации;
-- Mini App доверяет Telegram ID только после серверной проверки `initData`;
-- доступ к админке: отдельная аутентификация, роли, server-side authorization и аудит критичных действий; whitelist Telegram ID используется как дополнительная защита;
-- персональные данные маскируются в логах; в AI передаются только данные тендера и фильтры без идентификаторов пользователей;
-- до публичного запуска заказчик закрывает документы по ПДн, оферте и регистрации оператора.
-
-## 8. Технические решения, которые надо подтвердить до кода
-
-1. Каким официальным способом и на каких условиях получать извещения ЕИС через СОИ после закрытого MVP.
-2. Какой точный сценарий рекуррентных платежей доступен в договоре ЮKassa.
-3. Где будут опубликованы оферта и политика конфиденциальности.
-4. Кто получает роль администратора, как задаётся начальный администратор и какие Telegram ID добавить в дополнительный whitelist.
-5. Какие регионы, виды закупок и поля RSS ЕИС обязательны для первых тестовых пользователей.
-
-Подробности временного источника, его лимиты и план замены описаны в [RSS-MVP-SOURCE.md](RSS-MVP-SOURCE.md).
+Component ownership and motion rules: [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
+Business backlog and campaign model: [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).

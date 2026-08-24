@@ -12,3 +12,4 @@ Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
 Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
 Route::get('/tenders', fn () => Inertia::render('Tenders'))->name('tenders');
 Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
+Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');

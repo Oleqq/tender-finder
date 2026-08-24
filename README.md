@@ -1,14 +1,28 @@
 # Tender Finder
 
-Laravel 12 application with React, TypeScript, Vite and Inertia. The current
-scope is project infrastructure only; tender processing, Telegram, payments,
-RSS and Mini App authentication are deliberately not implemented yet.
+Telegram Mini App для поиска, мониторинга и объяснимого отбора тендеров.
+Проект собран как один Laravel 12-репозиторий: Laravel обслуживает серверную
+логику, Telegram, сессии, webhook и Inertia endpoints; React + TypeScript +
+Inertia создают быстрый mobile-first SPA-интерфейс без React Router.
 
-## Local setup (Laravel Herd)
+## Текущий статус
 
-Prerequisites: PHP 8.3+, Composer, Node.js 20+, PostgreSQL 16 and Redis.
-Create a local PostgreSQL database named `tender_finder`, then configure the
-credentials in `.env`.
+- Работает foundation Mini App: светлая и тёмная темы, Telegram theme
+  parameters, safe-area, AppShell и demo-экраны запуска, onboarding,
+  согласий, dashboard, тендеров и профиля.
+- Production: <https://tender-finder-navy.vercel.app/>. `GET /health`
+  возвращает JSON со статусом приложения.
+- Для бота настроена menu button, открывающая production Mini App. Это
+  безопасный demo-просмотр до включения серверной Telegram-авторизации.
+- Реальные Telegram-сессии, согласия, trial, биллинг, RSS и уведомления ещё
+  не реализованы: для них требуются managed PostgreSQL, Redis и публичные
+  юридические документы.
+
+## Локальный запуск (Laravel Herd)
+
+Нужны PHP 8.3+, Composer, Node.js 20+, PostgreSQL 16 и Redis. Создайте
+локальную PostgreSQL-базу `tender_finder`, затем настройте локальные данные в
+`.env`.
 
 ```powershell
 Copy-Item .env.example .env
@@ -17,28 +31,42 @@ composer install
 npm ci
 php artisan migrate
 npm run build
-php artisan serve
 ```
 
-Herd can serve the project as `http://tenderfinder.test`; update `APP_URL` if
-you use a different hostname. Redis is used for cache, queues and sessions.
+Herd обслуживает проект по `http://tenderfinder.test`; при другом hostname
+обновите `APP_URL` только в локальном `.env`.
 
-## Verification
+## Проверки
 
 ```powershell
-php artisan migrate:status
-composer test
-composer lint
-composer analyse
+php artisan test
+vendor/bin/pint --test
+vendor/bin/phpstan analyse --memory-limit=1G
 npm run lint
 npm run format:check
 npm run build
 ```
 
-With the server running, `GET /health` returns the application status as JSON.
+## Продуктовая модель
 
-## Configuration
+Ролей будет ровно две: `subscriber` и `super_admin`. План, trial и статус
+доступа — отдельные сущности, а не дополнительные роли. Супер-админ открывает
+административные экраны прямо внутри Mini App; сервер назначает это право
+только после проверки Telegram `initData` и сопоставления с защищённой
+конфигурацией, а не по данным клиента.
 
-`.env.example` contains only local development defaults and placeholders. Do
-not commit `.env` or any credentials. GitHub Actions supplies an isolated
-PostgreSQL and Redis instance for each push to `main`.
+Первой оплатой внутри Telegram будет Telegram Stars. Базовый план даёт
+объяснимые фильтры и мониторинг; персональный LLM-scoring и анализ ТЗ —
+следующий PRO-этап после валидации качества, стоимости и правил работы с
+данными.
+
+Подробности:
+
+- [рабочая карта продукта](docs/README.md);
+- [технический план](docs/TECHNICAL-PLAN.md);
+- [roadmap B2C, тарифов, Stars и админ-раздела](docs/PRODUCT-ROADMAP.md);
+- [дизайн-система и каталог UI-компонентов](docs/DESIGN-SYSTEM.md);
+- [текущее состояние и журнал](docs/PROGRESS.md).
+
+`.env` и любые учётные данные не входят в репозиторий. GitHub Actions
+поднимает изолированные PostgreSQL и Redis для проверок на `main`.

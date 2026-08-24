@@ -249,3 +249,153 @@ export function Toast({
         </div>
     );
 }
+
+export function InlineAlert({
+    children,
+    title,
+    tone = 'neutral',
+}: {
+    children: ReactNode;
+    title: string;
+    tone?: 'neutral' | 'success' | 'warning' | 'danger';
+}) {
+    const icon = tone === 'success' ? 'check' : tone === 'warning' ? 'spark' : 'shield';
+
+    return (
+        <aside className={join('inline-alert', `inline-alert--${tone}`)}>
+            <Icon name={icon} size={18} />
+            <div>
+                <strong>{title}</strong>
+                <p>{children}</p>
+            </div>
+        </aside>
+    );
+}
+
+export function ProgressBar({
+    label,
+    value,
+    max = 100,
+    detail,
+}: {
+    label: string;
+    value: number;
+    max?: number;
+    detail?: string;
+}) {
+    const percentage = Math.max(0, Math.min(100, (value / max) * 100));
+
+    return (
+        <div className="progress-bar">
+            <div className="progress-bar__heading">
+                <span>{label}</span>
+                {detail ? <strong>{detail}</strong> : null}
+            </div>
+            <div
+                aria-label={label}
+                aria-valuemax={max}
+                aria-valuemin={0}
+                aria-valuenow={value}
+                className="progress-bar__track"
+                role="progressbar"
+            >
+                <span style={{ width: `${percentage}%` }} />
+            </div>
+        </div>
+    );
+}
+
+export function DataRow({
+    label,
+    value,
+    detail,
+    icon,
+}: {
+    label: string;
+    value: ReactNode;
+    detail?: string;
+    icon?: IconName;
+}) {
+    return (
+        <div className="data-row">
+            {icon ? (
+                <span className="data-row__icon">
+                    <Icon name={icon} size={18} />
+                </span>
+            ) : null}
+            <span className="data-row__copy">
+                <strong>{label}</strong>
+                {detail ? <small>{detail}</small> : null}
+            </span>
+            <span className="data-row__value">{value}</span>
+        </div>
+    );
+}
+
+export function AccessGate({
+    title,
+    description,
+    action,
+}: {
+    title: string;
+    description: string;
+    action: ReactNode;
+}) {
+    return (
+        <section className="access-gate">
+            <span className="access-gate__icon">
+                <Icon name="shield" size={22} />
+            </span>
+            <div>
+                <p>Следующий уровень</p>
+                <h2>{title}</h2>
+                <span>{description}</span>
+            </div>
+            <div className="access-gate__action">{action}</div>
+        </section>
+    );
+}
+
+export function PlanCard({
+    name,
+    description,
+    features,
+    price,
+    badge,
+    action,
+    featured = false,
+}: {
+    name: string;
+    description: string;
+    features: string[];
+    price: string;
+    badge?: ReactNode;
+    action: ReactNode;
+    featured?: boolean;
+}) {
+    return (
+        <GlassCard
+            as="article"
+            className={join('plan-card', featured && 'plan-card--featured')}
+            tone={featured ? 'accent' : 'default'}
+        >
+            <div className="plan-card__heading">
+                <div>
+                    <p>{badge ?? 'План доступа'}</p>
+                    <h2>{name}</h2>
+                </div>
+                <strong>{price}</strong>
+            </div>
+            <p className="plan-card__description">{description}</p>
+            <ul>
+                {features.map((feature) => (
+                    <li key={feature}>
+                        <Icon name="check" size={16} />
+                        <span>{feature}</span>
+                    </li>
+                ))}
+            </ul>
+            <div className="plan-card__action">{action}</div>
+        </GlassCard>
+    );
+}

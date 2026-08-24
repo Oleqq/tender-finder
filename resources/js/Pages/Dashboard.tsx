@@ -66,8 +66,9 @@ export default function Dashboard() {
                                 : 'Включите мониторинг, чтобы не пропустить новые возможности.'}
                         </p>
                     </div>
-                    <span aria-hidden="true" className="dashboard-orbit">
-                        <Icon name="wave" size={27} />
+                    <span aria-hidden="true" className="dashboard-signal">
+                        <Icon name="wave" size={18} />
+                        <span>demo</span>
                     </span>
                 </section>
 
