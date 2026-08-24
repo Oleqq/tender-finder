@@ -21,10 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if ($this->app->environment('production')) {
-            // Vercel forwards requests to PHP internally. Force the public scheme
-            // so Inertia's Vite tags never point the browser at blocked HTTP assets.
+        if ($this->app->environment('production') && ! $this->app->runningInConsole()) {
+            // Vercel forwards requests to PHP internally and may retain an HTTP
+            // asset root. Use the public request host so Vite tags are HTTPS.
             URL::forceScheme('https');
+            URL::forceRootUrl('https://'.$this->app['request']->getHost());
         }
 
         Vite::prefetch(concurrency: 3);
