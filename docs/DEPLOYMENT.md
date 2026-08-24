@@ -8,7 +8,7 @@ Vercel обслуживает Laravel-приложение как PHP serverless
 
 ## Production environment variables
 
-Значения задаются в Vercel для Production и не хранятся в репозитории.
+Значения задаются в Vercel для Production и не хранятся в репозитории. Не импортируйте `.env.example` как готовую production-конфигурацию: шаблон содержит локальные адреса и пустые секреты.
 
 | Переменная | Значение |
 |---|---|
@@ -18,14 +18,20 @@ Vercel обслуживает Laravel-приложение как PHP serverless
 | `APP_URL` | Production URL проекта Vercel |
 | `LOG_CHANNEL` | `stderr` |
 | `LOG_LEVEL` | `warning` |
-| `SESSION_DRIVER` | `redis` |
-| `SESSION_SECURE_COOKIE` | `true` |
-| `CACHE_STORE` | `redis` |
-| `QUEUE_CONNECTION` | `redis` |
+| `SESSION_DRIVER` | `redis` после подключения managed Redis |
+| `SESSION_SECURE_COOKIE` | `true` после подключения managed Redis |
+| `CACHE_STORE` | `redis` после подключения managed Redis |
+| `QUEUE_CONNECTION` | `redis` после подключения managed Redis |
 | `DB_CONNECTION` | `pgsql` |
 | `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | Данные managed PostgreSQL |
 | `REDIS_CLIENT` | `phpredis` |
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD` | Данные managed Redis |
+
+## Ограничения serverless runtime
+
+Файловая система Vercel-функции неизменяема. До подключения managed Redis и PostgreSQL допустим только технический bootstrap-режим: `CACHE_STORE=array`, `SESSION_DRIVER=array`, `QUEUE_CONNECTION=sync`, а пути Laravel cache и compiled views направляются в `/tmp`. Этот режим нужен исключительно для проверки запуска; он не сохраняет сессии и не подходит для Telegram-онбординга, trial или очередей.
+
+Для Laravel в Vercel также задаются пути `APP_CONFIG_CACHE`, `APP_EVENTS_CACHE`, `APP_PACKAGES_CACHE`, `APP_ROUTES_CACHE`, `APP_SERVICES_CACHE` и `VIEW_COMPILED_PATH` в `/tmp`. Не задавайте `PHP_CLI_SERVER_WORKERS`: PHP runtime Vercel управляет процессами самостоятельно.
 
 После создания базы данных выполните миграции из доверенного окружения с этими production-переменными. Не добавляйте `.env`, токены, пароли или ключи в Git.
 
