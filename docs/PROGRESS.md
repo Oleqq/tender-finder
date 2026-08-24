@@ -154,7 +154,7 @@
 ### 2026-08-24 - HTTPS-корень Vite в production
 
 - Задача: `INF-03`.
-- Результат: для web-запросов production Laravel принудительно формирует Vite-asset URLs от HTTPS-схемы и публичного host запроса. Это дополнительно перекрывает отдельный HTTP asset root за Vercel reverse proxy.
+- Результат: для web-запросов production Laravel принудительно формирует Vite-asset URLs от HTTPS-схемы и публичного host запроса. Для Vercel добавлен прямой Vite asset resolver, чтобы отдельный HTTP asset root в configuration cache не влиял на HTML.
 - Проверка: локальные PHP, статические и frontend-проверки проходят; публичная проверка выполняется после deployment этого изменения.
 - Изменения: секреты и Vercel environment variables не изменялись.
 - Следующее действие: подтвердить `GET /` с HTTPS-ссылками на `/build/assets/` и `GET /health` с HTTP 200.
