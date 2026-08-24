@@ -155,7 +155,7 @@
 
 - Задача: `INF-03`.
 - Результат: для web-запросов production Laravel принудительно формирует Vite-asset URLs от HTTPS-схемы и публичного host запроса. Для Vercel добавлен прямой Vite asset resolver, чтобы отдельный HTTP asset root в configuration cache не влиял на HTML.
-- Проверка: локальные PHP, статические и frontend-проверки проходят; публичная проверка выполняется после deployment этого изменения.
+- Проверка: локальные PHP, статические и frontend-проверки проходят; публичные `GET /` и `GET /health` после deployment подтверждены. Корневая HTML-страница содержит только HTTPS-ссылки на `/build/assets/`, health check возвращает HTTP 200.
 - Изменения: секреты и Vercel environment variables не изменялись.
 - Следующее действие: подтвердить `GET /` с HTTPS-ссылками на `/build/assets/` и `GET /health` с HTTP 200.
 - Блокеры: нет для проверки URL; managed PostgreSQL/Redis и юридические ссылки остаются внешними блокерами серверного Telegram-этапа.
