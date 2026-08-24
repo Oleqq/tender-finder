@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Synthetic EIS fixture</title>
+    <item>
+      <title>Поддержка сайта, извещение 01234567890123456789</title>
+      <link>https://zakupki.gov.ru/epz/order/notice/ea20/view/common-info.html?regNumber=01234567890123456789</link>
+      <description>Техническая поддержка сайта</description>
+      <pubDate>Mon, 24 Aug 2026 10:00:00 +0300</pubDate>
+    </item>
+    <item>
+      <title>Разработка сайта, извещение 11234567890123456789</title>
+      <link>https://zakupki.gov.ru/epz/order/notice/ea20/view/common-info.html?regNumber=11234567890123456789</link>
+      <description>Разработка корпоративного сайта</description>
+      <pubDate>Tue, 25 Aug 2026 10:00:00 +0300</pubDate>
+    </item>
+  </channel>
+</rss>

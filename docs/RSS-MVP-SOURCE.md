@@ -1,5 +1,15 @@
 # Tender Finder: источник ЕИС через RSS для MVP
 
+## Статус реализации на 2026-08-25
+
+В репозитории уже есть `TenderSource`, `EisRssSource`, URL allowlist, XML
+parser, fixture importer, source runs, дедупликация по каноническому URL/
+`regNumber`, first-poll silence, очередь matching и лимиты. Автоматический live
+polling намеренно выключен переменной `RSS_LIVE_POLLING_ENABLED=false`: это
+защита, а не недоделка. Он не будет включён, пока `SRC-00` не зафиксирует
+проверенные EIS URLs, допустимые redirect-переходы, реальные поля и условия
+источника. Тестовые XML-файлы — synthetic examples, не реальные тендеры.
+
 ## Решение
 
 До получения доступа к сервисам отдачи информации ЕИС (СОИ) MVP получает новые закупки из публичных RSS-лент расширенного поиска `zakupki.gov.ru`.

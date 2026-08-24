@@ -30,8 +30,8 @@ Preview → value tour → legal consents → 72h trial → active Basic → exp
 |---|---|---|---|
 | Frontend foundation | Меньше blur/градиентов, библиотека компонентов, motion rules | Preview, paywall и access gates на demo-данных | Нет |
 | Frontend admin | Ролевой entry point и admin-shell на demo-данных | Дашборд, Users, Campaigns, Ops, Audit | Нужны реальные API для данных |
-| Telegram backend | Проверка `initData`, сессия, `/start`, `/help`, согласия | trial и уведомления | PostgreSQL, Redis, legal URLs |
-| Tender core | Фильтры, Query API, RSS adapter и дедупликация | Объяснимый rules matching и delivery queue | Набор RSS/канал ЕИС |
+| Telegram backend | Код проверки `initData`, session, `/start`, `/help`, consents и trial готов | VPS activation, reminders и real bot smoke-test | PostgreSQL, Redis, legal URLs, Telegram secrets |
+| Tender core | Query API, fixture RSS adapter, дедупликация и deterministic matching готовы | SRC-00, live polling и delivery smoke-test | Набор RSS/канал ЕИС, VPS |
 | Commerce | Plan/entitlement domain и paywall API | Stars invoice, pre-checkout, successful payment, refund | Цены/условия, PostgreSQL/Redis |
 | Admin backend | Policy, audit events, read models | Campaign queue, limits, system-health aggregation | Ранее перечисленные домены |
 | PRO intelligence | Схема feedback и evaluation dataset | Scoring + ToR analysis после quality/cost gate | Измерения и решение о модели |

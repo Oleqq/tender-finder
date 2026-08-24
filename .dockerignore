@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+.git
+.github
+node_modules
+vendor
+public/build
+storage/logs
+dump.rdb
+tmp-free-zakupki-monitor
+*.md

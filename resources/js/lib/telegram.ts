@@ -15,6 +15,7 @@ type TelegramThemeParams = {
 };
 
 type TelegramWebApp = {
+    initData?: string;
     colorScheme?: 'light' | 'dark';
     themeParams?: TelegramThemeParams;
     viewportStableHeight?: number;

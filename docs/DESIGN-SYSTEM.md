@@ -47,7 +47,7 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Actions | button, icon button, toast, bottom sheet/modal | confirmation dialog, undo, destructive action pattern |
 | Inputs | input/search, chips, segmented control, switch, select/combobox, multi-select, date range, money range, validation | slider, stepper, saved-filter persistence |
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
-| Tender UI | tender card, demo metrics | tender detail, save/hide, match explanation, compare, saved filter |
+| Tender UI | tender card, demo metrics, authenticated «Мониторинги» с server form для keywords/minus/region/money/deadline и pause/freeze | tender detail, save/hide, match explanation, compare, saved filter |
 | Commerce | plan card, preview paywall, access gate, Basic/PRO comparison, demo checkout states and access-state preview | Stars invoice state, entitlement gate API, subscription management |
 | Admin | role-aware shell variant, read-only demo Overview/Live Ops, metric grid, health/data rows | server policy, real read models, chart wrapper, filter bar, user drawer, timeline, campaign composer, delivery funnel, audit event |
 
@@ -71,9 +71,16 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 только из доверенного server-side session/policy после проверки Telegram
 `initData`.
 
+Экран `/queries` уже является защищённым Inertia-маршрутом: без server session
+он ведёт обратно в onboarding, а с session сохраняет запрос через Laravel.
+Browser preview не получает скрытого доступа к данным. Пока production не
+прошёл VPS/Telegram smoke-test, этот экран проверяется локально и не рекламирует
+несуществующие live результаты.
+
 ## Ближайший UI-инкремент
 
-1. Подключить primitives к настоящему query builder после появления domain/API.
+1. Добавить query edit/detail, причины match и реальные empty/loading/retry
+   states поверх готового domain/API.
 2. Добавить invoice/loading/error patterns только вместе с серверным Stars API.
 3. Заменить Operations demo server-side policy и read models после managed
    PostgreSQL/Redis и validated Telegram session.

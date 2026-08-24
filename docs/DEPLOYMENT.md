@@ -1,46 +1,118 @@
-# Развёртывание в Vercel
+# Tender Finder: развёртывание и безопасное переключение
 
-## Назначение
+## Коротко
 
-Vercel обслуживает Laravel-приложение как PHP serverless function и выдаёт HTTPS-адрес для Telegram Mini App и webhook. Конфигурация находится в `vercel.json`; в панели Vercel выберите framework preset `Other` и корневую директорию `./`.
+Сейчас Vercel обслуживает безопасный demo Mini App и остаётся rollback-контуром.
+Настоящие сессии Telegram, очередь, scheduler, trial и RSS требуют постоянного
+runtime. Для него подготовлен один VPS с контейнерами `web`, `queue`,
+`scheduler` и Caddy. PostgreSQL и Redis должны быть managed-сервисами вне VPS.
 
-Сборка публикует только скомпилированные Vite-ассеты в `dist/build`. Все HTTP-маршруты приложения направляются в Laravel serverless function.
+Ничего из этого документа не означает, что переключение уже выполнено. Для
+production нужны доступ к VPS, домен, managed connection strings, публичные
+legal URLs и Telegram secrets. Эти значения никогда не попадают в Git,
+документацию или логи.
 
-## Production environment variables
+## Из чего состоит runtime
 
-Значения задаются в Vercel для Production и не хранятся в репозитории. Не импортируйте `.env.example` как готовую production-конфигурацию: шаблон содержит локальные адреса и пустые секреты.
-
-| Переменная | Значение |
-|---|---|
-| `APP_ENV` | `production` |
-| `APP_DEBUG` | `false` |
-| `APP_KEY` | Новый ключ Laravel, хранится как sensitive variable |
-| `APP_URL` | Production URL проекта Vercel |
-| `LOG_CHANNEL` | `stderr` |
-| `LOG_LEVEL` | `warning` |
-| `SESSION_DRIVER` | `redis` после подключения managed Redis |
-| `SESSION_SECURE_COOKIE` | `true` после подключения managed Redis |
-| `CACHE_STORE` | `redis` после подключения managed Redis |
-| `QUEUE_CONNECTION` | `redis` после подключения managed Redis |
-| `DB_CONNECTION` | `pgsql` |
-| `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | Данные managed PostgreSQL |
-| `REDIS_CLIENT` | `phpredis` |
-| `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD` | Данные managed Redis |
-
-## Ограничения serverless runtime
-
-Файловая система Vercel-функции неизменяема. До подключения managed Redis и PostgreSQL допустим только технический bootstrap-режим: `CACHE_STORE=array`, `SESSION_DRIVER=array`, `QUEUE_CONNECTION=sync`, а пути Laravel cache и compiled views направляются в `/tmp`. Этот режим нужен исключительно для проверки запуска; он не сохраняет сессии и не подходит для Telegram-онбординга, trial или очередей.
-
-Для Laravel в Vercel также задаются пути `APP_CONFIG_CACHE`, `APP_EVENTS_CACHE`, `APP_PACKAGES_CACHE`, `APP_ROUTES_CACHE`, `APP_SERVICES_CACHE` и `VIEW_COMPILED_PATH` в `/tmp`. Не задавайте `PHP_CLI_SERVER_WORKERS`: PHP runtime Vercel управляет процессами самостоятельно.
-
-Имя `LOG_CHANNEL` нормализуется приложением перед выбором канала, поэтому случайный завершающий перевод строки в панели окружения не переключит Laravel на файловый emergency log.
-
-После создания базы данных выполните миграции из доверенного окружения с этими production-переменными. Не добавляйте `.env`, токены, пароли или ключи в Git.
-
-## Проверка
-
-После production deploy проверьте `GET /health`. Ожидаемый ответ:
-
-```json
-{"status":"ok","application":"Tender Finder"}
+```text
+Internet / Telegram
+        │ HTTPS
+      Caddy
+        │
+      web (Laravel) ─────────── managed PostgreSQL
+        │  └ session/auth                 ▲
+        │                                 │
+      queue (Laravel worker) ─────── managed Redis
+        │  └ bot / matching / delivery    ▲
+        │                                 │
+      scheduler (Laravel schedule:work) ──┘
 ```
+
+Файлы для этого контура:
+
+- `Dockerfile` — один собранный PHP+frontend image;
+- `compose.production.yml` — процессы `web`, `queue`, `scheduler`, Caddy и
+  отдельная operator-only migration job;
+- `deploy/Caddyfile` — HTTPS reverse proxy;
+- `deploy/entrypoint.sh` — кэш конфигурации/маршрутов без вывода secrets;
+- `.env.example` — список имён переменных, не набор реальных значений.
+
+## Что подготовить оператору
+
+1. VPS с Docker Engine и Compose plugin, домен с A/AAAA записью на VPS и
+   открытыми TCP 80/443.
+2. Managed PostgreSQL 16: отдельный database/user, TLS по требованиям
+   провайдера, backup и проверенный restore.
+3. Managed Redis: TLS/пароль по требованиям провайдера, отдельные DB/namespace
+   для session/cache/queue и доступ только с VPS.
+4. Секретный store VPS (или защищённый некоммитируемый `.env.production`) с
+   `APP_KEY`, DB/Redis, Telegram token/webhook secret/owner ID, legal URLs и
+   versions, `OPERATIONS_READINESS_TOKEN`.
+5. Значения runtime: `APP_ENV=production`, `APP_DEBUG=false`,
+   `SESSION_SECURE_COOKIE=true`, `SESSION_DRIVER=redis`, `CACHE_STORE=redis`,
+   `QUEUE_CONNECTION=redis`, `DB_CONNECTION=pgsql` и `APP_DOMAIN` для Caddy.
+
+Не запускайте `.env.example` как production-файл: он специально пустой в
+чувствительных местах и содержит локальные примеры.
+
+## Первый запуск без переключения Telegram
+
+На VPS в checkout репозитория оператор выполняет следующие шаги. Команды не
+содержат secrets; перед ними они уже должны быть в secret store.
+
+```sh
+docker compose -f compose.production.yml build
+docker compose -f compose.production.yml --profile ops run --rm migrate
+docker compose -f compose.production.yml up -d web queue scheduler caddy
+```
+
+Затем обязательно проверить:
+
+1. Public `GET /health` возвращает только `status: ok` — это liveness и он
+   намеренно не раскрывает доступность PostgreSQL/Redis.
+2. Operator делает `GET /ops/readiness` с Bearer readiness token. Успех
+   означает, что Laravel смог выполнить `select 1` в PostgreSQL и `PING` Redis;
+   при ошибке виден только `not_ready`, без строки подключения.
+3. `docker compose ... ps`, logs web/queue/scheduler, Laravel migrations и
+   HTTPS certificate Caddy выглядят штатно.
+4. На отдельном тестовом Telegram-пользователе проверяются signed Mini App
+   session, consent, ровно один trial, `/start` и `/help`. Ни цены Stars, ни
+   live RSS на этом шаге не включаются.
+
+## Controlled cutover и rollback
+
+После успешного smoke-test:
+
+1. Установить VPS HTTPS URL как URL Mini App/menu button.
+2. Установить Telegram webhook на VPS с секретным token header.
+3. Наблюдать health, readiness, queue failures, webhook updates и source runs.
+4. Только после SRC-00 включить `RSS_LIVE_POLLING_ENABLED=true`; прежде этого
+   работают только synthetic fixtures.
+
+Если smoke-test или наблюдение не проходят, вернуть menu button/webhook на
+Vercel demo URL. Не откатывать миграции на живых данных автоматически: сначала
+остановить пользовательские mutations, взять backup и определить обратимую
+процедуру для конкретной migration.
+
+## Что Vercel делает дальше
+
+Vercel не удаляется и не превращается в real worker: там остаётся текущий
+public demo/rollback. Его serverless filesystem и короткие процессы не подходят
+для очередей и scheduler. После устойчивого VPS периода Vercel можно оставить
+как static rollback или закрыть отдельным инфраструктурным решением.
+
+## Проверки при каждом обновлении
+
+До push выполняются локально:
+
+```powershell
+npm run build
+php artisan test
+vendor/bin/pint --test
+vendor/bin/phpstan analyse --memory-limit=1G
+npm run lint
+npm run format:check
+```
+
+Перед migration в production: backup, operator readiness, deployment smoke-test
+и план rollback. Подробная таблица и порядок migration: [DATABASE.md](DATABASE.md).

@@ -89,10 +89,12 @@ server-side policy проверяется в каждом Inertia endpoint и м
    от избыточного «нейро-glass» к контрастному data-first стилю.
 2. Сделать клиентские preview/paywall/plan-экраны на прозрачных demo-данных и
    заглушки будущих admin-разделов.
-3. Подключить managed PostgreSQL и Redis, затем серверную Telegram-сессию,
-   согласия, `/start`, `/help`, webhook и trial.
-4. Реализовать Базовый план: запросы, RSS-импорт, объяснимый матчинг и
-   уведомления.
+3. Развернуть готовый server foundation на VPS с managed PostgreSQL и Redis,
+   затем выполнить real Telegram smoke-test: сессия, согласия, `/start`,
+   `/help`, webhook и trial.
+4. Включить Базовый план после SRC-00: запросы, уже готовый fixture-пайплайн
+   RSS, объяснимый матчинг и уведомления. Live polling не включается по
+   умолчанию.
 5. Реализовать Telegram Stars, paywall и subscription lifecycle с тестами.
 6. Включить встроенные admin-экраны, кампании, operational telemetry и audit.
 7. После измерения базового опыта спроектировать PRO-scoring: правила +
@@ -101,7 +103,7 @@ server-side policy проверяется в каждом Inertia endpoint и м
 
 ## Зависимости до реального запуска
 
-- managed PostgreSQL и Redis;
+- managed PostgreSQL и Redis, подключённые к VPS runtime;
 - публичные ссылки на оферту и политику конфиденциальности;
 - согласованные лимиты и цены планов в Telegram Stars;
 - тестовый Telegram-аккаунт для полного платежного сценария;
@@ -109,4 +111,16 @@ server-side policy проверяется в каждом Inertia endpoint и м
 
 См. также [технический план](TECHNICAL-PLAN.md), [roadmap](PRODUCT-ROADMAP.md),
 [дизайн-систему](DESIGN-SYSTEM.md), [RSS-источник](RSS-MVP-SOURCE.md) и
-[журнал прогресса](PROGRESS.md).
+[журнал прогресса](PROGRESS.md) и [схему БД](DATABASE.md).
+
+## Что уже появилось на сервере, но ещё не включено пользователям
+
+Код больше не ограничивается demo UI: в нём есть migrations нормальной БД,
+проверка подписанного Telegram `initData`, одноразовый 72-часовой trial,
+идемпотентные согласия и webhook, защищённый список мониторингов, RSS fixtures,
+детерминированный matching и очередь уведомлений с антиспам-лимитом. Это не
+означает, что feature уже работает в production: до VPS/managed services/legal
+URLs все прежние browser-экраны остаются честным preview.
+
+Новая понятная карта таблиц и границ данных находится в
+[DATABASE.md](DATABASE.md). Там же объяснено, какие данные сервис не хранит.

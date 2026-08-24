@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
@@ -19,10 +19,12 @@ import {
     TenderCardSkeleton,
     Toast,
 } from '../Components/ui';
+import type { PageProps } from '../types';
 
 type FeedState = 'ready' | 'loading' | 'error' | 'offline';
 
 export default function Tenders() {
+    const { auth } = usePage<PageProps>().props;
     const [selectedFilter, setSelectedFilter] = useState('Все');
     const [feedState, setFeedState] = useState<FeedState>('ready');
     const [filtersOpen, setFiltersOpen] = useState(false);
@@ -137,9 +139,15 @@ export default function Tenders() {
                 <section className="empty-hint page-enter page-enter--later">
                     <Icon name="spark" size={17} />
                     <p>
-                        Все значения и состояния на этом экране — образцы. Сохранение
-                        фильтров появится вместе с постоянной базой данных.
+                        {auth.user
+                            ? 'Telegram-сессия подтверждена. Создайте настоящий мониторинг в защищённом разделе.'
+                            : 'Все значения и состояния на этом экране — образцы. Сохранение фильтров доступно только после server-side Telegram-сессии.'}
                     </p>
+                    {auth.user ? (
+                        <Link className="empty-hint__link" href="/queries">
+                            К мониторингам <Icon name="chevron-right" size={16} />
+                        </Link>
+                    ) : null}
                 </section>
 
                 <BottomSheet

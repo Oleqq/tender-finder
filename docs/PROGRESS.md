@@ -6,15 +6,15 @@
 
 | Поле | Значение |
 |---|---|
-| Текущий этап | Этап 1: data-first SPA-оболочка, preview/paywall и каталог UI-компонентов |
-| Статус MVP | Foundation Mini App, access/paywall demo и UI-каталог готовы; product roadmap обновлён под B2C, Telegram Stars и встроенный super-admin. Реальные Telegram-сессии, согласия, trial и commerce ждут юридические ссылки и managed PostgreSQL/Redis |
+| Текущий этап | Server foundation: DB, identity/access, webhook и Basic tender core подготовлены к VPS activation |
+| Статус MVP | Код и тесты серверных этапов готовы локально; production всё ещё работает как Vercel demo, пока не появятся VPS, managed PostgreSQL/Redis, public legal URLs и Telegram smoke-test |
 | Стек | PHP 8.3 + Laravel, React + TypeScript |
 | Основной интерфейс клиента | Telegram Mini App на домене проекта |
 | Админка | Ролевые экраны внутри того же Telegram Mini App; доступны только `super_admin` после server-side проверки |
 | Главный источник MVP | Публичный RSS расширенного поиска ЕИС, закрытая бета |
 | Источник после MVP | СОИ ЕИС или лицензированный поставщик данных |
 | Платежи MVP | Telegram Stars для цифрового доступа внутри Telegram; цены и модель продления требуют продуктового решения |
-| Последнее обновление | 2026-08-24 |
+| Последнее обновление | 2026-08-25 |
 
 ## Доска задач
 
@@ -26,27 +26,28 @@
 | DEC-01 | Подтвердить Laravel + React как стек MVP | Подготовка | DONE | Решение зафиксировано в документации | Нет |
 | DEC-02 | Зафиксировать Mini App как основной интерфейс, а бота как канал и вход | Подготовка | DONE | Архитектура отражена в документации | Нет |
 | ADM-01 | Спроектировать встроенный admin-раздел, роли и внутренний доступ | Подготовка | DONE | Две роли, access model, audit и screen map отражены в документации | Нет |
+| DB-01 | Спроектировать и реализовать нормализованную schema foundation | Server foundation | DONE | Migrations, `DATABASE.md`, индексы и SQLite tests готовы; production migration ожидает managed PostgreSQL | Managed PostgreSQL/VPS activation |
 | EXT-01 | Получить документацию и доступный способ интеграции ЕИС через СОИ | Подготовка | TODO | Есть тестовый запрос и описание лимитов | Заказчик/ЕИС |
 | EXT-02 | Зафиксировать цены/лимиты и правила продления в Telegram Stars | Подготовка | TODO | Подтверждённая матрица планов и тестовые сценарии оплаты/возврата | Заказчик |
 | EXT-03 | Подготовить оферту и политику конфиденциальности | Подготовка | TODO | Стабильные публичные ссылки | Заказчик/юрист |
-| INF-01 | Создать Laravel + React-проект и Docker-окружение | Этап 0 | BLOCKED | Laravel, Inertia/React, PostgreSQL и Redis настроены для локальной работы через Herd; Docker отложен как необязательный | Указать пароль PostgreSQL в локальном `.env` |
+| INF-01 | Создать Laravel + React-проект и Docker-окружение | Этап 0 | IN PROGRESS | Готовы image, Compose web/queue/scheduler/Caddy и VPS runbook; нужен внешний container smoke-test | VPS, managed PostgreSQL/Redis, домен |
 | INF-02 | Настроить CI, `.env.example`, health check и логи | Этап 0 | DONE | Проверки настроены для CI, `/health` возвращает JSON, логи структурированы | Нет |
 | INF-03 | Подготовить Vercel production-контур | Переход к этапу 1 | DONE | Production `GET /health` возвращает ожидаемый JSON | Managed PostgreSQL и Redis нужны перед включением пользовательских сценариев |
-| WEB-01 | Реализовать React-каркас Mini App и проверку Telegram `initData` | Этап 1 | IN PROGRESS | Design system, SPA-экраны и безопасная серверная проверка `initData` готовы | Managed PostgreSQL/Redis и публичные юридические ссылки для серверной части |
+| WEB-01 | Реализовать React-каркас Mini App и проверку Telegram `initData` | Этап 1 | IN PROGRESS | Design system, SPA, signed session endpoint и secure role bootstrap готовы; нужен production smoke-test | VPS, managed PostgreSQL/Redis, Telegram secrets |
 | WEB-02 | Собрать preview, paywall и access-aware UI на demo-данных | Этап 1 | DONE | Все состояния до/после оплаты, loading/error/empty и reduced motion проверены | Нет |
 | WEB-03 | Уточнить data-first дизайн и расширить component library | Этап 1 | DONE | Новые элементы собраны из tokens, blur уменьшен, catalogue актуален | Нет |
-| BOT-01 | Подключить Telegram webhook и `/start`, `/help` | Этап 1 | BLOCKED | Бот открывает Mini App и отвечает в тестовом чате | Стабильный production health check, managed PostgreSQL и Redis |
-| BOT-02 | Реализовать согласия, trial 72 часа и напоминания | Этап 1 | BLOCKED | Trial выдаётся один раз, напоминания идемпотентны | Публичные ссылки на оферту и политику конфиденциальности |
-| QRY-01 | Реализовать мастер создания и управления запросами | Этап 2 | TODO | Запросы создаются, изменяются, ставятся на паузу | Нет |
+| BOT-01 | Подключить Telegram webhook и `/start`, `/help` | Этап 1 | IN PROGRESS | Secret check, deduplication, queue job и reply logic готовы; нужны HTTPS webhook и test chat | VPS, Telegram secrets, managed Redis |
+| BOT-02 | Реализовать согласия, trial 72 часа и напоминания | Этап 1 | IN PROGRESS | Append-only consent и one-time 72h trial готовы; reminders и production activation ждут legal URLs | Публичные ссылки на оферту и политику конфиденциальности |
+| QRY-01 | Реализовать мастер создания и управления запросами | Этап 2 | IN PROGRESS | Authenticated server API/UI для create/edit/pause/resume/freeze готов; production activation и расширенная форма впереди | VPS activation |
 | SRC-00 | Подготовить и вручную проверить RSS-ленты ЕИС для тестовых сценариев | Этап 2 | TODO | URL лент, поля и задержка зафиксированы в тестовом наборе | Нет |
-| SRC-01 | Реализовать `EisRssSource`, polling и дедупликацию | Этап 2 | TODO | Повторный опрос не создаёт дубликаты и не спамит при первом запуске | SRC-00 |
-| SRC-02 | Реализовать мониторинг RSS-источника и лимит 100 уникальных лент | Этап 2 | TODO | Ошибки видны в админке, лимит технически enforced | SRC-01 |
+| SRC-01 | Реализовать `EisRssSource`, polling и дедупликацию | Этап 2 | IN PROGRESS | Fixture parser/import, URL allowlist, errors и first-poll silence проверены; live fetch выключен до SRC-00 | SRC-00 |
+| SRC-02 | Реализовать мониторинг RSS-источника и лимит 100 уникальных лент | Этап 2 | IN PROGRESS | Schema source runs и code limit 100/10m/global throttle готовы; real telemetry/admin screen ждут live source | SRC-00, VPS |
 | ADM-02 | Реализовать super-admin shell, policies и аудит внутри Mini App | Этап 3 | TODO | Только super-admin видит и проходит admin endpoints, действия аудируются | Identity/access domain |
 | ADM-04 | Реализовать admin read models: Overview, Live Ops, Users, Sources | Этап 3 | TODO | Метрики имеют server-side определение и реальные states | ADM-02, core data |
 | ADM-05 | Реализовать кампании и Telegram-алерты | Этап 3 | TODO | Preview, сегмент, limits, delivery journal и отмена протестированы | ADM-02, NTF-01 |
 | ADM-03 | Реализовать бесплатный внутренний доступ | Этап 3 | TODO | Доступ выдаётся/отзывается без подмены платежей | ADM-02 |
-| MAT-01 | Реализовать базовый матчинг | Этап 3 | TODO | Корректные совпадения в тестах | Нет |
-| NTF-01 | Реализовать уведомления и антиспам | Этап 3 | TODO | Не более 20 карточек/час, затем сводка | Нет |
+| MAT-01 | Реализовать базовый матчинг | Этап 3 | DONE | Deterministic keyword/minus/region/budget/deadline reasons покрыты tests | Нет |
+| NTF-01 | Реализовать уведомления и антиспам | Этап 3 | IN PROGRESS | Delivery ledger, idempotency и 20/hour → digest queue готовы; Telegram delivery ждёт real bot/runtime smoke-test | VPS, Telegram secrets |
 | PAY-01 | Реализовать планы, paywall и Telegram Stars | Этап 4 | TODO | Успешная тестовая Stars-оплата активирует доступ ровно один раз | EXT-02, PostgreSQL/Redis |
 | PAY-02 | Реализовать lifecycle, возвраты и биллинг-уведомления | Этап 4 | TODO | Статусы, refund и повтор update проверены | PAY-01 |
 | PRO-01 | Спроектировать evaluation и feedback для персонального scoring | Future PRO | TODO | Есть измеримая модель качества и privacy/cost gate | Данные Basic-плана |
@@ -211,6 +212,16 @@
 - Изменения: только frontend/demo и документация. Telegram auth, Stars invoice, persistence, trial, payment event, webhook и server access policy не добавлялись.
 - Следующее действие: ждать managed PostgreSQL/Redis и public legal URLs для server-side `WEB-01` / `BOT-01` / `BOT-02`; до этого допустимы только отдельные UI/documentation improvements без имитации backend-эффектов.
 - Блокеры: managed PostgreSQL, Redis, public offer/privacy URLs, зафиксированные Basic limits/prices и Telegram test account нужны до реального trial, checkout и ролей.
+
+### 2026-08-25 - server foundation, красивая БД и безопасный Basic core
+
+- Задачи: `DB-01`, `INF-01`, серверная часть `WEB-01`, `BOT-01`, `BOT-02`, `QRY-01`, `SRC-01`, `SRC-02`, `MAT-01`, `NTF-01`.
+- Простое объяснение: проект получил «настоящий фундамент», но не был тайно включён для людей. Теперь сервер умеет отличать проверенный Telegram-вход от browser preview, помнить согласия и один trial, хранить мониторинги и безопасно разбирать учебные RSS-ленты. В production пока по-прежнему только demo, поэтому никто не получил trial, уведомление или admin-доступ случайно.
+- Результат: добавлены нормализованные migrations для identity/access/query/source/tender/delivery, отдельные роли `subscriber`/`super_admin`, verified `POST /telegram/session`, append-only consents, 72h trial, protected webhook с дедупликацией, queue jobs `/start`/`/help`, query API/UI, RSS fixture importer, deterministic matching и delivery ledger с anti-spam limit. Созданы `DATABASE.md`, VPS Compose/Caddy runtime и новый deployment runbook.
+- Безопасность: raw initData/webhook payload, Telegram secrets, owner ID и cookies не сохраняются. Роль назначается только после HMAC verification. `GET /health` не зависит от сервисов; `GET /ops/readiness` требует Bearer token и не раскрывает connection details. Live RSS выключен конфигурацией до `SRC-00`.
+- Проверка: добавлены тесты forged/expired initData, owner/non-owner role, duplicate consent/trial/webhook, trial duration, query limit, RSS first-poll silence/dedup/invalid source и explainable matching. Перед commit/push прошли `npm run build`, `php artisan test` (22 passed, 145 assertions), Pint, PHPStan, ESLint и Prettier. В in-app browser на 390×844 проверен anonymous fallback `/queries` → onboarding без console errors; это подтверждает, что browser preview не обходит server auth. Docker отсутствует на локальной машине, поэтому container smoke-test остаётся задачей VPS.
+- Следующее действие: получить VPS, managed PostgreSQL/Redis и public offer/privacy URLs; сделать container smoke-test, production migration и только затем переключить Telegram menu/webhook. Отдельно завершить reminders, RSS URL validation `SRC-00`, real telemetry/admin и Stars.
+- Блокеры: доступ к VPS, production domain, managed PostgreSQL/Redis, Telegram secrets/test chat, public legal URLs и вручную подтверждённые EIS RSS URLs/terms. Значения не хранятся в Git.
 
 ## Шаблон новой записи
 

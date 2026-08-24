@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Vite as ViteManager;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('telegram-session', fn (Request $request): Limit => Limit::perMinute(12)
+            ->by('telegram-session:'.$request->ip()));
+        RateLimiter::for('telegram-webhook', fn (Request $request): Limit => Limit::perMinute(120)
+            ->by('telegram-webhook:'.$request->ip()));
+
         if (! $this->app->runningInConsole()) {
             $host = $this->app['request']->getHost();
             $isVercelRequest = str_ends_with($host, '.vercel.app');

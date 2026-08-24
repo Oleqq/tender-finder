@@ -14,9 +14,10 @@ Inertia создают быстрый mobile-first SPA-интерфейс без
   возвращает JSON со статусом приложения.
 - Для бота настроена menu button, открывающая production Mini App. Это
   безопасный demo-просмотр до включения серверной Telegram-авторизации.
-- Реальные Telegram-сессии, согласия, trial, биллинг, RSS и уведомления ещё
-  не реализованы: для них требуются managed PostgreSQL, Redis и публичные
-  юридические документы.
+- Серверная foundation уже реализована и протестирована: verified Telegram
+  session, согласия, разовый 72-часовой trial, webhook, query domain, RSS
+  fixtures и matching. Она ещё не включена в production: для этого нужны VPS,
+  managed PostgreSQL/Redis, legal URLs и операторский smoke-test.
 
 ## Локальный запуск (Laravel Herd)
 
@@ -66,6 +67,8 @@ npm run build
 - [технический план](docs/TECHNICAL-PLAN.md);
 - [roadmap B2C, тарифов, Stars и админ-раздела](docs/PRODUCT-ROADMAP.md);
 - [дизайн-система и каталог UI-компонентов](docs/DESIGN-SYSTEM.md);
+- [понятная схема БД и технический справочник](docs/DATABASE.md);
+- [VPS cutover и rollback runbook](docs/DEPLOYMENT.md);
 - [текущее состояние и журнал](docs/PROGRESS.md).
 
 `.env` и любые учётные данные не входят в репозиторий. GitHub Actions

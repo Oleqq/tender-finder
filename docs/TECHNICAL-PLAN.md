@@ -136,20 +136,26 @@ entitlement и не отправляют запросов, способных п
 - feature tests маршрутов, визуальная проверка mobile viewport и reduced
   motion.
 
-### B. Identity, consents, trial
+### B. Identity, consents, trial — кодовая foundation готова, production ждёт readiness
 
-- migrations пользователей, consents, role/access domain;
-- server validation `initData`, secure session, `/start`, `/help`, webhook;
-- consent flow, one-time 72h trial, reminders 24h/3h;
-- integration tests: forged initData, duplicate trial, repeat update.
+- migrations пользователей, consents, role/access domain — реализованы;
+- server validation `initData`, secure session, `/start`, `/help`, webhook —
+  реализованы и покрыты forged/expired/duplicate tests;
+- consent flow и one-time 72h trial — реализованы; reminders 24h/3h остаются
+  отдельной задачей после production activation;
+- activation gate: managed PostgreSQL/Redis, public legal URLs, VPS HTTPS
+  smoke-test и настройка Telegram secrets вне Git.
 
-### C. Basic tender core
+### C. Basic tender core — fixtures и domain готовы, live source выключен
 
-- query builder: keywords, minus words, region, budget, deadline;
-- `TenderSource`, `EisRssSource`, canonical URL validation, rate limits,
-  timeout, XML validation and deduplication;
-- explainable deterministic matching and notification queue;
-- tests: RSS first run, duplicates, filter limits, delivery anti-spam.
+- authenticated query API/UI: keywords, minus words, region, budget, deadline,
+  pause/freeze и server-side limit 3 active queries;
+- `TenderSource`, `EisRssSource`, canonical URL validation, timeout/size/XML
+  errors and deduplication; synthetic fixtures prove first-poll silence;
+- explainable deterministic matching and notification delivery ledger with
+  20 cards/hour → top-10 digest rule;
+- live external fetch is guarded by `RSS_LIVE_POLLING_ENABLED=false` until
+  SRC-00 confirms EIS RSS URLs, allowed redirect behavior and terms.
 
 ### D. Commerce and Basic activation
 
@@ -218,3 +224,4 @@ Before every push: `php artisan test`, `vendor/bin/pint --test`,
 
 Component ownership and motion rules: [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
 Business backlog and campaign model: [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+Data model, simple explanation and migration runbook: [DATABASE.md](DATABASE.md).
