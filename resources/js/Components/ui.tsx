@@ -1,4 +1,9 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import type {
+    ButtonHTMLAttributes,
+    InputHTMLAttributes,
+    ReactNode,
+    SelectHTMLAttributes,
+} from 'react';
 import { Icon, type IconName } from './Icon';
 
 const join = (...classes: Array<string | false | null | undefined>): string =>
@@ -161,6 +166,349 @@ export function Toggle({
 
 export function Skeleton({ className }: { className?: string }) {
     return <span aria-busy="true" className={join('skeleton', className)} />;
+}
+
+export function MetricTrend({
+    value,
+    direction = 'up',
+    label,
+}: {
+    value: string;
+    direction?: 'up' | 'down' | 'neutral';
+    label?: string;
+}) {
+    return (
+        <span
+            aria-label={label}
+            className={join('metric-trend', `metric-trend--${direction}`)}
+        >
+            {direction === 'up' ? '↗' : direction === 'down' ? '↘' : '•'} {value}
+        </span>
+    );
+}
+
+export function MetricCardSkeleton() {
+    return (
+        <section
+            aria-label="Загрузка метрики"
+            className="glass-card metric-card metric-card--skeleton"
+        >
+            <Skeleton className="skeleton--metric-icon" />
+            <Skeleton className="skeleton--metric-label" />
+            <Skeleton className="skeleton--metric-value" />
+            <Skeleton className="skeleton--metric-detail" />
+        </section>
+    );
+}
+
+export function TenderCardSkeleton() {
+    return (
+        <section
+            aria-label="Загрузка тендера"
+            className="glass-card tender-card tender-card--skeleton"
+        >
+            <div className="tender-card__meta">
+                <Skeleton className="skeleton--badge" />
+                <Skeleton className="skeleton--match" />
+            </div>
+            <Skeleton className="skeleton--tender-title" />
+            <Skeleton className="skeleton--tender-customer" />
+            <div className="tender-card__footer">
+                <Skeleton className="skeleton--tender-price" />
+                <Skeleton className="skeleton--tender-deadline" />
+            </div>
+        </section>
+    );
+}
+
+export function DataRowSkeleton() {
+    return (
+        <div
+            aria-label="Загрузка строки данных"
+            className="data-row data-row--skeleton"
+        >
+            <Skeleton className="skeleton--data-icon" />
+            <span className="data-row__copy">
+                <Skeleton className="skeleton--data-label" />
+                <Skeleton className="skeleton--data-detail" />
+            </span>
+            <Skeleton className="skeleton--data-value" />
+        </div>
+    );
+}
+
+export function SelectField({
+    label,
+    options,
+    error,
+    className,
+    ...props
+}: SelectHTMLAttributes<HTMLSelectElement> & {
+    label: string;
+    options: Array<{ value: string; label: string }>;
+    error?: string;
+}) {
+    const fieldId = props.id ?? `select-${label}`;
+
+    return (
+        <label className={join('form-field', error && 'has-error', className)}>
+            <span>{label}</span>
+            <select
+                aria-describedby={error ? `${fieldId}-error` : undefined}
+                id={fieldId}
+                {...props}
+            >
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+            {error ? <FieldError id={`${fieldId}-error`}>{error}</FieldError> : null}
+        </label>
+    );
+}
+
+export function Combobox({
+    label,
+    value,
+    onChange,
+    options,
+    placeholder,
+    error,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    options: string[];
+    placeholder?: string;
+    error?: string;
+}) {
+    const listId = `combobox-${label}`;
+
+    return (
+        <label className={join('form-field', error && 'has-error')}>
+            <span>{label}</span>
+            <input
+                aria-describedby={error ? `${listId}-error` : undefined}
+                aria-expanded="false"
+                autoComplete="off"
+                list={listId}
+                onChange={(event) => onChange(event.target.value)}
+                placeholder={placeholder}
+                role="combobox"
+                value={value}
+            />
+            <datalist id={listId}>
+                {options.map((option) => (
+                    <option key={option} value={option} />
+                ))}
+            </datalist>
+            {error ? <FieldError id={`${listId}-error`}>{error}</FieldError> : null}
+        </label>
+    );
+}
+
+export function MultiSelect({
+    label,
+    options,
+    selected,
+    onChange,
+    error,
+}: {
+    label: string;
+    options: string[];
+    selected: string[];
+    onChange: (value: string[]) => void;
+    error?: string;
+}) {
+    const toggle = (option: string): void => {
+        onChange(
+            selected.includes(option)
+                ? selected.filter((item) => item !== option)
+                : [...selected, option],
+        );
+    };
+
+    return (
+        <fieldset
+            className={join('form-field', 'form-field--multi', error && 'has-error')}
+        >
+            <legend>{label}</legend>
+            <div className="multi-select" role="group">
+                {options.map((option) => (
+                    <button
+                        aria-pressed={selected.includes(option)}
+                        className={join(
+                            'multi-select__option',
+                            selected.includes(option) && 'is-selected',
+                        )}
+                        key={option}
+                        onClick={() => toggle(option)}
+                        type="button"
+                    >
+                        {selected.includes(option) ? (
+                            <Icon name="check" size={14} />
+                        ) : null}
+                        {option}
+                    </button>
+                ))}
+            </div>
+            {error ? <FieldError>{error}</FieldError> : null}
+        </fieldset>
+    );
+}
+
+export function DateRangeInput({
+    start,
+    end,
+    onStartChange,
+    onEndChange,
+}: {
+    start: string;
+    end: string;
+    onStartChange: (value: string) => void;
+    onEndChange: (value: string) => void;
+}) {
+    return (
+        <fieldset className="form-field form-field--range">
+            <legend>Срок подачи</legend>
+            <div className="range-inputs">
+                <label>
+                    <span>От</span>
+                    <input
+                        onChange={(event) => onStartChange(event.target.value)}
+                        type="date"
+                        value={start}
+                    />
+                </label>
+                <label>
+                    <span>До</span>
+                    <input
+                        min={start || undefined}
+                        onChange={(event) => onEndChange(event.target.value)}
+                        type="date"
+                        value={end}
+                    />
+                </label>
+            </div>
+        </fieldset>
+    );
+}
+
+export function MoneyRangeInput({
+    min,
+    max,
+    onMinChange,
+    onMaxChange,
+}: {
+    min: string;
+    max: string;
+    onMinChange: (value: string) => void;
+    onMaxChange: (value: string) => void;
+}) {
+    return (
+        <fieldset className="form-field form-field--range">
+            <legend>Бюджет, ₽</legend>
+            <div className="range-inputs">
+                <label>
+                    <span>От</span>
+                    <input
+                        inputMode="numeric"
+                        min="0"
+                        onChange={(event) => onMinChange(event.target.value)}
+                        placeholder="0"
+                        type="number"
+                        value={min}
+                    />
+                </label>
+                <label>
+                    <span>До</span>
+                    <input
+                        inputMode="numeric"
+                        min={min || '0'}
+                        onChange={(event) => onMaxChange(event.target.value)}
+                        placeholder="Без лимита"
+                        type="number"
+                        value={max}
+                    />
+                </label>
+            </div>
+        </fieldset>
+    );
+}
+
+export function FieldError({ children, id }: { children: ReactNode; id?: string }) {
+    return (
+        <span className="field-error" id={id} role="alert">
+            {children}
+        </span>
+    );
+}
+
+export function RetryState({
+    title,
+    description,
+    action,
+    tone = 'error',
+}: {
+    title: string;
+    description: string;
+    action: ReactNode;
+    tone?: 'error' | 'offline';
+}) {
+    const icon = tone === 'offline' ? 'wave' : 'refresh';
+
+    return (
+        <section className={join('retry-state', `retry-state--${tone}`)}>
+            <span className="retry-state__icon">
+                <Icon name={icon} size={22} />
+            </span>
+            <div>
+                <h2>{title}</h2>
+                <p>{description}</p>
+            </div>
+            <div className="retry-state__action">{action}</div>
+        </section>
+    );
+}
+
+export function PlanComparison({
+    rows,
+}: {
+    rows: Array<{ feature: string; basic: ReactNode; pro: ReactNode }>;
+}) {
+    return (
+        <section
+            className="plan-comparison"
+            role="region"
+            aria-label="Сравнение планов"
+        >
+            <p className="plan-comparison__hint">
+                Проведите таблицу вбок, чтобы увидеть PRO
+            </p>
+            <div className="plan-comparison__scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Возможность</th>
+                            <th scope="col">Basic</th>
+                            <th scope="col">PRO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map((row) => (
+                            <tr key={row.feature}>
+                                <th scope="row">{row.feature}</th>
+                                <td>{row.basic}</td>
+                                <td>{row.pro}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    );
 }
 
 export function EmptyState({

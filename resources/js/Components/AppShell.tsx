@@ -8,11 +8,19 @@ type NavigationItem = {
     icon: IconName;
 };
 
-const navigation: NavigationItem[] = [
+export type AppRole = 'subscriber' | 'super_admin';
+
+const subscriberNavigation: NavigationItem[] = [
     { href: '/dashboard', label: 'Обзор', icon: 'home' },
     { href: '/tenders', label: 'Тендеры', icon: 'tenders' },
     { href: '/profile', label: 'Профиль', icon: 'user' },
 ];
+
+const adminNavigation: NavigationItem = {
+    href: '/operations-demo',
+    label: 'Операции',
+    icon: 'shield',
+};
 
 type AppShellProps = {
     children: ReactNode;
@@ -23,6 +31,7 @@ type AppShellProps = {
     action?: ReactNode;
     navigationVisible?: boolean;
     className?: string;
+    role?: AppRole;
 };
 
 export function AppShell({
@@ -34,6 +43,7 @@ export function AppShell({
     action,
     navigationVisible = true,
     className,
+    role = 'subscriber',
 }: AppShellProps) {
     return (
         <main className="mini-app">
@@ -63,15 +73,25 @@ export function AppShell({
                     <div className="top-bar__side top-bar__side--end">{action}</div>
                 </header>
                 <div className={`page-content ${className ?? ''}`}>{children}</div>
-                {navigationVisible ? <BottomNavigation activeNav={activeNav} /> : null}
+                {navigationVisible ? (
+                    <BottomNavigation activeNav={activeNav} role={role} />
+                ) : null}
             </div>
         </main>
     );
 }
 
-function BottomNavigation({ activeNav }: { activeNav?: string }) {
+function BottomNavigation({ activeNav, role }: { activeNav?: string; role: AppRole }) {
+    const navigation =
+        role === 'super_admin'
+            ? [...subscriberNavigation, adminNavigation]
+            : subscriberNavigation;
+
     return (
-        <nav aria-label="Основная навигация" className="bottom-navigation">
+        <nav
+            aria-label="Основная навигация"
+            className={`bottom-navigation bottom-navigation--${navigation.length}`}
+        >
             {navigation.map((item) => (
                 <Link
                     aria-current={activeNav === item.href ? 'page' : undefined}

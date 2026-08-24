@@ -33,8 +33,8 @@
 | INF-02 | Настроить CI, `.env.example`, health check и логи | Этап 0 | DONE | Проверки настроены для CI, `/health` возвращает JSON, логи структурированы | Нет |
 | INF-03 | Подготовить Vercel production-контур | Переход к этапу 1 | DONE | Production `GET /health` возвращает ожидаемый JSON | Managed PostgreSQL и Redis нужны перед включением пользовательских сценариев |
 | WEB-01 | Реализовать React-каркас Mini App и проверку Telegram `initData` | Этап 1 | IN PROGRESS | Design system, SPA-экраны и безопасная серверная проверка `initData` готовы | Managed PostgreSQL/Redis и публичные юридические ссылки для серверной части |
-| WEB-02 | Собрать preview, paywall и access-aware UI на demo-данных | Этап 1 | TODO | Все состояния до/после оплаты, loading/error/empty и reduced motion проверены | Нет |
-| WEB-03 | Уточнить data-first дизайн и расширить component library | Этап 1 | TODO | Новые элементы собраны из tokens, blur уменьшен, catalogue актуален | Нет |
+| WEB-02 | Собрать preview, paywall и access-aware UI на demo-данных | Этап 1 | IN PROGRESS | Все состояния до/после оплаты, loading/error/empty и reduced motion проверены | Нет |
+| WEB-03 | Уточнить data-first дизайн и расширить component library | Этап 1 | DONE | Новые элементы собраны из tokens, blur уменьшен, catalogue актуален | Нет |
 | BOT-01 | Подключить Telegram webhook и `/start`, `/help` | Этап 1 | BLOCKED | Бот открывает Mini App и отвечает в тестовом чате | Стабильный production health check, managed PostgreSQL и Redis |
 | BOT-02 | Реализовать согласия, trial 72 часа и напоминания | Этап 1 | BLOCKED | Trial выдаётся один раз, напоминания идемпотентны | Публичные ссылки на оферту и политику конфиденциальности |
 | QRY-01 | Реализовать мастер создания и управления запросами | Этап 2 | TODO | Запросы создаются, изменяются, ставятся на паузу | Нет |
@@ -191,6 +191,16 @@
 - Изменения: frontend/demo и документация; реальные subscription, invoice, Telegram-данные и admin-доступ не создавались.
 - Следующее действие: завершить локальные проверки, затем продолжить `WEB-03` с chart/skeleton/form primitives и подготовить role-aware super-admin shell после появления identity domain.
 - Блокеры: нет для UI. Для real checkout, entitlement и role-aware routing требуются managed PostgreSQL/Redis и server-side `initData`.
+
+### 2026-08-24 - WEB-03: формы, states и Operations demo
+
+- Задачи: `WEB-03`; frontend-часть `WEB-02` и demo-основа `ADM-02`.
+- Результат: добавлены `MetricTrend`, data-shape skeletons для метрик, строк и карточек, select/combobox, multi-select, date range, money range, validation, error/retry/offline states. Экран «Тендеры» показывает их как явно маркированные client-side образцы; фильтры не сохраняются и не отправляются на сервер. На экране планов появилось сравнение Basic/будущего PRO без цен, неподтверждённых обещаний или преждевременного LLM-функционала.
+- Admin demo: внутри существующего `AppShell` добавлен role-aware вариант навигации и read-only Operations demo с Overview/Live Ops, loading-shapes и безопасными примерными значениями. Экран прямо сообщает, что это не доступ администратора, не telemetry и не источник персональных данных; реальная роль остаётся только server-side после проверки Telegram `initData`.
+- Проверка: `npm run typecheck`, `npm run lint` и `npm run build` прошли. В браузере на mobile viewport 390×844 проверены `/tenders` (форма, validation alert, loading/error/offline) и `/operations-demo` (Overview, Live Ops, loading); прокрутка, safe bottom navigation и reduced-motion CSS сохранены.
+- Изменения: frontend/demo, feature route test и актуализация дизайн-каталога; Telegram auth, persistence, payments, Stars invoice, webhook и реальные admin read models не добавлялись.
+- Следующее действие: завершить полный набор проверок, затем продолжить `WEB-02` с access/payment states только на demo-данных либо начать серверный этап после managed PostgreSQL/Redis и public legal URLs.
+- Блокеры: для UI нет. Реальная роль, policies, сессии, telemetry, queue states и billing требуют managed PostgreSQL/Redis, server-side `initData` и публичные legal URLs.
 
 ## Шаблон новой записи
 

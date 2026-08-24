@@ -13,3 +13,4 @@ Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard
 Route::get('/tenders', fn () => Inertia::render('Tenders'))->name('tenders');
 Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
 Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
+Route::get('/operations-demo', fn () => Inertia::render('OperationsDemo'))->name('operations.demo');

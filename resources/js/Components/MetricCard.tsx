@@ -1,5 +1,5 @@
 import { Icon, type IconName } from './Icon';
-import { GlassCard } from './ui';
+import { GlassCard, MetricTrend } from './ui';
 
 export function MetricCard({
     icon,
@@ -7,12 +7,14 @@ export function MetricCard({
     value,
     detail,
     accent = false,
+    trend,
 }: {
     icon: IconName;
     label: string;
     value: string;
     detail: string;
     accent?: boolean;
+    trend?: { value: string; direction?: 'up' | 'down' | 'neutral'; label?: string };
 }) {
     return (
         <GlassCard className={`metric-card ${accent ? 'metric-card--accent' : ''}`}>
@@ -22,6 +24,7 @@ export function MetricCard({
             <p>{label}</p>
             <strong>{value}</strong>
             <span>{detail}</span>
+            {trend ? <MetricTrend {...trend} /> : null}
         </GlassCard>
     );
 }

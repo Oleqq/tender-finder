@@ -87,6 +87,18 @@ export default function Profile() {
                         личности.
                     </p>
                 </section>
+                <GlassCard className="profile-admin-demo" tone="quiet">
+                    <span>
+                        <Icon name="shield" size={18} /> Shell для super_admin
+                    </span>
+                    <p>
+                        Read-only demo будущих Overview и Live Ops. Это не даёт
+                        административный доступ.
+                    </p>
+                    <Link href="/operations-demo">
+                        Открыть demo-экран <Icon name="chevron-right" size={16} />
+                    </Link>
+                </GlassCard>
                 <Button
                     className="profile-demo-action"
                     icon="check"

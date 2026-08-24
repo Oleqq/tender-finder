@@ -4,6 +4,7 @@ export type IconName =
     | 'arrow-left'
     | 'arrow-right'
     | 'bell'
+    | 'calendar'
     | 'chart'
     | 'check'
     | 'chevron-right'
@@ -12,6 +13,7 @@ export type IconName =
     | 'home'
     | 'layers'
     | 'plus'
+    | 'refresh'
     | 'search'
     | 'settings'
     | 'shield'
@@ -59,6 +61,13 @@ export function Icon({ name, size = 20, ...props }: IconProps) {
                 <svg {...shared}>
                     <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                     <path d="M10 21h4" />
+                </svg>
+            );
+        case 'calendar':
+            return (
+                <svg {...shared}>
+                    <rect height="15" rx="2" width="16" x="4" y="5" />
+                    <path d="M8 3v4M16 3v4M4 10h16" />
                 </svg>
             );
         case 'chart':
@@ -115,6 +124,13 @@ export function Icon({ name, size = 20, ...props }: IconProps) {
             return (
                 <svg {...shared}>
                     <path d="M12 5v14M5 12h14" />
+                </svg>
+            );
+        case 'refresh':
+            return (
+                <svg {...shared}>
+                    <path d="M20 11a8 8 0 1 0 2 5.3" />
+                    <path d="M20 4v7h-7" />
                 </svg>
             );
         case 'search':

@@ -9,6 +9,7 @@ import {
     DataRow,
     InlineAlert,
     PlanCard,
+    PlanComparison,
     ProgressBar,
     Toast,
 } from '../Components/ui';
@@ -72,7 +73,7 @@ export default function Plans() {
                             'Уведомления и контроль сроков',
                         ]}
                         featured
-                        name="Базовый"
+                        name="Basic"
                         price="Цена в Stars — скоро"
                     />
 
@@ -97,6 +98,49 @@ export default function Plans() {
                         name="PRO"
                         price="Появится после Basic"
                     />
+                </section>
+
+                <section className="plans-comparison page-enter page-enter--later">
+                    <div className="section-heading">
+                        <div>
+                            <p>Прозрачно о доступе</p>
+                            <h2>Basic и будущий PRO</h2>
+                        </div>
+                        <Badge tone="neutral">demo</Badge>
+                    </div>
+                    <PlanComparison
+                        rows={[
+                            {
+                                feature: 'Фильтры и поиск',
+                                basic: 'включены',
+                                pro: 'включены',
+                            },
+                            {
+                                feature: 'Мониторинг и уведомления',
+                                basic: 'в согласованных лимитах',
+                                pro: 'увеличенные лимиты — позже',
+                            },
+                            {
+                                feature: 'Объяснение совпадений',
+                                basic: 'детерминированные причины',
+                                pro: 'детерминированные причины',
+                            },
+                            {
+                                feature: 'Персональный scoring',
+                                basic: 'не входит',
+                                pro: 'после quality/cost/privacy gate',
+                            },
+                            {
+                                feature: 'Анализ ТЗ',
+                                basic: 'не входит',
+                                pro: 'после проверки качества',
+                            },
+                        ]}
+                    />
+                    <p className="plans-comparison__note">
+                        Цены, лимиты и срок продления будут зафиксированы до запуска
+                        Telegram Stars. PRO не обещает рост вероятности победы.
+                    </p>
                 </section>
 
                 <section className="plans-details page-enter page-enter--later">

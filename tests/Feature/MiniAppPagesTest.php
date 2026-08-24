@@ -9,6 +9,7 @@ dataset('mini app pages', [
     'tenders' => ['/tenders', 'Tenders'],
     'profile' => ['/profile', 'Profile'],
     'plans' => ['/plans', 'Plans'],
+    'operations demo' => ['/operations-demo', 'OperationsDemo'],
 ]);
 
 it('renders each Mini App screen as an Inertia response', function (string $uri, string $component) {

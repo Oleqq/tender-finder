@@ -42,14 +42,14 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 
 | Группа | Готово | Ближайший backlog |
 |---|---|---|
-| Shell | AppShell, top bar, bottom navigation, Telegram setup | access-aware navigation, admin entry point, pull-to-refresh |
+| Shell | AppShell, top bar, bottom navigation, Telegram setup, role-aware nav variant | server-authorized admin entry point, pull-to-refresh |
 | Surfaces | glass card, status/badge, metric card, dense data row, inline alert, progress | divider, tooltip, contextual helper |
 | Actions | button, icon button, toast, bottom sheet/modal | confirmation dialog, undo, destructive action pattern |
-| Inputs | input/search, chips, segmented control, switch | select/combobox, multi-select, date range, money range, slider, stepper, validation |
-| Feedback | skeleton, empty state, error states | offline/retry, optimistic-state, contextual helper |
+| Inputs | input/search, chips, segmented control, switch, select/combobox, multi-select, date range, money range, validation | slider, stepper, saved-filter persistence |
+| Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
 | Tender UI | tender card, demo metrics | tender detail, save/hide, match explanation, compare, saved filter |
-| Commerce | plan card, preview paywall, access gate | plan comparison, Stars invoice state, entitlement gate API, subscription management |
-| Admin | — | metric grid, chart wrapper, filter bar, mobile table/card mode, user drawer, timeline, campaign composer, delivery funnel, health panel, audit event |
+| Commerce | plan card, preview paywall, access gate, Basic/PRO comparison | Stars invoice state, entitlement gate API, subscription management |
+| Admin | role-aware shell variant, read-only demo Overview/Live Ops, metric grid, health/data rows | server policy, real read models, chart wrapper, filter bar, user drawer, timeline, campaign composer, delivery funnel, audit event |
 
 «Готово» означает работающий переиспользуемый React-компонент; строка
 «backlog» не считается сделанной до API, states и тестов. Сначала создаются
@@ -65,11 +65,15 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Expired | сохранённые данные, объяснение заморозки, paywall и help |
 | Super-admin | клиентские экраны + Overview, Live Ops, Users, Commerce, Campaigns, Sources, Audit |
 
+Текущий Operations demo — только визуальный read-only образец внутри того же
+`AppShell`. Он не является административным endpoint, не назначает роль и не
+даёт доступа к данным. Настоящая запись `super_admin` и navigation появятся
+только из доверенного server-side session/policy после проверки Telegram
+`initData`.
+
 ## Ближайший UI-инкремент
 
-1. Добавить `MetricTrend`, data-shape skeletons, select/combobox и validation
-   поверх уже готовых data/access primitives.
-2. Собрать plan comparison, чтобы preview/paywall показывали отличия тарифов
-   без необоснованных обещаний.
-3. Собрать super-admin shell и read-only demo Overview/Live Ops, используя те
-   же primitives, но не выдавая demo как реальные telemetry-данные.
+1. Подключить primitives к настоящему query builder после появления domain/API.
+2. Добавить invoice/loading/error patterns только вместе с серверным Stars API.
+3. Заменить Operations demo server-side policy и read models после managed
+   PostgreSQL/Redis и validated Telegram session.
