@@ -19,7 +19,7 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'stack'),
+    'default' => trim((string) env('LOG_CHANNEL', '')) ?: 'stack',
 
     /*
     |--------------------------------------------------------------------------
