@@ -48,7 +48,7 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Inputs | input/search, chips, segmented control, switch, select/combobox, multi-select, date range, money range, validation | slider, stepper, saved-filter persistence |
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
 | Tender UI | tender card, demo metrics | tender detail, save/hide, match explanation, compare, saved filter |
-| Commerce | plan card, preview paywall, access gate, Basic/PRO comparison | Stars invoice state, entitlement gate API, subscription management |
+| Commerce | plan card, preview paywall, access gate, Basic/PRO comparison, demo checkout states and access-state preview | Stars invoice state, entitlement gate API, subscription management |
 | Admin | role-aware shell variant, read-only demo Overview/Live Ops, metric grid, health/data rows | server policy, real read models, chart wrapper, filter bar, user drawer, timeline, campaign composer, delivery funnel, audit event |
 
 «Готово» означает работающий переиспользуемый React-компонент; строка

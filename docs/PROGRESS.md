@@ -7,7 +7,7 @@
 | Поле | Значение |
 |---|---|
 | Текущий этап | Этап 1: data-first SPA-оболочка, preview/paywall и каталог UI-компонентов |
-| Статус MVP | Foundation Mini App и demo-экраны готовы; product roadmap обновлён под B2C, Telegram Stars и встроенный super-admin. Реальные Telegram-сессии, согласия и trial ждут юридические ссылки и managed PostgreSQL/Redis |
+| Статус MVP | Foundation Mini App, access/paywall demo и UI-каталог готовы; product roadmap обновлён под B2C, Telegram Stars и встроенный super-admin. Реальные Telegram-сессии, согласия, trial и commerce ждут юридические ссылки и managed PostgreSQL/Redis |
 | Стек | PHP 8.3 + Laravel, React + TypeScript |
 | Основной интерфейс клиента | Telegram Mini App на домене проекта |
 | Админка | Ролевые экраны внутри того же Telegram Mini App; доступны только `super_admin` после server-side проверки |
@@ -33,7 +33,7 @@
 | INF-02 | Настроить CI, `.env.example`, health check и логи | Этап 0 | DONE | Проверки настроены для CI, `/health` возвращает JSON, логи структурированы | Нет |
 | INF-03 | Подготовить Vercel production-контур | Переход к этапу 1 | DONE | Production `GET /health` возвращает ожидаемый JSON | Managed PostgreSQL и Redis нужны перед включением пользовательских сценариев |
 | WEB-01 | Реализовать React-каркас Mini App и проверку Telegram `initData` | Этап 1 | IN PROGRESS | Design system, SPA-экраны и безопасная серверная проверка `initData` готовы | Managed PostgreSQL/Redis и публичные юридические ссылки для серверной части |
-| WEB-02 | Собрать preview, paywall и access-aware UI на demo-данных | Этап 1 | IN PROGRESS | Все состояния до/после оплаты, loading/error/empty и reduced motion проверены | Нет |
+| WEB-02 | Собрать preview, paywall и access-aware UI на demo-данных | Этап 1 | DONE | Все состояния до/после оплаты, loading/error/empty и reduced motion проверены | Нет |
 | WEB-03 | Уточнить data-first дизайн и расширить component library | Этап 1 | DONE | Новые элементы собраны из tokens, blur уменьшен, catalogue актуален | Нет |
 | BOT-01 | Подключить Telegram webhook и `/start`, `/help` | Этап 1 | BLOCKED | Бот открывает Mini App и отвечает в тестовом чате | Стабильный production health check, managed PostgreSQL и Redis |
 | BOT-02 | Реализовать согласия, trial 72 часа и напоминания | Этап 1 | BLOCKED | Trial выдаётся один раз, напоминания идемпотентны | Публичные ссылки на оферту и политику конфиденциальности |
@@ -201,6 +201,16 @@
 - Изменения: frontend/demo, feature route test и актуализация дизайн-каталога; Telegram auth, persistence, payments, Stars invoice, webhook и реальные admin read models не добавлялись.
 - Следующее действие: завершить полный набор проверок, затем продолжить `WEB-02` с access/payment states только на demo-данных либо начать серверный этап после managed PostgreSQL/Redis и public legal URLs.
 - Блокеры: для UI нет. Реальная роль, policies, сессии, telemetry, queue states и billing требуют managed PostgreSQL/Redis, server-side `initData` и публичные legal URLs.
+
+### 2026-08-24 - WEB-02: demo access и checkout states
+
+- Задача: `WEB-02`.
+- Результат: в client-side demo добавлена отдельная модель access states `preview`, `trialing`, `active`, `expired`; она используется на экранах планов и профиля, но не является ролью и не сохраняется. `/plans` получил demo checkout с preview, loading, recoverable error/retry и примером активного Basic. Во всех состояниях явно указано, что invoice, trial и entitlement не создаются.
+- Процесс: технический план дополнен границей demo commerce: UI до backend-этапа существует только в памяти React; настоящая цена, invoice, payment event, entitlement и retry остаются исключительно server-side responsibility Laravel.
+- Проверка: `npm run typecheck` и `npm run lint` прошли до форматирования; `npm run build` прошёл после изменений. В mobile browser viewport 390×844 вручную проверены `/plans` (checkout preview/loading/error/retry) и `/profile` (Basic example); dialog и нижняя навигация не перекрывают действия.
+- Изменения: только frontend/demo и документация. Telegram auth, Stars invoice, persistence, trial, payment event, webhook и server access policy не добавлялись.
+- Следующее действие: ждать managed PostgreSQL/Redis и public legal URLs для server-side `WEB-01` / `BOT-01` / `BOT-02`; до этого допустимы только отдельные UI/documentation improvements без имитации backend-эффектов.
+- Блокеры: managed PostgreSQL, Redis, public offer/privacy URLs, зафиксированные Basic limits/prices и Telegram test account нужны до реального trial, checkout и ролей.
 
 ## Шаблон новой записи
 

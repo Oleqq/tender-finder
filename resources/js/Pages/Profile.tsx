@@ -2,11 +2,25 @@ import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
-import { Badge, Button, GlassCard, Toast, Toggle } from '../Components/ui';
+import {
+    Badge,
+    Button,
+    GlassCard,
+    SegmentedControl,
+    Toast,
+    Toggle,
+} from '../Components/ui';
+import {
+    demoAccessStateOptions,
+    demoAccessStates,
+    type DemoAccessState,
+} from '../lib/demoAccess';
 
 export default function Profile() {
     const [alertsEnabled, setAlertsEnabled] = useState(true);
     const [toastVisible, setToastVisible] = useState(false);
+    const [accessState, setAccessState] = useState<DemoAccessState>('preview');
+    const access = demoAccessStates[accessState];
 
     return (
         <>
@@ -36,17 +50,20 @@ export default function Profile() {
                         <span>
                             <Icon name="spark" size={19} /> Статус доступа
                         </span>
-                        <Badge tone="success">будущий trial</Badge>
+                        <Badge tone={access.tone}>{access.label}</Badge>
                     </div>
-                    <h3>72 часа, чтобы оценить фокус</h3>
-                    <p>
-                        Однократный trial начнёт отсчёт только после безопасной
-                        серверной активации.
-                    </p>
+                    <h3>{access.title}</h3>
+                    <p>{access.description}</p>
                     <div className="profile-plan__line">
                         <span>Доступ</span>
-                        <strong>Ещё не активирован</strong>
+                        <strong>{access.detail}</strong>
                     </div>
+                    <SegmentedControl
+                        label="Demo-состояние доступа в профиле"
+                        onChange={(value) => setAccessState(value as DemoAccessState)}
+                        options={demoAccessStateOptions}
+                        value={accessState}
+                    />
                 </GlassCard>
 
                 <section className="profile-section page-enter page-enter--later">

@@ -110,6 +110,19 @@ idempotency keys. Sensitive payloads не дублируются в audit/log ta
 никаких попыток подменять persistence или включать оплату в serverless-array
 режиме.
 
+### Demo commerce process
+
+До подключения server-side commerce UI может показывать только подписанные
+`demo` состояния: access `preview`/`trialing`/`active`/`expired` и checkout
+preview/loading/retry/active-example. Они существуют лишь в памяти React,
+не создают Telegram Stars invoice, не запускают trial, не меняют plan или
+entitlement и не отправляют запросов, способных повторно выдать доступ.
+
+Настоящий checkout заменит этот слой только после server-side проверки Telegram
+`initData`: Laravel определяет цену и лимиты, создаёт invoice, а доступ меняется
+лишь после идемпотентно обработанного подтверждения платежа. UI error/retry
+переиспользуется, но его причина и последующее состояние поступают через API.
+
 ## 5. Очередность реализации
 
 ### A. UI foundation и preview — сейчас

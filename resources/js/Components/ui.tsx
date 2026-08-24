@@ -473,6 +473,44 @@ export function RetryState({
     );
 }
 
+export function CheckoutState({
+    title,
+    description,
+    icon = 'spark',
+    tone = 'neutral',
+    children,
+    loading = false,
+}: {
+    title: string;
+    description: string;
+    icon?: IconName;
+    tone?: 'neutral' | 'success' | 'warning' | 'danger';
+    children?: ReactNode;
+    loading?: boolean;
+}) {
+    return (
+        <section className={join('checkout-state', `checkout-state--${tone}`)}>
+            <span className="checkout-state__icon">
+                <Icon name={icon} size={22} />
+            </span>
+            <div>
+                <h3>{title}</h3>
+                <p>{description}</p>
+            </div>
+            {loading ? (
+                <div
+                    aria-label="Загрузка checkout-состояния"
+                    className="checkout-state__loading"
+                >
+                    <Skeleton className="skeleton--checkout-title" />
+                    <Skeleton className="skeleton--checkout-detail" />
+                </div>
+            ) : null}
+            {children ? <div className="checkout-state__action">{children}</div> : null}
+        </section>
+    );
+}
+
 export function PlanComparison({
     rows,
 }: {

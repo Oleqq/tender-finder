@@ -5,26 +5,44 @@ import { Icon } from '../Components/Icon';
 import {
     AccessGate,
     Badge,
+    BottomSheet,
     Button,
+    CheckoutState,
     DataRow,
+    GlassCard,
     InlineAlert,
     PlanCard,
     PlanComparison,
     ProgressBar,
-    Toast,
+    SegmentedControl,
 } from '../Components/ui';
+import {
+    demoAccessStateOptions,
+    demoAccessStates,
+    type DemoAccessState,
+} from '../lib/demoAccess';
+
+type CheckoutDemoState = 'preview' | 'preparing' | 'error' | 'active';
 
 export default function Plans() {
-    const [toastVisible, setToastVisible] = useState(false);
+    const [accessState, setAccessState] = useState<DemoAccessState>('preview');
+    const [checkoutState, setCheckoutState] = useState<CheckoutDemoState>('preview');
+    const [checkoutOpen, setCheckoutOpen] = useState(false);
+    const access = demoAccessStates[accessState];
 
     useEffect(() => {
-        if (!toastVisible) {
+        if (checkoutState !== 'preparing') {
             return;
         }
 
-        const timeout = window.setTimeout(() => setToastVisible(false), 2600);
+        const timeout = window.setTimeout(() => setCheckoutState('error'), 900);
         return () => window.clearTimeout(timeout);
-    }, [toastVisible]);
+    }, [checkoutState]);
+
+    const openCheckout = (): void => {
+        setCheckoutState('preview');
+        setCheckoutOpen(true);
+    };
 
     return (
         <>
@@ -50,7 +68,7 @@ export default function Plans() {
 
                 <InlineAlert title="Как будет работать оплата" tone="neutral">
                     Когда серверная часть будет готова, счёт откроется в Telegram в
-                    Stars. В этом demo платежи и доступ не меняются.
+                    Stars. В этом demo invoice не создаётся, а доступ не меняется.
                 </InlineAlert>
 
                 <section className="plans-list page-enter page-enter--delay">
@@ -59,10 +77,10 @@ export default function Plans() {
                             <Button
                                 className="plan-card__button"
                                 icon="arrow-right"
-                                onClick={() => setToastVisible(true)}
+                                onClick={openCheckout}
                                 size="lg"
                             >
-                                Посмотреть путь оплаты
+                                Открыть demo checkout
                             </Button>
                         }
                         badge={<Badge tone="success">Первый запуск</Badge>}
@@ -98,6 +116,33 @@ export default function Plans() {
                         name="PRO"
                         price="Появится после Basic"
                     />
+                </section>
+
+                <section className="plans-access-preview page-enter page-enter--later">
+                    <div className="section-heading">
+                        <div>
+                            <p>Отдельно от роли</p>
+                            <h2>Состояние доступа</h2>
+                        </div>
+                        <Badge tone="neutral">local demo</Badge>
+                    </div>
+                    <SegmentedControl
+                        label="Примеры состояния доступа"
+                        onChange={(value) => setAccessState(value as DemoAccessState)}
+                        options={demoAccessStateOptions}
+                        value={accessState}
+                    />
+                    <GlassCard
+                        className="access-state-preview"
+                        tone={access.tone === 'warning' ? 'quiet' : 'default'}
+                    >
+                        <div className="access-state-preview__heading">
+                            <Badge tone={access.tone}>{access.label}</Badge>
+                            <span>{access.detail}</span>
+                        </div>
+                        <h3>{access.title}</h3>
+                        <p>{access.description}</p>
+                    </GlassCard>
                 </section>
 
                 <section className="plans-comparison page-enter page-enter--later">
@@ -177,25 +222,109 @@ export default function Plans() {
                     />
                 </section>
 
-                <AccessGate
-                    action={
-                        <Link
-                            className="button button--secondary button--sm"
-                            href="/onboarding"
-                        >
-                            Узнать больше <Icon name="chevron-right" size={16} />
-                        </Link>
-                    }
-                    description="Настройка запроса, trial и реальная оплата появятся после подключения защищённой серверной части."
-                    title="Ваш контур ещё настраивается"
-                />
+                {accessState === 'active' ? (
+                    <InlineAlert title="Это не настоящий Basic" tone="success">
+                        Выбранный пример не создаёт entitlement, запрос, payment или
+                        доступ к данным.
+                    </InlineAlert>
+                ) : (
+                    <AccessGate
+                        action={
+                            <Link
+                                className="button button--secondary button--sm"
+                                href="/onboarding"
+                            >
+                                Узнать больше <Icon name="chevron-right" size={16} />
+                            </Link>
+                        }
+                        description="Настройка запроса, trial и реальная оплата появятся после подключения защищённой серверной части."
+                        title="Ваш контур ещё настраивается"
+                    />
+                )}
 
-                <Toast
-                    message="В production здесь откроется Telegram Stars invoice"
-                    tone="neutral"
-                    visible={toastVisible}
-                />
+                <BottomSheet
+                    onClose={() => setCheckoutOpen(false)}
+                    open={checkoutOpen}
+                    title="Checkout · demo"
+                >
+                    <p className="sheet-description">
+                        Образец состояний интерфейса. Здесь не создаётся Telegram Stars
+                        invoice и не меняется entitlement.
+                    </p>
+                    <SegmentedControl
+                        label="Состояние demo checkout"
+                        onChange={(value) =>
+                            setCheckoutState(value as CheckoutDemoState)
+                        }
+                        options={[
+                            { value: 'preview', label: 'Preview' },
+                            { value: 'preparing', label: 'Loading' },
+                            { value: 'error', label: 'Ошибка' },
+                            { value: 'active', label: 'Basic' },
+                        ]}
+                        value={checkoutState}
+                    />
+                    <CheckoutStateContent
+                        onRetry={() => setCheckoutState('preparing')}
+                        state={checkoutState}
+                    />
+                </BottomSheet>
             </AppShell>
         </>
+    );
+}
+
+function CheckoutStateContent({
+    state,
+    onRetry,
+}: {
+    state: CheckoutDemoState;
+    onRetry: () => void;
+}) {
+    if (state === 'preparing') {
+        return (
+            <CheckoutState
+                description="Пример ожидания ответа перед открытием защищённого checkout. Через мгновение отображается demo-ошибка."
+                loading
+                title="Готовим checkout-state"
+            />
+        );
+    }
+
+    if (state === 'error') {
+        return (
+            <CheckoutState
+                description="Пример recoverable state. В production причина придёт от сервера, а retry не должен повторно выдать доступ."
+                icon="refresh"
+                title="Не удалось подготовить checkout"
+                tone="danger"
+            >
+                <Button icon="refresh" onClick={onRetry} variant="secondary">
+                    Повторить demo
+                </Button>
+            </CheckoutState>
+        );
+    }
+
+    if (state === 'active') {
+        return (
+            <CheckoutState
+                description="Пример состояния после успешной server-side обработки payment event. В этом demo entitlement не создаётся."
+                icon="check"
+                title="Basic активен · пример"
+                tone="success"
+            />
+        );
+    }
+
+    return (
+        <CheckoutState
+            description="Цена, лимиты и период продления ещё не зафиксированы. Настоящий счёт создаст Laravel после server-side проверки."
+            title="Basic ждёт решения"
+        >
+            <Button icon="arrow-right" onClick={onRetry}>
+                Показать loading
+            </Button>
+        </CheckoutState>
     );
 }
