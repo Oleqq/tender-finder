@@ -58,10 +58,10 @@ jobs:
           node-version: 20
           cache: npm
       - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: npm ci
+      - run: npm run build
       - run: php artisan test
       - run: vendor/bin/pint --test
       - run: vendor/bin/phpstan analyse --memory-limit=1G
-      - run: npm ci
       - run: npm run lint
       - run: npm run format:check
-      - run: npm run build
