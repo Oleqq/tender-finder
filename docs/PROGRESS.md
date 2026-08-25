@@ -30,7 +30,7 @@
 | DB-01 | Спроектировать и реализовать нормализованную schema foundation | Server foundation | DONE | Migrations, `DATABASE.md`, индексы и SQLite tests готовы; production migration ожидает managed PostgreSQL | Managed PostgreSQL/VPS activation |
 | EXT-01 | Получить документацию и доступный способ интеграции ЕИС через СОИ | Подготовка | TODO | Есть тестовый запрос и описание лимитов | Заказчик/ЕИС |
 | EXT-02 | Зафиксировать цены/лимиты и правила продления в Telegram Stars | Подготовка | TODO | Подтверждённая матрица планов и тестовые сценарии оплаты/возврата | Заказчик |
-| EXT-03 | Подготовить оферту и политику конфиденциальности | Подготовка | TODO | Стабильные публичные ссылки | Заказчик/юрист |
+| EXT-03 | Подготовить оферту и политику конфиденциальности | Подготовка | IN PROGRESS | Юрист проверил тексты, заполнены реквизиты ИП и опубликованы стабильные public URLs | Заказчик/юрист |
 | INF-01 | Создать Laravel + React-проект и Docker-окружение | Этап 0 | IN PROGRESS | Готовы image, Compose web/queue/scheduler/Caddy и VPS runbook; нужен внешний container smoke-test | VPS, managed PostgreSQL/Redis, домен |
 | INF-02 | Настроить CI, `.env.example`, health check и логи | Этап 0 | DONE | Проверки настроены для CI, `/health` возвращает JSON, логи структурированы | Нет |
 | INF-03 | Подготовить Vercel production-контур | Переход к этапу 1 | DONE | Production `GET /health` возвращает ожидаемый JSON | Managed PostgreSQL и Redis нужны перед включением пользовательских сценариев |
@@ -243,6 +243,16 @@
 - Техническая граница: migrations, API contract, роли, entitlement, Telegram, RSS polling и production configuration не изменялись. Никаких секретов, `.env`, `dump.rdb` или временной папки в работу не включено.
 - Следующее действие: после получения VPS/domain, managed PostgreSQL/Redis и legal URLs выполнить container smoke-test и real Telegram smoke-test. До этого допустимы только такие же безопасные offline/UI улучшения.
 - Блокеры: VPS/domain, managed PostgreSQL/Redis, public offer/privacy URLs, secret store и test Telegram account.
+
+### 2026-08-25 - legal черновики и server-side публикационный gate
+
+- Задача: подготовка `EXT-03`, security-граница `BOT-02`.
+- Простое объяснение: подготовлены общие черновики будущих оферты и политики для ИП, но они не притворяются готовыми документами. Сервис не позволит человеку принять их или получить trial, пока реальный текст не проверит юрист, не появятся постоянные Vercel-ссылки и оператор явно не откроет публикационный переключатель.
+- Результат: добавлены будущие public routes `/offer` и `/privacy`, React-экран черновика, `LEGAL_DOCUMENTS_PUBLISHED=false` по умолчанию и server-side gate в `ConsentService`. При закрытом gate страницы отвечают `503`, а consent не записывается. Создан `LEGAL-DRAFTS.md` с фактической картой обрабатываемых данных и чек-листом безопасной публикации.
+- Проверка: `npm run build` включает legal page в manifest; feature-тесты подтвердили закрытый/открытый gate и запрет consent до публикации (5 passed, 40 assertions).
+- Техническая граница: финальные реквизиты ИП, legal-тексты, Vercel environment values, VPS, database, Redis, Telegram secrets и production cutover не создавались и не включались. Черновик требует юридической проверки; первая beta остаётся неактивной.
+- Следующее действие: реализовать expiry lifecycle trial — идемпотентные reminders за 24/3 часа, заморозку запросов и запрет delivery после окончания доступа; затем получить внешние VPS/legal/Telegram prerequisites.
+- Блокеры: юрист и владелец должны утвердить и опубликовать финальные документы; также нужны VPS/domain в РФ, managed PostgreSQL/Redis в РФ, secret store, test Telegram account и подтверждённые RSS-ленты ЕИС.
 
 ## Шаблон новой записи
 

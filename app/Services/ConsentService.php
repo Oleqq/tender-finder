@@ -78,6 +78,10 @@ class ConsentService
 
     public function currentVersion(ConsentDocument $document): string
     {
+        if (! (bool) config('tender.legal.documents_published', false)) {
+            throw new LegalDocumentsUnavailableException;
+        }
+
         $key = $document === ConsentDocument::Offer ? 'offer_version' : 'privacy_version';
         $urlKey = $document === ConsentDocument::Offer ? 'offer_url' : 'privacy_url';
         $version = config("tender.legal.{$key}");

@@ -10,6 +10,7 @@ return [
     ],
 
     'legal' => [
+        'documents_published' => (bool) env('LEGAL_DOCUMENTS_PUBLISHED', false),
         'offer_url' => env('LEGAL_OFFER_URL'),
         'offer_version' => env('LEGAL_OFFER_VERSION'),
         'privacy_url' => env('LEGAL_PRIVACY_URL'),

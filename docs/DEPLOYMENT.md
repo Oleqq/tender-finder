@@ -41,19 +41,33 @@ Internet / Telegram
 
 1. VPS с Docker Engine и Compose plugin, домен с A/AAAA записью на VPS и
    открытыми TCP 80/443.
-2. Managed PostgreSQL 16: отдельный database/user, TLS по требованиям
+2. Для первой закрытой beta VPS, managed PostgreSQL и managed Redis физически
+   размещены в РФ. Managed service означает, что провайдер обслуживает
+   обновления, базовую доступность и backup-средства; выбор провайдера остаётся
+   за владельцем.
+3. Managed PostgreSQL 16: отдельный database/user, TLS по требованиям
    провайдера, backup и проверенный restore.
-3. Managed Redis: TLS/пароль по требованиям провайдера, отдельные DB/namespace
+4. Managed Redis: TLS/пароль по требованиям провайдера, отдельные DB/namespace
    для session/cache/queue и доступ только с VPS.
-4. Секретный store VPS (или защищённый некоммитируемый `.env.production`) с
+5. Секретный store VPS (или защищённый некоммитируемый `.env.production`) с
    `APP_KEY`, DB/Redis, Telegram token/webhook secret/owner ID, legal URLs и
    versions, `OPERATIONS_READINESS_TOKEN`.
-5. Значения runtime: `APP_ENV=production`, `APP_DEBUG=false`,
+6. Значения runtime: `APP_ENV=production`, `APP_DEBUG=false`,
    `SESSION_SECURE_COOKIE=true`, `SESSION_DRIVER=redis`, `CACHE_STORE=redis`,
    `QUEUE_CONNECTION=redis`, `DB_CONNECTION=pgsql` и `APP_DOMAIN` для Caddy.
 
 Не запускайте `.env.example` как production-файл: он специально пустой в
 чувствительных местах и содержит локальные примеры.
+
+### Legal publication gate
+
+Vercel хранит будущие постоянные `/offer` и `/privacy`, но не должен выдавать
+черновики за действующие документы. Пока реквизиты ИП и тексты не проверены
+юристом, `LEGAL_DOCUMENTS_PUBLISHED=false`; оба URL отвечают `503`, а trial
+fail-closed — не запускается. После проверки оператор сначала публикует
+финальные тексты на Vercel, затем задаёт в VPS secret store только реальные
+`LEGAL_OFFER_URL`, `LEGAL_PRIVACY_URL` и их версии, и лишь потом включает gate.
+Значения, токены и реквизиты не коммитируются и не передаются в чат.
 
 ## Первый запуск без переключения Telegram
 

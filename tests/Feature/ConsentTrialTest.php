@@ -5,6 +5,7 @@ use App\Models\Entitlement;
 use App\Models\User;
 
 beforeEach(function (): void {
+    config()->set('tender.legal.documents_published', true);
     config()->set('tender.legal.offer_url', 'https://example.test/offer');
     config()->set('tender.legal.offer_version', '2026-08-25');
     config()->set('tender.legal.privacy_url', 'https://example.test/privacy');
@@ -44,4 +45,16 @@ it('does not start a trial before both current consents exist', function () {
     $this->actingAs($user)->postJson('/trial/start')
         ->assertUnprocessable()
         ->assertJsonPath('message', 'Сначала примите актуальные юридические документы.');
+});
+
+it('does not record consents while legal documents are not explicitly published', function () {
+    config()->set('tender.legal.documents_published', false);
+    $user = User::factory()->create(['telegram_id' => '7003']);
+
+    $this->actingAs($user)
+        ->postJson('/consents', ['documents' => ['offer', 'privacy']])
+        ->assertServiceUnavailable()
+        ->assertJsonPath('message', 'Юридические документы пока не опубликованы.');
+
+    expect(ConsentEvent::query()->where('user_id', $user->id)->count())->toBe(0);
 });

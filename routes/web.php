@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ConsentController;
+use App\Http\Controllers\LegalDocumentController;
 use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TrialController;
@@ -18,6 +19,8 @@ Route::get('/tenders', fn () => Inertia::render('Tenders'))->name('tenders');
 Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
 Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
 Route::get('/operations-demo', fn () => Inertia::render('OperationsDemo'))->name('operations.demo');
+Route::get('/offer', [LegalDocumentController::class, 'offer'])->name('legal.offer');
+Route::get('/privacy', [LegalDocumentController::class, 'privacy'])->name('legal.privacy');
 
 Route::post('/telegram/session', [TelegramSessionController::class, 'store'])
     ->middleware('throttle:telegram-session')

@@ -110,6 +110,17 @@ idempotency keys. Sensitive payloads не дублируются в audit/log ta
 никаких попыток подменять persistence или включать оплату в serverless-array
 режиме.
 
+### Public legal-document contract
+
+`GET /offer` и `GET /privacy` — будущие постоянные Vercel URLs. Они не требуют
+сессии, но до финального approval отвечают `503`: черновик нельзя выдать за
+оферту или использовать для согласия. Публикационный gate
+`LEGAL_DOCUMENTS_PUBLISHED` должен включаться только вместе с финальным
+проверенным текстом, реальными public URLs и версиями в защищённой
+конфигурации VPS. `ConsentService` повторно проверяет этот gate на сервере,
+поэтому UI или случайное значение URL не могут создать consent/trial раньше
+публикации.
+
 ### Demo commerce process
 
 До подключения server-side commerce UI может показывать только подписанные
