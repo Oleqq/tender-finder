@@ -234,6 +234,16 @@
 - Следующее действие: после получения VPS, managed PostgreSQL/Redis и legal URLs перейти к container smoke-test и реальному Telegram smoke-test по `DEPLOYMENT.md`; до этого можно улучшать только безопасные UI/docs или тестируемые offline части.
 - Блокеры: те же внешние production prerequisites — VPS/domain, managed PostgreSQL/Redis, public offer/privacy URLs, secret store и test Telegram account.
 
+### 2026-08-25 - безопасное редактирование мониторингов до VPS activation
+
+- Задача: offline UI-часть `QRY-01`.
+- Простое объяснение: в защищённом экране мониторингов появились понятные кнопки «Изменить» и «Удалить». Пользователь сможет поправить название и фильтры своего мониторинга или удалить его после подтверждения. Это не включает продукт для реальных людей и не создаёт новый доступ: в browser preview экран по-прежнему закрыт.
+- Результат: React использует уже существующие authenticated `PATCH /queries/{query}` и `DELETE /queries/{query}`. Редактирование открывается в mobile bottom sheet, показывает все сохранённые фильтры и оставляет карточку без изменений при ошибке. Удаление требует отдельного подтверждения; сервер продолжает soft-delete через статус `deleted`.
+- Проверка: добавлен feature-сценарий owner update/delete и отказ другому пользователю. Прошли `npm run build`, `php artisan test` (23 passed, 156 assertions), Pint, PHPStan, ESLint и Prettier.
+- Техническая граница: migrations, API contract, роли, entitlement, Telegram, RSS polling и production configuration не изменялись. Никаких секретов, `.env`, `dump.rdb` или временной папки в работу не включено.
+- Следующее действие: после получения VPS/domain, managed PostgreSQL/Redis и legal URLs выполнить container smoke-test и real Telegram smoke-test. До этого допустимы только такие же безопасные offline/UI улучшения.
+- Блокеры: VPS/domain, managed PostgreSQL/Redis, public offer/privacy URLs, secret store и test Telegram account.
+
 ## Шаблон новой записи
 
 Копируйте этот блок под журналом после завершения значимой задачи.

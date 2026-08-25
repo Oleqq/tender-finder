@@ -96,3 +96,45 @@ it('enforces the server-side three active query limit', function () {
         ->assertUnprocessable()
         ->assertJsonValidationErrors('limit');
 });
+
+it('lets an owner update or delete a saved query without exposing it to another user', function () {
+    $owner = User::factory()->create(['telegram_id' => '9003']);
+    $query = SearchQuery::query()->create([
+        'user_id' => $owner->id,
+        'name' => 'Старый мониторинг',
+        'keywords' => ['сайт'],
+        'status' => 'paused',
+    ]);
+
+    $this->actingAs($owner)
+        ->patchJson("/queries/{$query->id}", [
+            'name' => 'Поддержка сайтов',
+            'keywords' => ['поддержка', 'сайт'],
+            'minus_keywords' => ['строительство'],
+            'region' => 'Москва',
+            'budget_min' => 100000,
+            'budget_max' => 300000,
+            'deadline_from' => '2026-09-01',
+            'deadline_to' => '2026-09-30',
+        ])
+        ->assertOk()
+        ->assertJsonPath('query.name', 'Поддержка сайтов')
+        ->assertJsonPath('query.region', 'Москва')
+        ->assertJsonPath('query.status', 'paused');
+
+    $updated = $query->fresh();
+    expect($updated->keywords)->toBe(['поддержка', 'сайт'])
+        ->and($updated->minus_keywords)->toBe(['строительство'])
+        ->and($updated->budget_min)->toBe('100000.00');
+
+    $otherUser = User::factory()->create(['telegram_id' => '9004']);
+    $this->actingAs($otherUser)
+        ->patchJson("/queries/{$query->id}", ['keywords' => ['чужой']])
+        ->assertNotFound();
+
+    $this->actingAs($owner)
+        ->deleteJson("/queries/{$query->id}")
+        ->assertNoContent();
+
+    expect($query->fresh()->status->value)->toBe('deleted');
+});

@@ -602,6 +602,7 @@ input:focus-visible {
 .query-create form { display: grid; gap: 12px; }
 .query-create__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .query-create__hint { margin-top: -3px; }
+.query-edit-form { display: grid; gap: 12px; padding-top: var(--space-4); }
 .query-list { display: grid; gap: 10px; }
 .query-card { display: grid; gap: 14px; }
 .query-card h3 { margin: 7px 0 4px; font-size: 15px; }

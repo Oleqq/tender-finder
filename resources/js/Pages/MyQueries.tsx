@@ -1,8 +1,16 @@
 import { Head, usePage } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
+import type { Dispatch, FormEvent, SetStateAction } from 'react';
+import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
-import { Badge, Button, FieldError, GlassCard, InlineAlert } from '../Components/ui';
+import {
+    Badge,
+    BottomSheet,
+    Button,
+    FieldError,
+    GlassCard,
+    InlineAlert,
+} from '../Components/ui';
 import type { PageProps } from '../types';
 
 type QueryStatus = 'active' | 'paused' | 'frozen';
@@ -21,68 +29,139 @@ type QueryDto = {
     monitoring_started_at: string | null;
 };
 
+type QueryFormValues = {
+    name: string;
+    keywords: string;
+    minusKeywords: string;
+    region: string;
+    budgetMin: string;
+    budgetMax: string;
+    deadlineFrom: string;
+    deadlineTo: string;
+};
+
+type QueryPayload = {
+    name: string | null;
+    keywords: string[];
+    minus_keywords: string[];
+    region: string | null;
+    budget_min: string | null;
+    budget_max: string | null;
+    deadline_from: string | null;
+    deadline_to: string | null;
+};
+
 type MyQueriesProps = {
     queries: QueryDto[];
 };
+
+const emptyQueryForm = (): QueryFormValues => ({
+    name: '',
+    keywords: '',
+    minusKeywords: '',
+    region: '',
+    budgetMin: '',
+    budgetMax: '',
+    deadlineFrom: '',
+    deadlineTo: '',
+});
 
 export default function MyQueries() {
     const { auth, queries: initialQueries } =
         usePage<PageProps<MyQueriesProps>>().props;
     const [queries, setQueries] = useState<QueryDto[]>(initialQueries);
-    const [keywords, setKeywords] = useState('');
-    const [minusKeywords, setMinusKeywords] = useState('');
-    const [region, setRegion] = useState('');
-    const [budgetMin, setBudgetMin] = useState('');
-    const [budgetMax, setBudgetMax] = useState('');
-    const [deadlineFrom, setDeadlineFrom] = useState('');
-    const [deadlineTo, setDeadlineTo] = useState('');
-    const [error, setError] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [createForm, setCreateForm] = useState<QueryFormValues>(emptyQueryForm);
+    const [editingQuery, setEditingQuery] = useState<QueryDto | null>(null);
+    const [editForm, setEditForm] = useState<QueryFormValues>(emptyQueryForm);
+    const [deleteCandidate, setDeleteCandidate] = useState<QueryDto | null>(null);
+    const [createError, setCreateError] = useState('');
+    const [editError, setEditError] = useState('');
+    const [actionError, setActionError] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const replaceQuery = (updatedQuery: QueryDto): void => {
+        setQueries((current) =>
+            current.map((query) =>
+                query.id === updatedQuery.id ? updatedQuery : query,
+            ),
+        );
+    };
 
     const createQuery = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
         event.preventDefault();
-        const values = keywords
-            .split(',')
-            .map((keyword) => keyword.trim())
-            .filter(Boolean);
+        const payload = toQueryPayload(createForm);
 
-        if (values.length === 0) {
-            setError('Укажите хотя бы одно ключевое слово через запятую.');
+        if (!payload) {
+            setCreateError('Укажите хотя бы одно ключевое слово через запятую.');
             return;
         }
 
-        const excludedValues = minusKeywords
-            .split(',')
-            .map((keyword) => keyword.trim())
-            .filter(Boolean);
-
-        setError('');
-        setIsSubmitting(true);
+        setCreateError('');
+        setActionError('');
+        setIsCreating(true);
 
         try {
-            const response = await window.axios.post<{ query: QueryDto }>('/queries', {
-                keywords: values,
-                minus_keywords: excludedValues,
-                region: region || null,
-                budget_min: budgetMin || null,
-                budget_max: budgetMax || null,
-                deadline_from: deadlineFrom || null,
-                deadline_to: deadlineTo || null,
-            });
+            const response = await window.axios.post<{ query: QueryDto }>(
+                '/queries',
+                payload,
+            );
             setQueries((current) => [response.data.query, ...current]);
-            setKeywords('');
-            setMinusKeywords('');
-            setRegion('');
-            setBudgetMin('');
-            setBudgetMax('');
-            setDeadlineFrom('');
-            setDeadlineTo('');
+            setCreateForm(emptyQueryForm());
         } catch {
-            setError(
+            setCreateError(
                 'Не удалось создать мониторинг. Проверьте доступ и попробуйте ещё раз.',
             );
         } finally {
-            setIsSubmitting(false);
+            setIsCreating(false);
+        }
+    };
+
+    const openEdit = (query: QueryDto): void => {
+        setActionError('');
+        setEditError('');
+        setEditingQuery(query);
+        setEditForm(queryToForm(query));
+    };
+
+    const closeEdit = (): void => {
+        if (!isSavingEdit) {
+            setEditingQuery(null);
+            setEditError('');
+        }
+    };
+
+    const updateQuery = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+        event.preventDefault();
+
+        if (!editingQuery) {
+            return;
+        }
+
+        const payload = toQueryPayload(editForm);
+
+        if (!payload) {
+            setEditError('Укажите хотя бы одно ключевое слово через запятую.');
+            return;
+        }
+
+        setEditError('');
+        setIsSavingEdit(true);
+
+        try {
+            const response = await window.axios.patch<{ query: QueryDto }>(
+                `/queries/${editingQuery.id}`,
+                payload,
+            );
+            replaceQuery(response.data.query);
+            setEditingQuery(null);
+        } catch {
+            setEditError(
+                'Не удалось сохранить изменения. Настройки не изменены — попробуйте ещё раз.',
+            );
+        } finally {
+            setIsSavingEdit(false);
         }
     };
 
@@ -90,21 +169,40 @@ export default function MyQueries() {
         query: QueryDto,
         action: 'pause' | 'resume' | 'freeze',
     ): Promise<void> => {
-        setError('');
+        setActionError('');
 
         try {
             const response = await window.axios.post<{ query: QueryDto }>(
                 `/queries/${query.id}/${action}`,
             );
-            setQueries((current) =>
-                current.map((item) =>
-                    item.id === query.id ? response.data.query : item,
-                ),
-            );
+            replaceQuery(response.data.query);
         } catch {
-            setError(
+            setActionError(
                 'Не удалось изменить состояние мониторинга. Ничего не потеряно — попробуйте ещё раз.',
             );
+        }
+    };
+
+    const deleteQuery = async (): Promise<void> => {
+        if (!deleteCandidate) {
+            return;
+        }
+
+        setActionError('');
+        setIsDeleting(true);
+
+        try {
+            await window.axios.delete(`/queries/${deleteCandidate.id}`);
+            setQueries((current) =>
+                current.filter((query) => query.id !== deleteCandidate.id),
+            );
+            setDeleteCandidate(null);
+        } catch {
+            setActionError(
+                'Не удалось удалить мониторинг. Он остаётся без изменений — попробуйте ещё раз.',
+            );
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -142,95 +240,24 @@ export default function MyQueries() {
                         </div>
                     </div>
                     <form onSubmit={createQuery}>
-                        <label className="form-field">
-                            <span>Ключевые слова</span>
-                            <input
-                                onChange={(event) => setKeywords(event.target.value)}
-                                placeholder="например, сайт, поддержка"
-                                value={keywords}
-                            />
-                        </label>
-                        <label className="form-field">
-                            <span>Минус-слова</span>
-                            <input
-                                onChange={(event) =>
-                                    setMinusKeywords(event.target.value)
-                                }
-                                placeholder="например, строительство"
-                                value={minusKeywords}
-                            />
-                        </label>
-                        <label className="form-field">
-                            <span>Регион</span>
-                            <input
-                                onChange={(event) => setRegion(event.target.value)}
-                                placeholder="например, Москва"
-                                value={region}
-                            />
-                        </label>
-                        <div className="query-create__grid">
-                            <label className="form-field">
-                                <span>Бюджет от, ₽</span>
-                                <input
-                                    inputMode="decimal"
-                                    min="0"
-                                    onChange={(event) =>
-                                        setBudgetMin(event.target.value)
-                                    }
-                                    placeholder="0"
-                                    type="number"
-                                    value={budgetMin}
-                                />
-                            </label>
-                            <label className="form-field">
-                                <span>Бюджет до, ₽</span>
-                                <input
-                                    inputMode="decimal"
-                                    min="0"
-                                    onChange={(event) =>
-                                        setBudgetMax(event.target.value)
-                                    }
-                                    placeholder="Без лимита"
-                                    type="number"
-                                    value={budgetMax}
-                                />
-                            </label>
-                            <label className="form-field">
-                                <span>Дедлайн от</span>
-                                <input
-                                    onChange={(event) =>
-                                        setDeadlineFrom(event.target.value)
-                                    }
-                                    type="date"
-                                    value={deadlineFrom}
-                                />
-                            </label>
-                            <label className="form-field">
-                                <span>Дедлайн до</span>
-                                <input
-                                    onChange={(event) =>
-                                        setDeadlineTo(event.target.value)
-                                    }
-                                    type="date"
-                                    value={deadlineTo}
-                                />
-                            </label>
-                        </div>
+                        <QueryFields
+                            form={createForm}
+                            onChange={updateForm(setCreateForm)}
+                        />
                         <p className="query-create__hint">
                             Запятая разделяет слова. Keywords обязательны, минус-слова
                             исключают совпадение; неизвестные RSS-поля не угадываются.
                         </p>
-                        {error ? <FieldError>{error}</FieldError> : null}
-                        <Button disabled={isSubmitting} icon="check" type="submit">
-                            {isSubmitting ? 'Создаём…' : 'Включить мониторинг'}
+                        {createError ? <FieldError>{createError}</FieldError> : null}
+                        <Button disabled={isCreating} icon="check" type="submit">
+                            {isCreating ? 'Создаём…' : 'Включить мониторинг'}
                         </Button>
                     </form>
                 </GlassCard>
 
-                {error ? (
+                {actionError ? (
                     <InlineAlert title="Можно повторить" tone="warning">
-                        Сервер не сохранил действие, если не показал обновлённую
-                        карточку ниже.
+                        {actionError}
                     </InlineAlert>
                 ) : null}
 
@@ -249,63 +276,317 @@ export default function MyQueries() {
                             </p>
                         </GlassCard>
                     ) : (
-                        queries.map((query) => (
-                            <GlassCard
-                                as="article"
-                                className="query-card"
-                                key={query.id}
-                            >
-                                <div>
-                                    <Badge
-                                        tone={
-                                            query.status === 'active'
-                                                ? 'success'
-                                                : 'neutral'
-                                        }
-                                    >
-                                        {statusLabel(query.status)}
-                                    </Badge>
-                                    <h3>{query.name}</h3>
-                                    <p>{query.keywords.join(' · ')}</p>
-                                </div>
-                                <div className="query-card__actions">
-                                    {query.status === 'active' ? (
+                        queries.map((query) => {
+                            const details = queryDetails(query);
+
+                            return (
+                                <GlassCard
+                                    as="article"
+                                    className="query-card"
+                                    key={query.id}
+                                >
+                                    <div>
+                                        <Badge
+                                            tone={
+                                                query.status === 'active'
+                                                    ? 'success'
+                                                    : 'neutral'
+                                            }
+                                        >
+                                            {statusLabel(query.status)}
+                                        </Badge>
+                                        <h3>{query.name}</h3>
+                                        <p>{query.keywords.join(' · ')}</p>
+                                        {details ? <p>{details}</p> : null}
+                                    </div>
+                                    <div className="query-card__actions">
+                                        {query.status === 'active' ? (
+                                            <Button
+                                                onClick={() =>
+                                                    changeStatus(query, 'pause')
+                                                }
+                                                size="sm"
+                                                variant="secondary"
+                                            >
+                                                Пауза
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                onClick={() =>
+                                                    changeStatus(query, 'resume')
+                                                }
+                                                size="sm"
+                                                variant="secondary"
+                                            >
+                                                Возобновить
+                                            </Button>
+                                        )}
                                         <Button
-                                            onClick={() => changeStatus(query, 'pause')}
+                                            onClick={() => openEdit(query)}
                                             size="sm"
                                             variant="secondary"
                                         >
-                                            Пауза
+                                            Изменить
                                         </Button>
-                                    ) : (
+                                        {query.status !== 'frozen' ? (
+                                            <Button
+                                                onClick={() =>
+                                                    changeStatus(query, 'freeze')
+                                                }
+                                                size="sm"
+                                                variant="ghost"
+                                            >
+                                                Заморозить
+                                            </Button>
+                                        ) : null}
                                         <Button
-                                            onClick={() =>
-                                                changeStatus(query, 'resume')
-                                            }
+                                            onClick={() => {
+                                                setActionError('');
+                                                setDeleteCandidate(query);
+                                            }}
                                             size="sm"
-                                            variant="secondary"
+                                            variant="danger"
                                         >
-                                            Возобновить
+                                            Удалить
                                         </Button>
-                                    )}
-                                    {query.status !== 'frozen' ? (
-                                        <Button
-                                            onClick={() =>
-                                                changeStatus(query, 'freeze')
-                                            }
-                                            size="sm"
-                                            variant="ghost"
-                                        >
-                                            Заморозить
-                                        </Button>
-                                    ) : null}
-                                </div>
-                            </GlassCard>
-                        ))
+                                    </div>
+                                </GlassCard>
+                            );
+                        })
                     )}
                 </section>
             </AppShell>
+
+            <BottomSheet
+                onClose={closeEdit}
+                open={editingQuery !== null}
+                title="Изменить мониторинг"
+            >
+                <form className="query-edit-form" onSubmit={updateQuery}>
+                    <QueryFields form={editForm} onChange={updateForm(setEditForm)} />
+                    {editError ? <FieldError>{editError}</FieldError> : null}
+                    <Button
+                        className="sheet-action"
+                        disabled={isSavingEdit}
+                        icon="check"
+                        type="submit"
+                    >
+                        {isSavingEdit ? 'Сохраняем…' : 'Сохранить изменения'}
+                    </Button>
+                    <Button
+                        className="sheet-action"
+                        disabled={isSavingEdit}
+                        onClick={closeEdit}
+                        variant="secondary"
+                    >
+                        Отмена
+                    </Button>
+                </form>
+            </BottomSheet>
+
+            <BottomSheet
+                onClose={() => !isDeleting && setDeleteCandidate(null)}
+                open={deleteCandidate !== null}
+                title="Удалить мониторинг?"
+            >
+                <p className="sheet-description">
+                    «{deleteCandidate?.name}» перестанет участвовать в подборе. Это
+                    действие можно будет создать заново, но восстановить карточку
+                    нельзя.
+                </p>
+                <Button
+                    className="sheet-action"
+                    disabled={isDeleting}
+                    onClick={deleteQuery}
+                    variant="danger"
+                >
+                    {isDeleting ? 'Удаляем…' : 'Удалить мониторинг'}
+                </Button>
+                <Button
+                    className="sheet-action"
+                    disabled={isDeleting}
+                    onClick={() => setDeleteCandidate(null)}
+                    variant="secondary"
+                >
+                    Отмена
+                </Button>
+            </BottomSheet>
         </>
+    );
+}
+
+function QueryFields({
+    form,
+    onChange,
+}: {
+    form: QueryFormValues;
+    onChange: (field: keyof QueryFormValues, value: string) => void;
+}) {
+    return (
+        <>
+            <label className="form-field">
+                <span>Название мониторинга</span>
+                <input
+                    onChange={(event) => onChange('name', event.target.value)}
+                    placeholder="например, Поддержка сайта"
+                    value={form.name}
+                />
+            </label>
+            <label className="form-field">
+                <span>Ключевые слова</span>
+                <input
+                    onChange={(event) => onChange('keywords', event.target.value)}
+                    placeholder="например, сайт, поддержка"
+                    value={form.keywords}
+                />
+            </label>
+            <label className="form-field">
+                <span>Минус-слова</span>
+                <input
+                    onChange={(event) => onChange('minusKeywords', event.target.value)}
+                    placeholder="например, строительство"
+                    value={form.minusKeywords}
+                />
+            </label>
+            <label className="form-field">
+                <span>Регион</span>
+                <input
+                    onChange={(event) => onChange('region', event.target.value)}
+                    placeholder="например, Москва"
+                    value={form.region}
+                />
+            </label>
+            <div className="query-create__grid">
+                <label className="form-field">
+                    <span>Бюджет от, ₽</span>
+                    <input
+                        inputMode="decimal"
+                        min="0"
+                        onChange={(event) => onChange('budgetMin', event.target.value)}
+                        placeholder="0"
+                        type="number"
+                        value={form.budgetMin}
+                    />
+                </label>
+                <label className="form-field">
+                    <span>Бюджет до, ₽</span>
+                    <input
+                        inputMode="decimal"
+                        min={form.budgetMin || '0'}
+                        onChange={(event) => onChange('budgetMax', event.target.value)}
+                        placeholder="Без лимита"
+                        type="number"
+                        value={form.budgetMax}
+                    />
+                </label>
+                <label className="form-field">
+                    <span>Дедлайн от</span>
+                    <input
+                        onChange={(event) =>
+                            onChange('deadlineFrom', event.target.value)
+                        }
+                        type="date"
+                        value={form.deadlineFrom}
+                    />
+                </label>
+                <label className="form-field">
+                    <span>Дедлайн до</span>
+                    <input
+                        min={form.deadlineFrom || undefined}
+                        onChange={(event) => onChange('deadlineTo', event.target.value)}
+                        type="date"
+                        value={form.deadlineTo}
+                    />
+                </label>
+            </div>
+        </>
+    );
+}
+
+function updateForm(
+    setForm: Dispatch<SetStateAction<QueryFormValues>>,
+): (field: keyof QueryFormValues, value: string) => void {
+    return (field, value): void => {
+        setForm((current) => ({ ...current, [field]: value }));
+    };
+}
+
+function queryToForm(query: QueryDto): QueryFormValues {
+    return {
+        name: query.name,
+        keywords: query.keywords.join(', '),
+        minusKeywords: query.minus_keywords?.join(', ') ?? '',
+        region: query.region ?? '',
+        budgetMin: query.budget_min ?? '',
+        budgetMax: query.budget_max ?? '',
+        deadlineFrom: query.deadline_from ?? '',
+        deadlineTo: query.deadline_to ?? '',
+    };
+}
+
+function toQueryPayload(form: QueryFormValues): QueryPayload | null {
+    const keywords = splitKeywords(form.keywords);
+
+    if (keywords.length === 0) {
+        return null;
+    }
+
+    return {
+        name: form.name.trim() || null,
+        keywords,
+        minus_keywords: splitKeywords(form.minusKeywords),
+        region: form.region.trim() || null,
+        budget_min: form.budgetMin || null,
+        budget_max: form.budgetMax || null,
+        deadline_from: form.deadlineFrom || null,
+        deadline_to: form.deadlineTo || null,
+    };
+}
+
+function splitKeywords(value: string): string[] {
+    return value
+        .split(',')
+        .map((keyword) => keyword.trim())
+        .filter(Boolean);
+}
+
+function queryDetails(query: QueryDto): string | null {
+    const details = [
+        query.region,
+        budgetDetail(query.budget_min, query.budget_max),
+        dateDetail(query.deadline_from, query.deadline_to),
+    ].filter(Boolean);
+
+    return details.length > 0 ? details.join(' · ') : null;
+}
+
+function budgetDetail(min: string | null, max: string | null): string | null {
+    if (!min && !max) {
+        return null;
+    }
+
+    if (min && max) {
+        return `${formatMoney(min)}–${formatMoney(max)} ₽`;
+    }
+
+    return min ? `от ${formatMoney(min)} ₽` : `до ${formatMoney(max ?? '')} ₽`;
+}
+
+function dateDetail(from: string | null, to: string | null): string | null {
+    if (!from && !to) {
+        return null;
+    }
+
+    return from && to
+        ? `дедлайн ${from}–${to}`
+        : from
+          ? `дедлайн от ${from}`
+          : `дедлайн до ${to ?? ''}`;
+}
+
+function formatMoney(value: string): string {
+    return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(
+        Number(value),
     );
 }
 
