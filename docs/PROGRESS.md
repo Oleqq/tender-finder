@@ -6,14 +6,14 @@
 
 | Поле | Значение |
 |---|---|
-| Текущий этап | Server foundation: DB, identity/access, webhook и Basic tender core подготовлены к VPS activation |
-| Статус MVP | Код и тесты серверных этапов готовы локально; production всё ещё работает как Vercel demo, пока не появятся VPS, managed PostgreSQL/Redis, public legal URLs и Telegram smoke-test |
+| Текущий этап | Локальный runtime и Basic tender core: готовим проверяемую цепочку до VPS activation |
+| Статус MVP | Код и local Compose подготовлены; production всё ещё работает как Vercel demo, пока не появятся VPS, managed PostgreSQL/Redis, public legal URLs и Telegram smoke-test |
 | Стек | PHP 8.3 + Laravel, React + TypeScript |
 | Основной интерфейс клиента | Telegram Mini App на домене проекта |
 | Админка | Ролевые экраны внутри того же Telegram Mini App; доступны только `super_admin` после server-side проверки |
 | Главный источник MVP | Публичный RSS расширенного поиска ЕИС, закрытая бета |
 | Источник после MVP | СОИ ЕИС или лицензированный поставщик данных |
-| Платежи MVP | Telegram Stars для цифрового доступа внутри Telegram; цены и модель продления требуют продуктового решения |
+| Платежи beta | Не включаются: Stars, возвраты и платный доступ вынесены за пределы закрытой beta |
 | Последнее обновление | 2026-08-25 |
 
 ## Доска задач
@@ -31,7 +31,7 @@
 | EXT-01 | Получить документацию и доступный способ интеграции ЕИС через СОИ | Подготовка | TODO | Есть тестовый запрос и описание лимитов | Заказчик/ЕИС |
 | EXT-02 | Зафиксировать цены/лимиты и правила продления в Telegram Stars | Подготовка | TODO | Подтверждённая матрица планов и тестовые сценарии оплаты/возврата | Заказчик |
 | EXT-03 | Подготовить оферту и политику конфиденциальности | Подготовка | IN PROGRESS | Юрист проверил тексты, заполнены реквизиты ИП и опубликованы стабильные public URLs | Заказчик/юрист |
-| INF-01 | Создать Laravel + React-проект и Docker-окружение | Этап 0 | IN PROGRESS | Готовы image, Compose web/queue/scheduler/Caddy и VPS runbook; нужен внешний container smoke-test | VPS, managed PostgreSQL/Redis, домен |
+| INF-01 | Создать Laravel + React-проект и Docker-окружение | Этап 0 | IN PROGRESS | Готовы VPS Compose и отдельный local Compose с PostgreSQL/Redis; нужен local Docker smoke-test, затем внешний VPS smoke-test | Docker Desktop локально; VPS, managed PostgreSQL/Redis, домен |
 | INF-02 | Настроить CI, `.env.example`, health check и логи | Этап 0 | DONE | Проверки настроены для CI, `/health` возвращает JSON, логи структурированы | Нет |
 | INF-03 | Подготовить Vercel production-контур | Переход к этапу 1 | DONE | Production `GET /health` возвращает ожидаемый JSON | Managed PostgreSQL и Redis нужны перед включением пользовательских сценариев |
 | WEB-01 | Реализовать React-каркас Mini App и проверку Telegram `initData` | Этап 1 | IN PROGRESS | Design system, SPA, signed session endpoint и secure role bootstrap готовы; нужен production smoke-test | VPS, managed PostgreSQL/Redis, Telegram secrets |
@@ -39,7 +39,7 @@
 | WEB-03 | Уточнить data-first дизайн и расширить component library | Этап 1 | DONE | Новые элементы собраны из tokens, blur уменьшен, catalogue актуален | Нет |
 | BOT-01 | Подключить Telegram webhook и `/start`, `/help` | Этап 1 | IN PROGRESS | Secret check, deduplication, queue job и reply logic готовы; нужны HTTPS webhook и test chat | VPS, Telegram secrets, managed Redis |
 | BOT-02 | Реализовать согласия, trial 72 часа и напоминания | Этап 1 | IN PROGRESS | Consent, one-time 72h trial, reminders и server-side expiry lifecycle готовы; нужен VPS/Telegram smoke-test с final legal URLs | VPS, legal URLs, Telegram secrets |
-| QRY-01 | Реализовать мастер создания и управления запросами | Этап 2 | IN PROGRESS | Authenticated server API/UI для create/edit/pause/resume/freeze готов; production activation и расширенная форма впереди | VPS activation |
+| QRY-01 | Реализовать мастер создания и управления запросами | Этап 2 | IN PROGRESS | Authenticated server API/UI для create/edit/pause/resume/freeze и защищённый поток совпадений в `/tenders` готовы; production activation и расширенная форма впереди | Local Docker smoke-test, затем VPS activation |
 | SRC-00 | Подготовить и вручную проверить RSS-ленты ЕИС для тестовых сценариев | Этап 2 | TODO | URL лент, поля и задержка зафиксированы в тестовом наборе | Нет |
 | SRC-01 | Реализовать `EisRssSource`, polling и дедупликацию | Этап 2 | IN PROGRESS | Fixture parser/import, URL allowlist, errors и first-poll silence проверены; live fetch выключен до SRC-00 | SRC-00 |
 | SRC-02 | Реализовать мониторинг RSS-источника и лимит 100 уникальных лент | Этап 2 | IN PROGRESS | Schema source runs и code limit 100/10m/global throttle готовы; real telemetry/admin screen ждут live source | SRC-00, VPS |
@@ -56,6 +56,29 @@
 | QA-01 | Пройти тесты и чек-лист приёмки MVP | Этап 5 | TODO | Все обязательные проверки пройдены | Нет |
 
 ## Журнал изменений
+
+### 2026-08-25 - local runtime и путь RSS fixture до карточки
+
+- Задача: локальная разработка без VPS, проверяемое отображение `TenderQueryMatch`.
+- Простое объяснение: теперь проект можно поднять на одном компьютере вместе с
+  базой, очередью и фоновым «будильником». Встроенные примеры RSS показывают
+  путь новой закупки до карточки без обращения к ЕИС и без реального Telegram-
+  пользователя. Карточка объясняет, почему закупка попала в мониторинг, а не
+  рисует процент «шанса на победу».
+- Результат: добавлен `compose.local.yml`, изолированные PostgreSQL 16/Redis,
+  некоммитируемый local runtime config template и команды synthetic scenario /
+  fixture import / match inspection. Авторизованный `/tenders` получает только
+  совпадения своих мониторингов; anonymous preview остаётся `demo`.
+- Техническая граница: live RSS flag остаётся `false`; ЕИС не опрашивается;
+  Telegram, trial legal gate, Vercel menu/webhook и production secrets не
+  меняются. Локальный Docker smoke-test ожидает установки Docker Desktop.
+- Проверка: feature-тесты покрывают изоляцию чужих карточек, demo fallback и
+  путь first-poll silence → новая fixture → explainable match. Перед commit
+  прошли `npm run build`, `php artisan test` (32 passed, 246 assertions), Pint,
+  PHPStan, ESLint и Prettier.
+- Следующее действие: установить Docker Desktop, создать local config вручную
+  из шаблона и выполнить команды из `LOCAL-RUNTIME.md`. После этого перейти к
+  `SRC-00`; live EIS URL не включать без ручного подтверждения.
 
 ### 2026-08-22 - подготовка
 

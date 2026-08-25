@@ -1,0 +1,61 @@
+name: tender-finder-local
+
+x-application: &application
+  build:
+    context: .
+  env_file:
+    - ./deploy/local-runtime.env
+  init: true
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  web:
+    <<: *application
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080", "--no-reload"]
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  queue:
+    <<: *application
+    command: ["php", "artisan", "queue:work", "redis", "--sleep=1", "--tries=3", "--max-time=3600"]
+
+  scheduler:
+    <<: *application
+    command: ["php", "artisan", "schedule:work"]
+
+  migrate:
+    <<: *application
+    profiles: ["ops"]
+    restart: "no"
+    command: ["php", "artisan", "migrate", "--force"]
+
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - ./deploy/local-runtime.env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - tender_finder_local_postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - tender_finder_local_redis:/data
+
+volumes:
+  tender_finder_local_postgres:
+  tender_finder_local_redis:

@@ -8,6 +8,8 @@ type TenderCardProps = {
     deadline: string;
     status?: 'Новый' | 'Срочный' | 'Подходит';
     match: string;
+    description?: string | null;
+    href?: string;
 };
 
 export function TenderCard({
@@ -17,6 +19,8 @@ export function TenderCard({
     deadline,
     status = 'Подходит',
     match,
+    description,
+    href,
 }: TenderCardProps) {
     const tone =
         status === 'Срочный' ? 'warning' : status === 'Новый' ? 'accent' : 'success';
@@ -31,10 +35,23 @@ export function TenderCard({
             </div>
             <h3>{title}</h3>
             <p>{customer}</p>
+            {description ? (
+                <p className="tender-card__description">{description}</p>
+            ) : null}
             <div className="tender-card__footer">
                 <strong>{price}</strong>
                 <span>{deadline}</span>
             </div>
+            {href ? (
+                <a
+                    className="tender-card__link"
+                    href={href}
+                    rel="noreferrer"
+                    target="_blank"
+                >
+                    Открыть извещение
+                </a>
+            ) : null}
         </GlassCard>
     );
 }

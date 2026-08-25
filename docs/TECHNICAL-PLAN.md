@@ -5,7 +5,7 @@
 Один репозиторий и один Laravel 12 application. React + TypeScript + Vite +
 Inertia реализуют SPA-навигацию Mini App без React Router. Laravel владеет
 данными, Telegram, проверкой `initData`, сессиями, webhook, очередями,
-платежами и Inertia endpoints. Отдельные backend- или frontend-репозитории не
+будущими платежами и Inertia endpoints. Отдельные backend- или frontend-репозитории не
 создаются до подтверждённой нагрузки.
 
 - PHP 8.3+, Laravel 12;
@@ -14,18 +14,29 @@ Inertia реализуют SPA-навигацию Mini App без React Router. 
 - Redis — sessions, cache, locks, queues и rate limits;
 - Laravel Scheduler / Horizon — jobs и наблюдение;
 - Telegram Mini Apps + Bot API;
-- Telegram Stars (`XTR`) — первая оплата цифрового доступа внутри Telegram;
+- Telegram Stars (`XTR`) — отдельный этап после закрытой beta;
 - HTTPS production-контур; Vercel — только текущий demo/foundation до
   подключения постоянной базы и Redis.
 
 ```text
 Telegram Mini App → React/Inertia → Laravel → PostgreSQL
 Telegram Bot      → Laravel webhook ↘ Redis queues → imports / delivery / campaigns
-Telegram Stars    → Bot API events → Laravel → entitlements / audit
 Super-admin UI    → те же Inertia endpoints → server-side policies
 ```
 
 ## 2. Модули
+
+### Локальная проверка tender core до VPS
+
+Отдельный `compose.local.yml` воспроизводит постоянные процессы Laravel на
+одном компьютере: `web`, `queue`, `scheduler`, PostgreSQL 16 и Redis. Он
+использует только loopback HTTP, local-only commands и XML fixtures. У него нет
+публичного TLS, Telegram webhook или live polling, поэтому он годится для
+разработки и acceptance-сценариев, но не для закрытой beta.
+
+Защищённый `GET /tenders` теперь отдаёт не выдуманные показатели, а максимум
+50 `TenderQueryMatch` текущего пользователя вместе с объяснимыми причинами
+совпадения. Неавторизованный Mini App preview остаётся в явном `demo` mode.
 
 | Модуль | Ответственность | Приоритет |
 |---|---|---|
@@ -35,7 +46,7 @@ Super-admin UI    → те же Inertia endpoints → server-side policies
 | Access | trial, plan, entitlement, feature limits | MVP |
 | Tender core | queries, RSS adapter, catalogue, deduplication, rules matching | MVP |
 | Notifications | transactional delivery, anti-spam, preferences | MVP |
-| Commerce | Stars invoices, checkout events, refunds, billing audit | MVP |
+| Commerce | Stars invoices, checkout events, refunds, billing audit | После закрытой beta |
 | Embedded admin | overview, users, campaigns, sources, ops, audit | После core-данных |
 | LLM scoring | evaluation, personal ranking, ToR analysis | Future PRO |
 
@@ -92,7 +103,11 @@ idempotency keys. Sensitive payloads не дублируются в audit/log ta
 Статусы — PHP enums, transitions — domain services. React получает DTO и не
 меняет state напрямую.
 
-## 4. Telegram и Stars
+## 4. Telegram и будущие Stars
+
+Закрытая beta не включает Stars, invoice, возвраты или платные entitlement.
+Следующие пункты — будущая техническая заготовка, к которой возвращаемся только
+после отдельного product/legal readiness gate.
 
 1. WebApp client передаёт `initData`; Laravel проверяет HMAC и freshness,
    находит/создаёт пользователя, пишет `last_seen_at`, назначает роль и создаёт

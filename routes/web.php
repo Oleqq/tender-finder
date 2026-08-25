@@ -4,6 +4,7 @@ use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\LegalDocumentController;
 use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
+use App\Http\Controllers\TenderFeedController;
 use App\Http\Controllers\TrialController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -15,7 +16,7 @@ Route::get('/', function () {
 Route::get('/onboarding', fn () => Inertia::render('Onboarding'))->name('onboarding');
 Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
 Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
-Route::get('/tenders', fn () => Inertia::render('Tenders'))->name('tenders');
+Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
 Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
 Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
 Route::get('/operations-demo', fn () => Inertia::render('OperationsDemo'))->name('operations.demo');

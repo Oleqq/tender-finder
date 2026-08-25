@@ -4,11 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property SearchQuery $searchQuery
  * @property Tender $tender
+ * @property array<string, mixed> $match_reasons
+ * @property Carbon $matched_at
  */
 class TenderQueryMatch extends Model
 {

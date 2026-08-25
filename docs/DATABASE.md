@@ -153,3 +153,17 @@ migrations проверяются локально; production contract — Post
 `campaigns`, `campaign_deliveries`, `admin_audit_logs` и aggregated
 `system_metrics`: их добавят вместе с реальной бизнес-функцией и тестами, а не
 заранее пустыми таблицами.
+
+## Локальная база для разработки
+
+`compose.local.yml` поднимает отдельный PostgreSQL 16 в именованном Docker
+volume `tender_finder_local_postgres`. Он не публикует порт базы наружу и не
+используется Vercel или production. Для него создаётся только
+некоммитируемый `deploy/local-runtime.env`; его значения локальны и не должны
+совпадать с VPS.
+
+Синтетические RSS fixtures могут создать `source_feeds`, `source_feed_items`,
+`tenders`, `tender_query_matches` и технические delivery-записи. Это примеры
+без реального Telegram ID и без внешнего RSS-запроса. Они нужны, чтобы увидеть
+полную локальную цепочку данных до карточки, а не чтобы заполнить production
+данными.

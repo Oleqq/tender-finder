@@ -12,6 +12,18 @@ production нужны доступ к VPS, домен, managed connection string
 legal URLs и Telegram secrets. Эти значения никогда не попадают в Git,
 документацию или логи.
 
+## Локальная разработка без VPS
+
+Для личной разработки есть отдельный `compose.local.yml`: он поднимает Laravel,
+очередь, scheduler, PostgreSQL 16 и Redis на `127.0.0.1`. Это не замена
+production Compose: локальная база хранится в Docker volume на компьютере, а
+внешние EIS RSS, Telegram webhook, legal publication и Vercel не включаются.
+
+Инструкция и безопасный synthetic RSS путь находятся в
+[`LOCAL-RUNTIME.md`](LOCAL-RUNTIME.md). Локальный конфигурационный файл
+`deploy/local-runtime.env` создаёт только оператор из шаблона и не передаёт в
+Git, чат или логи.
+
 ## Из чего состоит runtime
 
 ```text

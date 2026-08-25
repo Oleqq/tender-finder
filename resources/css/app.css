@@ -459,9 +459,11 @@ input:focus-visible {
 .tender-card__meta > span { display: inline-flex; align-items: center; gap: 3px; color: var(--tf-teal); font-size: 10px; font-weight: 700; }
 .tender-card h3 { max-width: 330px; margin: 14px 0 5px; color: var(--app-ink); font-size: 17px; font-weight: 740; letter-spacing: -0.03em; line-height: 1.15; }
 .tender-card > p { margin: 0; color: var(--app-muted); font-size: 12px; }
+.tender-card > .tender-card__description { margin-top: 8px; color: var(--tf-muted); line-height: 1.45; }
 .tender-card__footer { display: flex; align-items: end; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-5); padding-top: var(--space-3); border-top: 1px solid var(--tf-line); }
 .tender-card__footer strong { color: var(--app-ink); font-size: 17px; letter-spacing: -0.03em; }
 .tender-card__footer span { color: var(--tf-muted); font-size: 11px; }
+.tender-card__link { display: inline-flex; margin-top: var(--space-3); color: var(--tf-teal); font-size: 12px; font-weight: 700; }
 
 /* Tenders */
 .tenders-tools { display: grid; gap: 12px; }
