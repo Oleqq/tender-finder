@@ -9,6 +9,8 @@ use App\Models\TenderQueryMatch;
 
 class NotificationService
 {
+    public function __construct(private readonly AccessService $access) {}
+
     public function queueForMatch(TenderQueryMatch $match): ?NotificationDelivery
     {
         $match->loadMissing(['searchQuery.user', 'tender']);
@@ -20,6 +22,11 @@ class NotificationService
         }
 
         $user = $query->user;
+
+        if (! $this->access->hasActiveAccess($user)) {
+            return null;
+        }
+
         $hourStart = now()->startOfHour();
         $hourlyCards = NotificationDelivery::query()
             ->where('user_id', $user->id)

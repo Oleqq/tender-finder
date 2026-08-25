@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('tenders:dispatch-rss')->everySecond()->withoutOverlapping();
+Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();

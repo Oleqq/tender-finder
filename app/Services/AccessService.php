@@ -45,4 +45,9 @@ class AccessService
     {
         return $this->snapshotFor($user)->activeQueryLimit;
     }
+
+    public function hasActiveAccess(User $user): bool
+    {
+        return in_array($this->snapshotFor($user)->state, [AccessState::Trialing, AccessState::Active], true);
+    }
 }

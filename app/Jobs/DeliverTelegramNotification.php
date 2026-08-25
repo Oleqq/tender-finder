@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\NotificationStatus;
 use App\Models\NotificationDelivery;
+use App\Services\AccessService;
 use App\Services\TelegramBotClient;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -20,7 +21,7 @@ class DeliverTelegramNotification implements ShouldQueue
 
     public function __construct(public readonly int $deliveryId) {}
 
-    public function handle(TelegramBotClient $bot): void
+    public function handle(TelegramBotClient $bot, AccessService $access): void
     {
         $delivery = NotificationDelivery::query()->with('user')->find($this->deliveryId);
 
@@ -28,11 +29,23 @@ class DeliverTelegramNotification implements ShouldQueue
             return;
         }
 
+        if (! $access->hasActiveAccess($delivery->user)) {
+            $delivery->forceFill([
+                'status' => NotificationStatus::Skipped,
+                'failure_code' => 'access_expired',
+            ])->save();
+
+            return;
+        }
+
         try {
             $payload = $delivery->payload ?? [];
-            $text = $delivery->type === 'tender_digest'
-                ? 'За этот час найдено больше 20 совпадений. Откройте Mini App: там будет сводка до 10 карточек.'
-                : "Новый подходящий тендер: {$payload['title']}\n{$payload['url']}";
+            $text = match ($delivery->type) {
+                'trial_ending_24h' => 'Ваш trial Tender Finder закончится примерно через 24 часа. После окончания мониторинги будут заморожены.',
+                'trial_ending_3h' => 'Ваш trial Tender Finder закончится примерно через 3 часа. После окончания мониторинги будут заморожены.',
+                'tender_digest' => 'За этот час найдено больше 20 совпадений. Откройте Mini App: там будет сводка до 10 карточек.',
+                default => "Новый подходящий тендер: {$payload['title']}\n{$payload['url']}",
+            };
 
             $bot->sendMessage($delivery->user->telegram_id, $text);
             $delivery->forceFill(['status' => NotificationStatus::Sent, 'sent_at' => now()])->save();

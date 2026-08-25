@@ -92,6 +92,12 @@ docker compose -f compose.production.yml up -d web queue scheduler caddy
 4. На отдельном тестовом Telegram-пользователе проверяются signed Mini App
    session, consent, ровно один trial, `/start` и `/help`. Ни цены Stars, ни
    live RSS на этом шаге не включаются.
+5. Проверить, что `scheduler` исполняет `trials:process-lifecycle` каждую
+   минуту: он создаёт не более одного reminder за 24 и 3 часа, а после
+   окончания trial замораживает запросы и переводит ожидающие delivery в
+   `skipped`. Полную 72-часовую временную проверку проводят на отдельном
+   staging/test runtime либо естественным временем до cutover; не меняйте
+   длительность публичного trial ради smoke-test.
 
 ## Controlled cutover и rollback
 

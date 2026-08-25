@@ -38,7 +38,7 @@
 | WEB-02 | Собрать preview, paywall и access-aware UI на demo-данных | Этап 1 | DONE | Все состояния до/после оплаты, loading/error/empty и reduced motion проверены | Нет |
 | WEB-03 | Уточнить data-first дизайн и расширить component library | Этап 1 | DONE | Новые элементы собраны из tokens, blur уменьшен, catalogue актуален | Нет |
 | BOT-01 | Подключить Telegram webhook и `/start`, `/help` | Этап 1 | IN PROGRESS | Secret check, deduplication, queue job и reply logic готовы; нужны HTTPS webhook и test chat | VPS, Telegram secrets, managed Redis |
-| BOT-02 | Реализовать согласия, trial 72 часа и напоминания | Этап 1 | IN PROGRESS | Append-only consent и one-time 72h trial готовы; reminders и production activation ждут legal URLs | Публичные ссылки на оферту и политику конфиденциальности |
+| BOT-02 | Реализовать согласия, trial 72 часа и напоминания | Этап 1 | IN PROGRESS | Consent, one-time 72h trial, reminders и server-side expiry lifecycle готовы; нужен VPS/Telegram smoke-test с final legal URLs | VPS, legal URLs, Telegram secrets |
 | QRY-01 | Реализовать мастер создания и управления запросами | Этап 2 | IN PROGRESS | Authenticated server API/UI для create/edit/pause/resume/freeze готов; production activation и расширенная форма впереди | VPS activation |
 | SRC-00 | Подготовить и вручную проверить RSS-ленты ЕИС для тестовых сценариев | Этап 2 | TODO | URL лент, поля и задержка зафиксированы в тестовом наборе | Нет |
 | SRC-01 | Реализовать `EisRssSource`, polling и дедупликацию | Этап 2 | IN PROGRESS | Fixture parser/import, URL allowlist, errors и first-poll silence проверены; live fetch выключен до SRC-00 | SRC-00 |
@@ -48,7 +48,7 @@
 | ADM-05 | Реализовать кампании и Telegram-алерты | Этап 3 | TODO | Preview, сегмент, limits, delivery journal и отмена протестированы | ADM-02, NTF-01 |
 | ADM-03 | Реализовать бесплатный внутренний доступ | Этап 3 | TODO | Доступ выдаётся/отзывается без подмены платежей | ADM-02 |
 | MAT-01 | Реализовать базовый матчинг | Этап 3 | DONE | Deterministic keyword/minus/region/budget/deadline reasons покрыты tests | Нет |
-| NTF-01 | Реализовать уведомления и антиспам | Этап 3 | IN PROGRESS | Delivery ledger, idempotency и 20/hour → digest queue готовы; Telegram delivery ждёт real bot/runtime smoke-test | VPS, Telegram secrets |
+| NTF-01 | Реализовать уведомления и антиспам | Этап 3 | IN PROGRESS | Delivery ledger, idempotency, 20/hour → digest и access gate до queue/send готовы; Telegram delivery ждёт real bot/runtime smoke-test | VPS, Telegram secrets |
 | PAY-01 | Реализовать планы, paywall и Telegram Stars | Этап 4 | TODO | Успешная тестовая Stars-оплата активирует доступ ровно один раз | EXT-02, PostgreSQL/Redis |
 | PAY-02 | Реализовать lifecycle, возвраты и биллинг-уведомления | Этап 4 | TODO | Статусы, refund и повтор update проверены | PAY-01 |
 | PRO-01 | Спроектировать evaluation и feedback для персонального scoring | Future PRO | TODO | Есть измеримая модель качества и privacy/cost gate | Данные Basic-плана |
@@ -253,6 +253,16 @@
 - Техническая граница: финальные реквизиты ИП, legal-тексты, Vercel environment values, VPS, database, Redis, Telegram secrets и production cutover не создавались и не включались. Черновик требует юридической проверки; первая beta остаётся неактивной.
 - Следующее действие: реализовать expiry lifecycle trial — идемпотентные reminders за 24/3 часа, заморозку запросов и запрет delivery после окончания доступа; затем получить внешние VPS/legal/Telegram prerequisites.
 - Блокеры: юрист и владелец должны утвердить и опубликовать финальные документы; также нужны VPS/domain в РФ, managed PostgreSQL/Redis в РФ, secret store, test Telegram account и подтверждённые RSS-ленты ЕИС.
+
+### 2026-08-25 - lifecycle trial: reminders, expiry и delivery gate
+
+- Задача: завершение `BOT-02` в коде, access-граница `NTF-01`.
+- Простое объяснение: trial теперь не может «забыть закончиться». За 24 и 3 часа готовятся по одному напоминанию, а после срока сервер сам замораживает мониторинги и не даёт старому уведомлению уйти человеку. Это защита от случайной бесплатной работы сервиса после trial.
+- Результат: добавлены `TrialLifecycleService`, команда `trials:process-lifecycle` в scheduler раз в минуту и записи reminders в существующем delivery ledger. Истечение trial переводит subscription и entitlement в `expired`, active queries в `frozen`, а queued delivery в `skipped`. `NotificationService` и `DeliverTelegramNotification` оба повторно проверяют access.
+- Проверка: добавлены тесты 24h/3h reminder без дублей, expiry/freeze/skip и запрет queue/send после конца доступа (3 passed, 16 assertions). Перед commit прошли `npm run build`, `php artisan test` (29 passed, 201 assertions), Pint, PHPStan, ESLint и Prettier.
+- Техническая граница: новых ролей, payments, migrations, RSS URL или production values нет. Scheduler и Telegram delivery не запущены в production; на локальной машине нет Docker smoke-test.
+- Следующее действие: выполнить полный набор checks, затем получить VPS/domain в РФ, managed PostgreSQL/Redis в РФ, final legal URLs, secret store, test Telegram account и SRC-00 RSS approval.
+- Блокеры: те же внешние prerequisites; реальная 72-часовая проверка reminders требует отдельного staging/test runtime либо естественного времени до cutover.
 
 ## Шаблон новой записи
 

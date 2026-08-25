@@ -152,8 +152,9 @@ entitlement и не отправляют запросов, способных п
 - migrations пользователей, consents, role/access domain — реализованы;
 - server validation `initData`, secure session, `/start`, `/help`, webhook —
   реализованы и покрыты forged/expired/duplicate tests;
-- consent flow и one-time 72h trial — реализованы; reminders 24h/3h остаются
-  отдельной задачей после production activation;
+- consent flow и one-time 72h trial — реализованы; lifecycle scheduler
+  идемпотентно создаёт reminders за 24h/3h, истекает entitlement/subscription,
+  замораживает active queries и не даёт delivery пройти server-side access gate;
 - activation gate: managed PostgreSQL/Redis, public legal URLs, VPS HTTPS
   smoke-test и настройка Telegram secrets вне Git.
 
