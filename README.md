@@ -69,6 +69,8 @@ npm run build
 - [дизайн-система и каталог UI-компонентов](docs/DESIGN-SYSTEM.md);
 - [понятная схема БД и технический справочник](docs/DATABASE.md);
 - [VPS cutover и rollback runbook](docs/DEPLOYMENT.md);
+- [путеводитель WordPress-разработчика по Laravel, Docker и проекту](docs/BEGINNER-GUIDE.md);
+- [hand-off prompt для продолжения в новом чате](docs/NEXT-CHAT-HANDOFF.md);
 - [текущее состояние и журнал](docs/PROGRESS.md).
 
 `.env` и любые учётные данные не входят в репозиторий. GitHub Actions

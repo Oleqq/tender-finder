@@ -23,6 +23,7 @@
 | ID | Задача | Этап | Статус | Критерий готовности | Блокер |
 |---|---|---|---|---|---|
 | DOC-01 | Изучить исходное ТЗ и подготовить рабочие документы | Подготовка | DONE | Созданы понятный и технический планы | Нет |
+| DOC-03 | Подготовить понятный путеводитель по проекту и hand-off | Документация | DONE | Есть WordPress → Laravel карта, диаграммы Docker/потоков и prompt следующего чата | Нет |
 | DEC-01 | Подтвердить Laravel + React как стек MVP | Подготовка | DONE | Решение зафиксировано в документации | Нет |
 | DEC-02 | Зафиксировать Mini App как основной интерфейс, а бота как канал и вход | Подготовка | DONE | Архитектура отражена в документации | Нет |
 | ADM-01 | Спроектировать встроенный admin-раздел, роли и внутренний доступ | Подготовка | DONE | Две роли, access model, audit и screen map отражены в документации | Нет |
@@ -222,6 +223,16 @@
 - Проверка: добавлены тесты forged/expired initData, owner/non-owner role, duplicate consent/trial/webhook, trial duration, query limit, RSS first-poll silence/dedup/invalid source и explainable matching. Перед commit/push прошли `npm run build`, `php artisan test` (22 passed, 145 assertions), Pint, PHPStan, ESLint и Prettier. В in-app browser на 390×844 проверен anonymous fallback `/queries` → onboarding без console errors; это подтверждает, что browser preview не обходит server auth. Docker отсутствует на локальной машине, поэтому container smoke-test остаётся задачей VPS.
 - Следующее действие: получить VPS, managed PostgreSQL/Redis и public offer/privacy URLs; сделать container smoke-test, production migration и только затем переключить Telegram menu/webhook. Отдельно завершить reminders, RSS URL validation `SRC-00`, real telemetry/admin и Stars.
 - Блокеры: доступ к VPS, production domain, managed PostgreSQL/Redis, Telegram secrets/test chat, public legal URLs и вручную подтверждённые EIS RSS URLs/terms. Значения не хранятся в Git.
+
+### 2026-08-25 - понятная карта проекта и hand-off следующего этапа
+
+- Задача: `DOC-03`.
+- Простое объяснение: появился отдельный путеводитель для разработчика с WordPress-бэкграундом. Он без скрытых терминов объясняет, чем Laravel отличается от CMS, где лежит интерфейс и серверный код, как данные проходят через приложение и почему Docker не является «ещё одной базой данных». В нём есть наглядные схемы пути пользователя, RSS и будущего VPS.
+- Результат: добавлены `BEGINNER-GUIDE.md` с аналогиями WordPress → Laravel, картой директорий, диаграммами Mermaid, объяснением PostgreSQL/Redis/Docker, списком проверок и глоссарием; добавлен `NEXT-CHAT-HANDOFF.md` с копируемым контекстом, правилами безопасности, известными внешними блокерами и рекомендованной очередью следующих этапов. Рабочая карта `docs/README.md` теперь ссылается на оба файла.
+- Техническая граница: документация не включает секреты, owner ID, значения `.env` или персональные данные и не меняет код, runtime или production. Она прямо отличает подготовленную серверную функциональность от включённой на Vercel demo.
+- Проверка: ссылки и Mermaid-блоки просмотрены в Markdown; перед commit/push будет пройден обязательный набор Git, PHP и frontend-проверок.
+- Следующее действие: после получения VPS, managed PostgreSQL/Redis и legal URLs перейти к container smoke-test и реальному Telegram smoke-test по `DEPLOYMENT.md`; до этого можно улучшать только безопасные UI/docs или тестируемые offline части.
+- Блокеры: те же внешние production prerequisites — VPS/domain, managed PostgreSQL/Redis, public offer/privacy URLs, secret store и test Telegram account.
 
 ## Шаблон новой записи
 

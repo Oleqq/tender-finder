@@ -109,9 +109,12 @@ server-side policy проверяется в каждом Inertia endpoint и м
 - тестовый Telegram-аккаунт для полного платежного сценария;
 - подтверждённый канал данных ЕИС / RSS-набор для закрытой беты.
 
-См. также [технический план](TECHNICAL-PLAN.md), [roadmap](PRODUCT-ROADMAP.md),
-[дизайн-систему](DESIGN-SYSTEM.md), [RSS-источник](RSS-MVP-SOURCE.md) и
-[журнал прогресса](PROGRESS.md) и [схему БД](DATABASE.md).
+Если вы пришли из WordPress или просто хотите понять проект без погружения в
+код, начните с [путеводителя для начинающего](BEGINNER-GUIDE.md). См. также
+[технический план](TECHNICAL-PLAN.md), [roadmap](PRODUCT-ROADMAP.md),
+[дизайн-систему](DESIGN-SYSTEM.md), [RSS-источник](RSS-MVP-SOURCE.md),
+[журнал прогресса](PROGRESS.md), [схему БД](DATABASE.md) и готовый
+[hand-off для следующего чата](NEXT-CHAT-HANDOFF.md).
 
 ## Что уже появилось на сервере, но ещё не включено пользователям
 
