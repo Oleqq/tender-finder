@@ -1,9 +1,17 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
 import { Badge, GlassCard } from '../Components/ui';
+import type { PageProps } from '../types';
 
 export default function Welcome() {
+    const { localMvpOperatorAvailable, localMvpSubscriberAvailable } = usePage<
+        PageProps<{
+            localMvpOperatorAvailable: boolean;
+            localMvpSubscriberAvailable: boolean;
+        }>
+    >().props;
+
     return (
         <>
             <Head title="Tender Finder" />
@@ -46,19 +54,42 @@ export default function Welcome() {
                 </GlassCard>
 
                 <div className="welcome-actions page-enter page-enter--later">
-                    <Link
-                        className="button button--primary button--lg"
-                        href="/onboarding"
-                    >
-                        <span>Начать знакомство</span>
-                        <Icon name="arrow-right" size={20} />
-                    </Link>
+                    {localMvpOperatorAvailable ? (
+                        <>
+                            <Link
+                                className="button button--primary button--lg"
+                                href="/local/mvp-operator"
+                            >
+                                <span>Войти как оператор</span>
+                                <Icon name="arrow-right" size={20} />
+                            </Link>
+                            {localMvpSubscriberAvailable ? (
+                                <Link
+                                    className="text-link"
+                                    href="/local/mvp-subscriber"
+                                >
+                                    Проверить вход subscriber{' '}
+                                    <Icon name="chevron-right" size={17} />
+                                </Link>
+                            ) : null}
+                        </>
+                    ) : (
+                        <Link
+                            className="button button--primary button--lg"
+                            href="/onboarding"
+                        >
+                            <span>Начать знакомство</span>
+                            <Icon name="arrow-right" size={20} />
+                        </Link>
+                    )}
                     <Link className="text-link" href="/dashboard">
                         Открыть демо-обзор <Icon name="chevron-right" size={17} />
                     </Link>
                 </div>
                 <p className="welcome-footnote">
-                    Работает в Telegram и в обычном браузере.
+                    {localMvpOperatorAvailable
+                        ? 'Local MVP: роли доступны только в Docker-контуре и не принимают Telegram ID из браузера.'
+                        : 'Работает в Telegram и в обычном браузере.'}
                 </p>
             </AppShell>
         </>

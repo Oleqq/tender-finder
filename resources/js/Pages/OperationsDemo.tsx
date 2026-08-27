@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
@@ -14,35 +14,48 @@ import {
     ProgressBar,
     SegmentedControl,
 } from '../Components/ui';
+import type { PageProps } from '../types';
 
 type AdminView = 'overview' | 'ops';
 
+type AccessMetrics = {
+    registered: number;
+    preview: number;
+    trialing: number;
+    paid: number;
+    granted: number;
+    expired: number;
+};
+
+type OperationsProps = { accessMetrics: AccessMetrics };
+
 export default function OperationsDemo() {
+    const { accessMetrics } = usePage<PageProps<OperationsProps>>().props;
     const [view, setView] = useState<AdminView>('overview');
     const [loadingPreview, setLoadingPreview] = useState(false);
 
     return (
         <>
-            <Head title="Операции · demo" />
+            <Head title="Операции" />
             <AppShell
                 activeNav="/operations-demo"
                 backHref="/profile"
-                eyebrow="Super-admin shell"
+                eyebrow="Super-admin · read-only"
                 role="super_admin"
                 title="Операции"
             >
                 <section className="operations-intro page-enter">
-                    <Badge tone="warning">Только demo</Badge>
-                    <h2>Внутренний контур без доступа к данным.</h2>
+                    <Badge tone="accent">Доступ и воронка</Badge>
+                    <h2>Состояние клиентской базы.</h2>
                     <p>
-                        Это read-only образец будущих экранов владельца. Цифры и статусы
-                        ниже — примеры интерфейса, не production telemetry.
+                        Только агрегаты по верифицированным Telegram-пользователям. Роли
+                        не смешиваются с состоянием trial и оплаты.
                     </p>
                 </section>
 
-                <InlineAlert title="Реальный доступ пока не создан" tone="warning">
-                    В production эти разделы появятся только после server-side проверки
-                    Telegram initData и policy для роли super_admin.
+                <InlineAlert title="Без персональных данных" tone="neutral">
+                    Экран не показывает Telegram ID, имена или поисковые фразы. Он
+                    только считает текущие состояния доступа на сервере.
                 </InlineAlert>
 
                 <SegmentedControl
@@ -68,7 +81,7 @@ export default function OperationsDemo() {
                 </div>
 
                 {view === 'overview' ? (
-                    <Overview loading={loadingPreview} />
+                    <Overview loading={loadingPreview} metrics={accessMetrics} />
                 ) : (
                     <LiveOps loading={loadingPreview} />
                 )}
@@ -89,15 +102,15 @@ export default function OperationsDemo() {
     );
 }
 
-function Overview({ loading }: { loading: boolean }) {
+function Overview({ loading, metrics }: { loading: boolean; metrics: AccessMetrics }) {
     return (
         <section aria-label="Demo Overview" className="operations-content page-enter">
             <div className="section-heading">
                 <div>
-                    <p>Пример агрегатов</p>
+                    <p>Текущие агрегаты</p>
                     <h2>Overview</h2>
                 </div>
-                <Badge tone="accent">demo · 7 дней</Badge>
+                <Badge tone="accent">сейчас</Badge>
             </div>
             {loading ? (
                 <div
@@ -110,47 +123,34 @@ function Overview({ loading }: { loading: boolean }) {
                     <MetricCardSkeleton />
                 </div>
             ) : (
-                <div aria-label="Demo-метрики" className="metric-grid metric-grid--two">
+                <div
+                    aria-label="Метрики доступа"
+                    className="metric-grid metric-grid--two"
+                >
                     <MetricCard
-                        detail="пример агрегата"
+                        detail="проверенные Telegram ID"
                         icon="user"
-                        label="Новые пользователи"
-                        trend={{ value: '+14', label: 'Демо-прирост 14' }}
-                        value="48"
+                        label="Зарегистрированы"
+                        value={String(metrics.registered)}
                     />
                     <MetricCard
-                        detail="пример воронки"
+                        detail="активный пробный доступ"
                         icon="spark"
-                        label="Trial-активации"
-                        trend={{
-                            direction: 'neutral',
-                            value: '—',
-                            label: 'Демо: без динамики',
-                        }}
-                        value="17"
+                        label="На trial"
+                        value={String(metrics.trialing)}
                     />
                     <MetricCard
-                        detail="цены ещё не заданы"
+                        detail="активная оплата через Telegram Stars"
                         icon="chart"
-                        label="Paid conversion"
-                        trend={{
-                            direction: 'neutral',
-                            value: 'demo',
-                            label: 'Демо-значение',
-                        }}
-                        value="—"
+                        label="Оплатили подписку"
+                        value={String(metrics.paid)}
                     />
                     <MetricCard
                         accent
-                        detail="не revenue"
+                        detail="доступ выдан администратором"
                         icon="layers"
-                        label="Stars revenue"
-                        trend={{
-                            direction: 'neutral',
-                            value: 'не подключено',
-                            label: 'Не подключено',
-                        }}
-                        value="—"
+                        label="Ручные доступы"
+                        value={String(metrics.granted)}
                     />
                 </div>
             )}
@@ -165,22 +165,22 @@ function Overview({ loading }: { loading: boolean }) {
                 ) : (
                     <>
                         <DataRow
-                            detail="Будущий server-side aggregate за фиксированное окно"
+                            detail="вошли через Telegram, но не начали trial"
                             icon="user"
-                            label="Пользователи"
-                            value="пример"
+                            label="Preview"
+                            value={String(metrics.preview)}
                         />
                         <DataRow
-                            detail="Сумма только из идемпотентных payment events"
+                            detail="trial или доступ завершился, активной подписки нет"
                             icon="chart"
-                            label="Stars / refunds"
-                            value="не подключено"
+                            label="Истёк доступ"
+                            value={String(metrics.expired)}
                         />
                         <DataRow
-                            detail="Нужны campaign и delivery ledger"
+                            detail="источник оплаты и возвраты появятся после платёжного контура"
                             icon="bell"
-                            label="Campaign funnel"
-                            value="позже"
+                            label="Выручка"
+                            value="не подключено"
                         />
                     </>
                 )}

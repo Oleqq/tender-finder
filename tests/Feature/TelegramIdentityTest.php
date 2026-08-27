@@ -2,6 +2,7 @@
 
 use App\Enums\UserRole;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Carbon;
 
 function signedTelegramInitData(array $user, ?int $authDate = null): string
@@ -20,6 +21,7 @@ function signedTelegramInitData(array $user, ?int $authDate = null): string
 }
 
 beforeEach(function (): void {
+    $this->withoutMiddleware(ValidateCsrfToken::class);
     config()->set('tender.telegram.bot_token', 'telegram-test-token');
     config()->set('tender.telegram.init_data_max_age_seconds', 300);
 });
@@ -29,6 +31,7 @@ it('creates a subscriber only after verified init data and regenerates a session
 
     $this->postJson('/telegram/session', ['init_data' => $initData])
         ->assertOk()
+        ->assertJsonPath('session_refreshed', true)
         ->assertJsonPath('user.role', 'subscriber')
         ->assertJsonPath('access.state', 'preview');
 
@@ -37,6 +40,10 @@ it('creates a subscriber only after verified init data and regenerates a session
         ->and($user->telegram_first_name)->toBe('Ирина')
         ->and($user->last_seen_at)->not->toBeNull();
     $this->assertAuthenticatedAs($user);
+
+    $this->postJson('/telegram/session', ['init_data' => $initData])
+        ->assertOk()
+        ->assertJsonPath('session_refreshed', false);
 });
 
 it('assigns super admin only to the configured verified owner id', function () {

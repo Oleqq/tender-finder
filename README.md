@@ -1,77 +1,40 @@
 # Tender Finder
 
-Telegram Mini App для поиска, мониторинга и объяснимого отбора тендеров.
-Проект собран как один Laravel 12-репозиторий: Laravel обслуживает серверную
-логику, Telegram, сессии, webhook и Inertia endpoints; React + TypeScript +
-Inertia создают быстрый mobile-first SPA-интерфейс без React Router.
+Tender Finder — будущий Telegram SaaS для поиска и отбора тендеров. Сейчас
+рабочая часть проекта — **local MVP поиска в ЕИС**, а не публичный сервис.
 
-## Текущий статус
+В Docker можно открыть `http://127.0.0.1:8080/local/mvp-operator`, ввести
+фразу и получить до десяти RSS-страниц ЕИС. Карточки нормализуются,
+фильтруются по предмету закупки и сохраняются без дублей. Последняя выдача,
+история и личные статусы сохраняются отдельно для каждого пользователя.
+Автоматический мониторинг, Telegram-уведомления, платежи и production-доступ
+не включены.
 
-- Работает foundation Mini App: светлая и тёмная темы, Telegram theme
-  parameters, safe-area, AppShell и demo-экраны запуска, onboarding,
-  согласий, dashboard, тендеров и профиля.
-- Production: <https://tender-finder-navy.vercel.app/>. `GET /health`
-  возвращает JSON со статусом приложения.
-- Для бота настроена menu button, открывающая production Mini App. Это
-  безопасный demo-просмотр до включения серверной Telegram-авторизации.
-- Серверная foundation уже реализована и протестирована: verified Telegram
-  session, согласия, разовый 72-часовой trial, webhook, query domain, RSS
-  fixtures и matching. Она ещё не включена в production: для этого нужны VPS,
-  managed PostgreSQL/Redis, legal URLs и операторский smoke-test.
+Полная и актуальная картина: [docs/CURRENT-STATE.md](docs/CURRENT-STATE.md).
 
-## Локальный запуск (Laravel Herd)
+## Локальный запуск
 
-Нужны PHP 8.3+, Composer, Node.js 20+, PostgreSQL 16 и Redis. Создайте
-локальную PostgreSQL-базу `tender_finder`, затем настройте локальные данные в
-`.env`.
+Создайте локальный `deploy/local-runtime.env` из шаблона и не добавляйте его в
+Git. Затем:
 
 ```powershell
-Copy-Item .env.example .env
-php artisan key:generate
-composer install
-npm ci
-php artisan migrate
-npm run build
+docker compose -f compose.local.yml -f compose.local.dev.yml build
+docker compose -f compose.local.yml -f compose.local.dev.yml --profile ops run --rm migrate
+docker compose -f compose.local.yml -f compose.local.dev.yml up -d web queue scheduler vite
 ```
 
-Herd обслуживает проект по `http://tenderfinder.test`; при другом hostname
-обновите `APP_URL` только в локальном `.env`.
+Откройте `http://127.0.0.1:8080/local/mvp-operator`.
 
 ## Проверки
 
 ```powershell
-php artisan test
-vendor/bin/pint --test
-vendor/bin/phpstan analyse --memory-limit=1G
-npm run lint
-npm run format:check
+docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web php artisan test
+docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web vendor/bin/pint --test
+docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web vendor/bin/phpstan analyse --memory-limit=1G
 npm run build
 ```
 
-## Продуктовая модель
-
-Ролей будет ровно две: `subscriber` и `super_admin`. План, trial и статус
-доступа — отдельные сущности, а не дополнительные роли. Супер-админ открывает
-административные экраны прямо внутри Mini App; сервер назначает это право
-только после проверки Telegram `initData` и сопоставления с защищённой
-конфигурацией, а не по данным клиента.
-
-Первой оплатой внутри Telegram будет Telegram Stars. Базовый план даёт
-объяснимые фильтры и мониторинг; персональный LLM-scoring и анализ ТЗ —
-следующий PRO-этап после валидации качества, стоимости и правил работы с
-данными.
-
-Подробности:
-
-- [рабочая карта продукта](docs/README.md);
-- [технический план](docs/TECHNICAL-PLAN.md);
-- [roadmap B2C, тарифов, Stars и админ-раздела](docs/PRODUCT-ROADMAP.md);
-- [дизайн-система и каталог UI-компонентов](docs/DESIGN-SYSTEM.md);
-- [понятная схема БД и технический справочник](docs/DATABASE.md);
-- [VPS cutover и rollback runbook](docs/DEPLOYMENT.md);
-- [путеводитель WordPress-разработчика по Laravel, Docker и проекту](docs/BEGINNER-GUIDE.md);
-- [hand-off prompt для продолжения в новом чате](docs/NEXT-CHAT-HANDOFF.md);
-- [текущее состояние и журнал](docs/PROGRESS.md).
-
-`.env` и любые учётные данные не входят в репозиторий. GitHub Actions
-поднимает изолированные PostgreSQL и Redis для проверок на `main`.
+Подробные инструкции: [вводная для разработчика](docs/NEW-DEVELOPER.md),
+[локальный runtime](docs/LOCAL-RUNTIME.md),
+[локальный Telegram-бот](docs/LOCAL-TELEGRAM-BOT.md) и
+[источник ЕИС](docs/RSS-MVP-SOURCE.md).

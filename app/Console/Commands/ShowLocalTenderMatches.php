@@ -21,6 +21,7 @@ class ShowLocalTenderMatches extends Command
 
         $matches = TenderQueryMatch::query()
             ->whereHas('searchQuery', fn ($query) => $query->where('name', 'Локальная проверка: поддержка сайтов'))
+            ->whereHas('tender', fn ($query) => $query->where('source', 'eis_rss'))
             ->with(['searchQuery:id,name', 'tender'])
             ->latest('matched_at')
             ->get();

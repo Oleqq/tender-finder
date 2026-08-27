@@ -4,10 +4,10 @@
 словами, что и зачем хранит сервис. Вторая нужна разработке и эксплуатации:
 она описывает таблицы, связи, индексы, состояния и безопасный порядок миграций.
 
-Статус на 2026-08-25: схема, migrations и автоматические тесты готовы в
-репозитории. Production-база ещё не создана и не содержит пользовательских
-данных. До подключения managed PostgreSQL и Redis приложение нельзя переводить
-из preview в настоящий пользовательский режим.
+Статус на 2026-08-27: схема, migrations и автоматические тесты готовы.
+Локальный Docker MVP уже хранит результаты ручного поиска ЕИС и личные
+операторские отметки. Production-база и публичный пользовательский режим ещё
+не запущены: для них нужны managed PostgreSQL, Redis и отдельный cutover.
 
 ## Простая карта: что происходит с данными
 
@@ -25,6 +25,12 @@
 6. RSS-лента сначала попадает в безопасную «приёмную»: её URL проверяется,
    элементы дедуплицируются. Затем получаются нормальные карточки тендеров,
    понятные причины совпадения и журнал доставки уведомлений.
+7. Результат ручного поиска сохраняется как персональный снимок: у одного
+   пользователя он не открывает карточки и отметки другого.
+
+Для аналитики это значит: `subscriber` — право доступа к продукту, а не
+тип оплаты. Воронка строится по состоянию доступа и источнику подписки:
+`preview`, `trial`, оплата через Stars, ручная выдача и истёкший доступ.
 
 ### Что база принципиально не хранит
 
@@ -100,9 +106,11 @@ VPS scheduler, а не в Vercel demo.
 | Таблица | Главное содержимое | Правило |
 |---|---|---|
 | `search_queries` | keywords/minus words, region, money/deadline range, status | active/paused/frozen/deleted; максимум 3 active при Basic/trial |
-| `source_feeds` | канонический RSS URL и SHA-256 hash, расписание, freshness/error | максимум 100 active лент после SRC-00 |
+| `source_feeds` | канонический RSS URL и SHA-256 hash, расписание, freshness/error | ручные страницы ЕИС имеют `manual_preview`; active polling не включён |
 | `source_feed_items` | отдельная RSS-запись, URL hash, `reg_number`, content hash | уникальны на ленту по URL hash |
 | `tenders` | каноническая карточка, source + external ID, поля для фильтра | уникальны по `(source, external_id)` |
+| `tender_user_states` | личная отметка local MVP для карточки | уникальна по `(user_id, tender_id)`; `favorite`, `potential`, `dismissed` или `archived` |
+| `local_mvp_search_snapshots` | фраза, счётчики и IDs карточек одной ручной выдачи ЕИС | пользователь владеет снимком; последняя выдача и история переживают refresh/restart и не смешиваются между пользователями |
 | `tender_query_matches` | связь тендер ↔ запрос и JSON причин | уникальна по `(tender_id, search_query_id)` |
 | `notification_deliveries` | тип, idempotency key, status и безопасный payload | повторный job не пошлёт одну карточку дважды |
 | `source_runs` | start/end, status, счётчики, error class | материал для будущего Live Ops |
@@ -121,6 +129,8 @@ migrations проверяются локально; production contract — Post
 | access | `preview`, `trialing`, `active`, `expired`, `cancelled` | AccessService на основе entitlement и времени |
 | subscription/entitlement | `active`, `expired`, `cancelled` | Trial/будущий billing domain |
 | query | `active`, `paused`, `frozen`, `deleted` | authenticated query service |
+| local MVP tender state | `new`, `favorite`, `potential`, `dismissed`, `archived` | только local technical `super_admin` для карточек ЕИС |
+| admin access analytics | `registered`, `preview`, `trialing`, `paid`, `granted`, `expired` | read-only aggregate только для `super_admin`; без Telegram ID и иных персональных данных |
 | notification | `queued`, `sent`, `failed`, `skipped` | queue transport |
 | source run | `running`, `succeeded`, `failed` | RSS importer |
 
@@ -162,8 +172,7 @@ volume `tender_finder_local_postgres`. Он не публикует порт б�
 некоммитируемый `deploy/local-runtime.env`; его значения локальны и не должны
 совпадать с VPS.
 
-Синтетические RSS fixtures могут создать `source_feeds`, `source_feed_items`,
-`tenders`, `tender_query_matches` и технические delivery-записи. Это примеры
-без реального Telegram ID и без внешнего RSS-запроса. Они нужны, чтобы увидеть
-полную локальную цепочку данных до карточки, а не чтобы заполнить production
-данными.
+Синтетические RSS fixtures создают безопасные тестовые записи. Отдельно
+ручной local MVP может сохранить данные ЕИС, полученные после нажатия
+оператора. Ни один из путей не включает production-пользователей, Telegram
+уведомления или постоянный polling.

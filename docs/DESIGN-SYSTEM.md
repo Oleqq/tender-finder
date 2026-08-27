@@ -47,9 +47,9 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Actions | button, icon button, toast, bottom sheet/modal | confirmation dialog, undo, destructive action pattern |
 | Inputs | input/search, chips, segmented control, switch, select/combobox, multi-select, date range, money range, validation | slider, stepper, saved-filter persistence |
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
-| Tender UI | tender card, demo metrics, authenticated «Мониторинги» с server form для keywords/minus/region/money/deadline и pause/freeze | tender detail, save/hide, match explanation, compare, saved filter |
+| Tender UI | local MVP ЕИС: поиск, текущая выдача/история, карточка detail, сохранённые фразы, 44/223‑ФЗ, НМЦК, даты, personal states и bulk actions | регион/ОКПД2 через подтверждённый справочник ЕИС, причины match для пользователя, обогащение карточки, compare |
 | Commerce | plan card, preview paywall, access gate, Basic/PRO comparison, demo checkout states and access-state preview | Stars invoice state, entitlement gate API, subscription management |
-| Admin | role-aware shell variant, read-only demo Overview/Live Ops, metric grid, health/data rows | server policy, real read models, chart wrapper, filter bar, user drawer, timeline, campaign composer, delivery funnel, audit event |
+| Admin | role-aware shell variant, server-guarded read-only Overview, aggregate access metrics, metric grid, health/data rows | chart wrapper, filter bar, user drawer, timeline, campaign composer, delivery funnel, audit event |
 
 «Готово» означает работающий переиспользуемый React-компонент; строка
 «backlog» не считается сделанной до API, states и тестов. Сначала создаются
@@ -65,11 +65,12 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Expired | сохранённые данные, объяснение заморозки, paywall и help |
 | Super-admin | клиентские экраны + Overview, Live Ops, Users, Commerce, Campaigns, Sources, Audit |
 
-Текущий Operations demo — только визуальный read-only образец внутри того же
-`AppShell`. Он не является административным endpoint, не назначает роль и не
-даёт доступа к данным. Настоящая запись `super_admin` и navigation появятся
-только из доверенного server-side session/policy после проверки Telegram
-`initData`.
+Operations — server-guarded read-only экран: он открывается только из
+доверенной session с ролью `super_admin` и показывает лишь агрегаты
+верифицированных Telegram-пользователей. Роли не меняются с trial или
+оплатой: состояния `preview`, `trialing`, `paid`, `granted` и `expired`
+вычисляются сервером по entitlement и источнику подписки. Вход в production
+остаётся доступным только после проверки Telegram `initData`.
 
 Экран `/queries` уже является защищённым Inertia-маршрутом: без server session
 он ведёт обратно в onboarding, а с session сохраняет запрос через Laravel.
@@ -79,8 +80,9 @@ Browser preview не получает скрытого доступа к дан�
 
 ## Ближайший UI-инкремент
 
-1. Добавить query edit/detail, причины match и реальные empty/loading/retry
-   states поверх готового domain/API.
-2. Добавить invoice/loading/error patterns только вместе с серверным Stars API.
-3. Заменить Operations demo server-side policy и read models после managed
-   PostgreSQL/Redis и validated Telegram session.
+1. Добавить регион и ОКПД2 в local MVP только вместе с подтверждённым
+   справочником служебных идентификаторов ЕИС.
+2. Добавлять deadline, регион и документы в detail только после подтверждения
+   разрешённого источникового формата.
+3. Возвращаться к invoice или Operations UI только вместе с серверным API,
+   VPS и проверенной Telegram-сессией.

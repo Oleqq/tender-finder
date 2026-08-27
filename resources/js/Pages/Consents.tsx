@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useState, type ReactNode } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
@@ -7,6 +7,46 @@ import { GlassCard } from '../Components/ui';
 export default function Consents() {
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [notificationsAccepted, setNotificationsAccepted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
+
+    const acceptAndStartTrial = async (): Promise<void> => {
+        setError('');
+        setIsSubmitting(true);
+
+        try {
+            await window.axios.post('/consents', {
+                documents: ['offer', 'privacy'],
+            });
+            await window.axios.post('/trial/start');
+            router.visit('/dashboard');
+        } catch (requestError) {
+            const response = (
+                requestError as {
+                    response?: { status?: number; data?: { message?: string } };
+                }
+            ).response;
+
+            if (response?.status === 419) {
+                // A session may have been regenerated while the Mini App was
+                // opening. Reloading obtains a fresh server-rendered CSRF token;
+                // no consent or trial request was accepted on a 419 response.
+                window.location.assign('/consents');
+
+                return;
+            }
+
+            const message = response?.data?.message;
+
+            setError(
+                typeof message === 'string' && message.trim() !== ''
+                    ? message
+                    : 'Не удалось начать trial. Откройте Mini App в Telegram и попробуйте ещё раз.',
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <>
@@ -26,15 +66,20 @@ export default function Consents() {
                         <br />и под контролем.
                     </h2>
                     <p>
-                        Вы сможете изменить настройки уведомлений в профиле. Серверное
-                        сохранение согласий будет добавлено после подключения
-                        постоянного хранилища.
+                        После принятия оферты и политики сервер запишет согласия и
+                        начнёт ваш единственный trial. Уведомления можно изменить позже.
                     </p>
                 </section>
                 <GlassCard className="consent-card page-enter page-enter--delay">
                     <ConsentRow checked={termsAccepted} onChange={setTermsAccepted}>
-                        Принимаю условия <span className="future-link">оферты</span> и{' '}
-                        <span className="future-link">политики конфиденциальности</span>
+                        Принимаю условия{' '}
+                        <Link className="future-link" href="/offer">
+                            оферты
+                        </Link>{' '}
+                        и{' '}
+                        <Link className="future-link" href="/privacy">
+                            политики конфиденциальности
+                        </Link>
                     </ConsentRow>
                     <div className="consent-divider" />
                     <ConsentRow
@@ -50,13 +95,17 @@ export default function Consents() {
                 </p>
                 <div className="consent-actions page-enter page-enter--later">
                     {termsAccepted ? (
-                        <Link
+                        <button
                             className="button button--primary button--lg"
-                            href="/dashboard"
+                            disabled={isSubmitting}
+                            onClick={() => void acceptAndStartTrial()}
+                            type="button"
                         >
-                            <span>Перейти к обзору</span>
+                            <span>
+                                {isSubmitting ? 'Запускаем trial…' : 'Начать trial'}
+                            </span>
                             <Icon name="arrow-right" size={20} />
-                        </Link>
+                        </button>
                     ) : (
                         <button
                             className="button button--primary button--lg"
@@ -69,10 +118,11 @@ export default function Consents() {
                     )}
                     <p>
                         {notificationsAccepted
-                            ? 'Уведомления включены в демо-сценарии'
+                            ? 'Согласие на уведомления будет доступно в профиле'
                             : 'Уведомления можно включить позже'}
                     </p>
                 </div>
+                {error ? <p className="consent-note">{error}</p> : null}
             </AppShell>
         </>
     );

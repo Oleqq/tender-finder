@@ -3,8 +3,10 @@
 use App\Models\ConsentEvent;
 use App\Models\Entitlement;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 
 beforeEach(function (): void {
+    $this->withoutMiddleware(ValidateCsrfToken::class);
     config()->set('tender.legal.documents_published', true);
     config()->set('tender.legal.offer_url', 'https://example.test/offer');
     config()->set('tender.legal.offer_version', '2026-08-25');

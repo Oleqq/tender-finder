@@ -16,10 +16,11 @@ legal URLs и Telegram secrets. Эти значения никогда не по
 
 Для личной разработки есть отдельный `compose.local.yml`: он поднимает Laravel,
 очередь, scheduler, PostgreSQL 16 и Redis на `127.0.0.1`. Это не замена
-production Compose: локальная база хранится в Docker volume на компьютере, а
-внешние EIS RSS, Telegram webhook, legal publication и Vercel не включаются.
+production Compose: локальная база хранится в Docker volume на компьютере.
+Ручной поиск ЕИС там работает, но Telegram webhook, legal publication,
+платежи и automatic RSS polling не включаются.
 
-Инструкция и безопасный synthetic RSS путь находятся в
+Инструкция для manual EIS search и локальных проверок находится в
 [`LOCAL-RUNTIME.md`](LOCAL-RUNTIME.md). Локальный конфигурационный файл
 `deploy/local-runtime.env` создаёт только оператор из шаблона и не передаёт в
 Git, чат или логи.
@@ -118,8 +119,9 @@ docker compose -f compose.production.yml up -d web queue scheduler caddy
 1. Установить VPS HTTPS URL как URL Mini App/menu button.
 2. Установить Telegram webhook на VPS с секретным token header.
 3. Наблюдать health, readiness, queue failures, webhook updates и source runs.
-4. Только после SRC-00 включить `RSS_LIVE_POLLING_ENABLED=true`; прежде этого
-   работают только synthetic fixtures.
+4. Не включать `RSS_LIVE_POLLING_ENABLED=true` автоматически. Для этого нужно
+   отдельное решение владельца, проверка прав источника, rate limits и
+   наблюдаемость source runs.
 
 Если smoke-test или наблюдение не проходят, вернуть menu button/webhook на
 Vercel demo URL. Не откатывать миграции на живых данных автоматически: сначала

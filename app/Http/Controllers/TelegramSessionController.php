@@ -32,10 +32,15 @@ class TelegramSessionController extends Controller
         }
 
         $user = $identityService->findOrCreate($identity);
-        Auth::login($user);
-        $request->session()->regenerate();
+        $sessionRefreshed = $request->user()?->id !== $user->id;
+
+        if ($sessionRefreshed) {
+            Auth::login($user);
+            $request->session()->regenerate();
+        }
 
         return response()->json([
+            'session_refreshed' => $sessionRefreshed,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

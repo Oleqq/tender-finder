@@ -6,6 +6,8 @@ use App\Models\SearchQuery;
 use App\Services\QueryAccessDeniedException;
 use App\Services\QueryLimitReachedException;
 use App\Services\SearchQueryService;
+use App\Tenders\EisRssUrlValidator;
+use App\Tenders\RssSourceException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -14,6 +16,8 @@ use Inertia\Response;
 
 class SearchQueryController extends Controller
 {
+    public function __construct(private readonly EisRssUrlValidator $eisRssUrls) {}
+
     public function index(Request $request): Response
     {
         return Inertia::render('MyQueries', [
@@ -106,6 +110,16 @@ class SearchQueryController extends Controller
             'budget_max' => ['nullable', 'numeric', 'gte:budget_min'],
             'deadline_from' => ['nullable', 'date_format:Y-m-d'],
             'deadline_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:deadline_from'],
+            'filters' => ['nullable', 'array:source'],
+            'filters.source' => ['nullable', 'array:law_44,law_223,budget_from,budget_to,published_from,published_to,pages,rss_url'],
+            'filters.source.law_44' => ['nullable', 'boolean'],
+            'filters.source.law_223' => ['nullable', 'boolean'],
+            'filters.source.budget_from' => ['nullable', 'numeric', 'min:0'],
+            'filters.source.budget_to' => ['nullable', 'numeric', 'min:0', 'gte:filters.source.budget_from'],
+            'filters.source.published_from' => ['nullable', 'date_format:Y-m-d'],
+            'filters.source.published_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:filters.source.published_from'],
+            'filters.source.pages' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('tender.rss.manual_search_max_pages', 3))],
+            'filters.source.rss_url' => ['nullable', 'url', 'max:2000'],
         ]);
 
         $keywords = array_values(array_filter(array_map('trim', $attributes['keywords'])));
@@ -119,8 +133,55 @@ class SearchQueryController extends Controller
             ? array_values(array_filter(array_map('trim', $attributes['minus_keywords'])))
             : null;
         $attributes['name'] = ($attributes['name'] ?? null) ?: mb_substr(implode(', ', $keywords), 0, 120);
+        $this->normalizeEisSourceFilters($attributes);
 
         return $attributes;
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function normalizeEisSourceFilters(array &$attributes): void
+    {
+        $source = $attributes['filters']['source'] ?? null;
+
+        if (! is_array($source)) {
+            return;
+        }
+
+        $rssUrl = $this->nullableString($source['rss_url'] ?? null);
+
+        if ($rssUrl !== null) {
+            try {
+                $rssUrl = $this->eisRssUrls->canonicalFeedUrl($rssUrl);
+            } catch (RssSourceException) {
+                throw ValidationException::withMessages([
+                    'filters.source.rss_url' => 'Сохранить можно только RSS-ссылку расширенного поиска ЕИС.',
+                ]);
+            }
+        }
+
+        $attributes['filters'] = [
+            'source' => [
+                'law_44' => (bool) ($source['law_44'] ?? false),
+                'law_223' => (bool) ($source['law_223'] ?? false),
+                'budget_from' => $this->nullableString($source['budget_from'] ?? null),
+                'budget_to' => $this->nullableString($source['budget_to'] ?? null),
+                'published_from' => $this->nullableString($source['published_from'] ?? null),
+                'published_to' => $this->nullableString($source['published_to'] ?? null),
+                'pages' => (int) ($source['pages'] ?? 3),
+                'rss_url' => $rssUrl,
+            ],
+        ];
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 
     private function assertOwnership(Request $request, SearchQuery $query): void
@@ -141,6 +202,7 @@ class SearchQueryController extends Controller
             'budget_max' => $query->budget_max,
             'deadline_from' => $query->deadline_from?->format('Y-m-d'),
             'deadline_to' => $query->deadline_to?->format('Y-m-d'),
+            'filters' => $query->filters,
             'status' => $query->status->value,
             'monitoring_started_at' => $query->monitoring_started_at?->toAtomString(),
         ];

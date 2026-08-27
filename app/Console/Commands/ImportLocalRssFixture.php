@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\SourceFeed;
-use App\Services\RssFixtureImportService;
+use App\Services\TenderSourceImportService;
 use App\Tenders\EisRssSource;
 use Illuminate\Console\Command;
 
@@ -13,7 +13,7 @@ class ImportLocalRssFixture extends Command
 
     protected $description = 'Import a synthetic EIS RSS fixture into a local or test database only.';
 
-    public function handle(EisRssSource $source, RssFixtureImportService $importer): int
+    public function handle(EisRssSource $source, TenderSourceImportService $importer): int
     {
         if (! app()->environment('local', 'testing')) {
             $this->components->error('Synthetic RSS fixtures are restricted to local and test environments.');
@@ -47,7 +47,7 @@ class ImportLocalRssFixture extends Command
             return self::FAILURE;
         }
 
-        $run = $importer->import($feed, $source->parse($xml));
+        $run = $importer->import($feed, $source->parse($xml), 'eis_rss');
 
         $this->components->info("Synthetic poll finished: {$run->items_created} new item(s), {$run->items_seen} item(s) seen.");
         $this->line('This command never fetches EIS over the network and does not enable live polling.');

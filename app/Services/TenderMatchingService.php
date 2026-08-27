@@ -61,13 +61,13 @@ class TenderMatchingService
         return new TenderMatchResult(true, $reasons);
     }
 
-    public function matchTender(Tender $tender): int
+    public function matchTender(Tender $tender, bool $queueNotifications = true): int
     {
         $matches = 0;
 
         SearchQuery::query()
             ->where('status', QueryStatus::Active)
-            ->each(function (SearchQuery $query) use ($tender, &$matches): void {
+            ->each(function (SearchQuery $query) use ($tender, $queueNotifications, &$matches): void {
                 $result = $this->evaluate($query, $tender);
 
                 if (! $result->matches) {
@@ -81,7 +81,10 @@ class TenderMatchingService
 
                 if ($match->wasRecentlyCreated) {
                     $matches++;
-                    app(NotificationService::class)->queueForMatch($match);
+
+                    if ($queueNotifications) {
+                        app(NotificationService::class)->queueForMatch($match);
+                    }
                 }
             });
 

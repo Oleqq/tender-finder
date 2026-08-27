@@ -29,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
             ->by('telegram-session:'.$request->ip()));
         RateLimiter::for('telegram-webhook', fn (Request $request): Limit => Limit::perMinute(120)
             ->by('telegram-webhook:'.$request->ip()));
+        RateLimiter::for('local-mvp-preview', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by('local-mvp-preview:'.$request->user()?->id));
+        RateLimiter::for('local-mvp-rss-preview', fn (Request $request): Limit => Limit::perMinute(4)
+            ->by('local-mvp-rss-preview:'.$request->user()?->id));
 
         if (! $this->app->runningInConsole()) {
             $host = $this->app['request']->getHost();

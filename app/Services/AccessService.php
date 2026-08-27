@@ -10,8 +10,19 @@ use App\Models\User;
 
 class AccessService
 {
+    public function __construct(private readonly LocalMvpOperatorService $localMvpOperator) {}
+
     public function snapshotFor(User $user): AccessSnapshot
     {
+        if ($this->localMvpOperator->isOperator($user)) {
+            return new AccessSnapshot(
+                AccessState::Active,
+                'local_mvp_operator',
+                $this->localMvpOperator->activeQueryLimit(),
+                null,
+            );
+        }
+
         /** @var Entitlement|null $entitlement */
         $entitlement = Entitlement::query()
             ->with(['plan', 'subscription'])

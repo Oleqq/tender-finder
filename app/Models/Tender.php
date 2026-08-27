@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $description
  * @property string|null $region
  * @property string|null $budget_amount
+ * @property Carbon|null $published_at
  * @property Carbon|null $deadline_at
  * @property string $canonical_url
  * @property Carbon $created_at
@@ -56,5 +57,11 @@ class Tender extends Model
     public function matches(): HasMany
     {
         return $this->hasMany(TenderQueryMatch::class);
+    }
+
+    /** @return HasMany<TenderUserState, $this> */
+    public function userStates(): HasMany
+    {
+        return $this->hasMany(TenderUserState::class);
     }
 }

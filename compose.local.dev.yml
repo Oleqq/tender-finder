@@ -1,0 +1,79 @@
+x-dev-build: &dev-build
+  build:
+    context: .
+    target: app-dev
+  image: tender-finder-local-dev-app
+  init: true
+
+x-dev-volumes: &dev-volumes
+  - .:/var/www/html
+  - tender_finder_local_dev_vendor:/var/www/html/vendor
+
+x-dev-application: &dev-application
+  <<: *dev-build
+  env_file:
+    - ./deploy/local-runtime.env
+  environment:
+    LOCAL_MVP_OPERATOR_ENABLED: "true"
+    LOCAL_MVP_SUBSCRIBER_ENABLED: "true"
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  volumes: *dev-volumes
+
+services:
+  web:
+    <<: *dev-application
+
+  queue:
+    <<: *dev-application
+
+  scheduler:
+    <<: *dev-application
+
+  migrate:
+    <<: *dev-application
+
+  vite:
+    build:
+      context: .
+      target: vite-dev
+    init: true
+    working_dir: /app
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_HMR_HOST: "127.0.0.1"
+      VITE_HMR_PORT: "5173"
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - .:/app
+      - tender_finder_local_dev_node_modules:/app/node_modules
+
+  test:
+    <<: *dev-build
+    volumes: *dev-volumes
+    environment:
+      APP_ENV: testing
+      APP_KEY: base64:MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
+      APP_MAINTENANCE_DRIVER: file
+      BCRYPT_ROUNDS: "4"
+      CACHE_STORE: array
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ":memory:"
+      MAIL_MAILER: array
+      PULSE_ENABLED: "false"
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: array
+      TELESCOPE_ENABLED: "false"
+    command: ["php", "artisan", "test"]
+
+  cli:
+    <<: *dev-application
+    command: ["php", "artisan", "about"]
+
+volumes:
+  tender_finder_local_dev_vendor:
+  tender_finder_local_dev_node_modules:

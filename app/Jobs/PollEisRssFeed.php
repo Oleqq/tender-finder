@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\SourceFeed;
-use App\Services\RssFixtureImportService;
+use App\Services\TenderSourceImportService;
 use App\Tenders\EisRssSource;
 use App\Tenders\RssSourceException;
 use Illuminate\Bus\Queueable;
@@ -20,7 +20,7 @@ class PollEisRssFeed implements ShouldQueue
 
     public function __construct(public readonly int $feedId) {}
 
-    public function handle(EisRssSource $source, RssFixtureImportService $importer): void
+    public function handle(EisRssSource $source, TenderSourceImportService $importer): void
     {
         $feed = SourceFeed::query()->find($this->feedId);
 
@@ -29,9 +29,9 @@ class PollEisRssFeed implements ShouldQueue
         }
 
         try {
-            $importer->import($feed, $source->fetch($feed));
+            $importer->import($feed, $source->fetch($feed), 'eis_rss');
         } catch (RssSourceException $exception) {
-            $importer->fail($feed, $exception->codeName);
+            $importer->fail($feed, $exception->codeName, 'eis_rss');
         }
     }
 }

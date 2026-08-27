@@ -8,11 +8,16 @@ use App\Models\SourceFeed;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Models\User;
-use App\Services\RssFixtureImportService;
 use App\Services\TenderMatchingService;
+use App\Services\TenderSourceImportService;
 use App\Tenders\EisRssSource;
 use App\Tenders\RssSourceException;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Queue;
+
+beforeEach(function (): void {
+    $this->withoutMiddleware(ValidateCsrfToken::class);
+});
 
 it('imports synthetic RSS safely, deduplicates reg numbers, and keeps first poll silent', function () {
     Queue::fake();
@@ -23,26 +28,28 @@ it('imports synthetic RSS safely, deduplicates reg numbers, and keeps first poll
         'poll_interval_seconds' => 600,
     ]);
     $source = app(EisRssSource::class);
-    $importer = app(RssFixtureImportService::class);
+    $importer = app(TenderSourceImportService::class);
 
-    $first = $importer->import($feed, $source->parse(file_get_contents(base_path('tests/Fixtures/eis-rss-initial.xml'))));
+    $first = $importer->import($feed, $source->parse(file_get_contents(base_path('tests/Fixtures/eis-rss-initial.xml'))), 'eis_rss');
     expect($first->items_created)->toBe(1)
         ->and(Tender::query()->count())->toBe(1);
     Queue::assertNothingPushed();
 
-    $second = $importer->import($feed->fresh(), $source->parse(file_get_contents(base_path('tests/Fixtures/eis-rss-next.xml'))));
+    $second = $importer->import($feed->fresh(), $source->parse(file_get_contents(base_path('tests/Fixtures/eis-rss-next.xml'))), 'eis_rss');
     expect($second->items_created)->toBe(1)
         ->and(Tender::query()->count())->toBe(2);
     Queue::assertPushed(MatchTender::class, 1);
 });
 
-it('rejects HTML and untrusted RSS links before storing anything', function () {
+it('rejects HTML and skips untrusted RSS item links before storing anything', function () {
     $source = app(EisRssSource::class);
 
     expect(fn () => $source->parse('<html><body>not RSS</body></html>'))
         ->toThrow(RssSourceException::class);
-    expect(fn () => $source->parse('<rss><channel><item><title>x</title><link>https://evil.example/epz/order/x</link></item></channel></rss>'))
-        ->toThrow(RssSourceException::class);
+
+    $result = $source->parse('<rss><channel><item><title>x</title><link>https://evil.example/epz/order/x</link></item></channel></rss>');
+
+    expect($result->items)->toBe([]);
 });
 
 it('matches deterministic filters with explainable reasons and minus words', function () {
