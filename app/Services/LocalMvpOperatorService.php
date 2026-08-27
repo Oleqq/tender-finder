@@ -52,9 +52,13 @@ final class LocalMvpOperatorService
     public function isOperator(?User $user): bool
     {
         return $this->isEnabled()
-            && $user !== null
-            && $user->email === self::EMAIL
+            && $this->isTestOperatorIdentity($user)
             && $user->role === UserRole::SuperAdmin;
+    }
+
+    public function isTestOperatorIdentity(?User $user): bool
+    {
+        return $user !== null && $user->email === self::EMAIL;
     }
 
     public function activeQueryLimit(): int

@@ -42,6 +42,16 @@ it('rejects an unsigned remote MVP operator request', function () {
     $this->assertGuest();
 });
 
+it('revokes an existing technical MVP session when remote access is disabled', function () {
+    config()->set('tender.remote_mvp_operator.enabled', true);
+    $url = URL::temporarySignedRoute('mvp.remote-operator.session', now()->addMinutes(10));
+
+    $this->get($url)->assertOk();
+    config()->set('tender.remote_mvp_operator.enabled', false);
+
+    $this->get('/operations-demo')->assertForbidden();
+});
+
 it('creates a remote test link only when remote MVP access is enabled', function () {
     config()->set('tender.remote_mvp_operator.enabled', false);
 
