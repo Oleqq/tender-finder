@@ -12,8 +12,19 @@ final class LocalMvpOperatorService
 
     public function isEnabled(): bool
     {
+        return $this->isLocalEnabled() || $this->isRemoteEnabled();
+    }
+
+    public function isLocalEnabled(): bool
+    {
         return app()->environment('local', 'testing')
             && (bool) config('tender.local_mvp_operator.enabled');
+    }
+
+    public function isRemoteEnabled(): bool
+    {
+        return app()->environment('production')
+            && (bool) config('tender.remote_mvp_operator.enabled');
     }
 
     public function provision(): User
@@ -23,7 +34,7 @@ final class LocalMvpOperatorService
             $user = User::query()->updateOrCreate(
                 ['email' => self::EMAIL],
                 [
-                    'name' => 'Local MVP operator',
+                    'name' => 'MVP test operator',
                     'role' => UserRole::SuperAdmin,
                     'telegram_id' => null,
                     'telegram_username' => null,

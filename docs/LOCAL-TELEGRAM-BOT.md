@@ -20,8 +20,9 @@ Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликац
 - повтор одного `update_id` не создаёт повторное сообщение;
 - Mini App создаёт web-сессию только после серверной проверки подписанного
   `Telegram.WebApp.initData`;
-- пользователь получает роль `subscriber`; только совпадение проверенного ID
-  с серверным `TELEGRAM_OWNER_ID` даёт `super_admin`.
+- пользователь получает роль `subscriber`; совпадение проверенного личного
+  Telegram ID со списком `TELEGRAM_SUPERADMIN_IDS` даёт `super_admin`.
+  Старый одиночный `TELEGRAM_OWNER_ID` поддержан для совместимости.
 
 `/start` не авторизует веб-приложение и не запускает trial. Trial начинается
 один раз, только после принятия опубликованных оферты и политики.
@@ -47,7 +48,7 @@ Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликац
    ```dotenv
    TELEGRAM_BOT_TOKEN=<токен тестового бота>
    TELEGRAM_WEBHOOK_SECRET=<случайная длинная строка>
-   TELEGRAM_OWNER_ID=<опциональный Telegram ID владельца>
+   TELEGRAM_SUPERADMIN_IDS=<личный ID владельца,ID второго администратора>
    ```
 
 3. Поднимите контур:
@@ -75,9 +76,11 @@ Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликац
 4. Отправьте тестовому боту `/start`, затем `/help`. Ответ появится только
    при работающем `queue`.
 
-Передавать bot token в командной строке, URL или скриншоте не нужно. Для
-реальной закрытой beta используйте [DEPLOYMENT.md](DEPLOYMENT.md): там нужен
-VPS, а не временный туннель.
+Передавать bot token в командной строке, URL или скриншоте не нужно. В список
+администраторов вносятся личные Telegram **user ID**, а не ID группы или
+канала: Mini App подтверждает именно пользователя. При следующем входе
+удалённый из списка пользователь автоматически вернётся к роли `subscriber`.
+Для реальной закрытой beta используйте [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Проверка Mini App и trial
 

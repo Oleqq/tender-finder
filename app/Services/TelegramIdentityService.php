@@ -12,8 +12,7 @@ class TelegramIdentityService
     public function findOrCreate(VerifiedTelegramUser $identity): User
     {
         return DB::transaction(function () use ($identity): User {
-            $ownerId = config('tender.telegram.owner_id');
-            $role = is_string($ownerId) && $ownerId !== '' && hash_equals($ownerId, $identity->id)
+            $role = $this->isSuperAdmin($identity->id)
                 ? UserRole::SuperAdmin
                 : UserRole::Subscriber;
 
@@ -33,5 +32,32 @@ class TelegramIdentityService
 
             return $user;
         });
+    }
+
+    private function isSuperAdmin(string $telegramId): bool
+    {
+        foreach ($this->superAdminIds() as $configuredId) {
+            if (hash_equals($configuredId, $telegramId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return list<string> */
+    private function superAdminIds(): array
+    {
+        $configured = [config('tender.telegram.owner_id')];
+        $additionalIds = config('tender.telegram.superadmin_ids');
+
+        if (is_string($additionalIds)) {
+            $configured = [...$configured, ...preg_split('/[\s,;]+/', $additionalIds)];
+        }
+
+        return array_values(array_unique(array_filter(
+            $configured,
+            static fn (mixed $id): bool => is_string($id) && preg_match('/^\d+$/', $id) === 1,
+        )));
     }
 }

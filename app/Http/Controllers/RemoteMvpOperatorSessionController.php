@@ -7,14 +7,14 @@ use App\Services\MvpOperatorWorkspaceResponseService;
 use Illuminate\Http\Request;
 use Inertia\Response;
 
-class LocalMvpOperatorSessionController extends Controller
+class RemoteMvpOperatorSessionController extends Controller
 {
     public function store(
         Request $request,
         LocalMvpOperatorService $operator,
         MvpOperatorWorkspaceResponseService $response,
     ): Response {
-        abort_unless($operator->isLocalEnabled(), 404);
+        abort_unless($operator->isRemoteEnabled(), 404);
 
         return $response->open($request);
     }

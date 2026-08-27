@@ -78,8 +78,10 @@ erDiagram
 У `users` сохранены nullable `email` и `password` как временные legacy-поля
 Laravel. Они не участвуют в Telegram-авторизации. Старая роль `admin` при
 migration переводится в `subscriber`, поэтому у неё нет «случайного» доступа.
-Только подтверждённый `telegram_id`, совпавший с secret owner ID, получает
-`super_admin`.
+Только подтверждённый `telegram_id`, входящий в server-side список
+`TELEGRAM_SUPERADMIN_IDS` (либо legacy `TELEGRAM_OWNER_ID`), получает
+`super_admin`. Значение сверяется на каждом Telegram Mini App входе: удаление
+ID из списка понижает роль при следующей авторизации.
 
 ### Доступ и планы
 

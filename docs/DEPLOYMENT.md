@@ -111,11 +111,18 @@ LOG_CHANNEL=stderr
 LOG_LEVEL=info
 TELEGRAM_BOT_TOKEN=<secret>
 TELEGRAM_WEBHOOK_SECRET=<secret>
+TELEGRAM_SUPERADMIN_IDS=<личный Telegram user ID владельца,ID второго администратора>
 TELEGRAM_OWNER_ID=<числовой Telegram ID владельца>
 OPERATIONS_READINESS_TOKEN=<случайный secret>
 LEGAL_DOCUMENTS_PUBLISHED=false
 RSS_LIVE_POLLING_ENABLED=false
 ```
+
+`TELEGRAM_SUPERADMIN_IDS` — перечень личных Telegram **user ID** через
+запятую. Его сравнивают только с криптографически проверенным `initData` Mini
+App; ID группы/канала сюда не подходит. `TELEGRAM_OWNER_ID` оставлен как
+совместимый alias одиночного владельца. При следующем входе ID, удалённый из
+обоих значений, автоматически станет `subscriber`.
 
 Остальные имена сверять с `.env.example`. Не переносите локальный
 `deploy/local-runtime.env`, `.env` или Redis dump в Railway. Перед выпуском
@@ -137,6 +144,29 @@ legal-документов нельзя включать `LEGAL_DOCUMENTS_PUBLIS
    `false` до отдельного решения владельца.
 6. Только затем настроить Telegram Mini App URL и webhook на Railway HTTPS
    domain с заданным webhook secret.
+
+## Контролируемая удалённая проверка MVP
+
+До подключения Telegram можно временно открыть рабочее место ЕИС на Railway,
+не публикуя debug-вход и не подменяя Telegram ID:
+
+1. Только у web-сервиса (сейчас это `tender-finder`) задать
+   `REMOTE_MVP_OPERATOR_ENABLED=true` и дождаться нового deployment.
+2. Открыть **Console** именно web-сервиса и выполнить:
+
+   ```sh
+   php artisan mvp:operator-link --minutes=30
+   ```
+
+3. Открыть выведенную ссылку в своём браузере. Она выдаёт техническую
+   `super_admin`-сессию только на рабочее место ЕИС и истекает максимум через
+   60 минут. Не пересылайте её и не добавляйте в закладки.
+4. Закончив приёмку, поставить
+   `REMOTE_MVP_OPERATOR_ENABLED=false` и redeploy web-сервис.
+
+Это не публичная авторизация и не заменяет Telegram Mini App. Обычный
+пользователь после запуска будет входить через Telegram; роль ему назначит
+`TELEGRAM_SUPERADMIN_IDS` либо обычный subscriber-flow.
 
 ## Обновление и rollback
 

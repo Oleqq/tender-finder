@@ -9,6 +9,7 @@ use App\Http\Controllers\LocalMvpTenderDetailController;
 use App\Http\Controllers\LocalMvpTenderGuruPreviewController;
 use App\Http\Controllers\LocalMvpTenderStateController;
 use App\Http\Controllers\OperationsDashboardController;
+use App\Http\Controllers\RemoteMvpOperatorSessionController;
 use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderFeedController;
@@ -20,13 +21,16 @@ use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
-        'localMvpOperatorAvailable' => app(LocalMvpOperatorService::class)->isEnabled(),
+        'localMvpOperatorAvailable' => app(LocalMvpOperatorService::class)->isLocalEnabled(),
         'localMvpSubscriberAvailable' => app(LocalMvpSubscriberService::class)->isEnabled(),
     ]);
 })->name('welcome');
 
 Route::get('/local/mvp-operator', [LocalMvpOperatorSessionController::class, 'store'])
     ->name('local.mvp-operator.session');
+Route::get('/mvp/operator/access', [RemoteMvpOperatorSessionController::class, 'store'])
+    ->middleware(['signed', 'throttle:remote-mvp-operator'])
+    ->name('mvp.remote-operator.session');
 Route::get('/local/mvp-subscriber', [LocalMvpSubscriberSessionController::class, 'store'])
     ->name('local.mvp-subscriber.session');
 

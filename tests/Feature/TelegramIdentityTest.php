@@ -46,7 +46,7 @@ it('creates a subscriber only after verified init data and regenerates a session
         ->assertJsonPath('session_refreshed', false);
 });
 
-it('assigns super admin only to the configured verified owner id', function () {
+it('assigns super admin only to a configured verified owner id', function () {
     config()->set('tender.telegram.owner_id', '991122');
 
     $this->postJson('/telegram/session', [
@@ -54,6 +54,22 @@ it('assigns super admin only to the configured verified owner id', function () {
     ])->assertOk()->assertJsonPath('user.role', 'super_admin');
 
     expect(User::query()->where('telegram_id', '991122')->firstOrFail()->role)->toBe(UserRole::SuperAdmin);
+});
+
+it('assigns and revokes super admin based on the configured verified Telegram ID list', function () {
+    config()->set('tender.telegram.superadmin_ids', '112233, 445566;778899');
+
+    $this->postJson('/telegram/session', [
+        'init_data' => signedTelegramInitData(['id' => 445566, 'first_name' => 'Admin']),
+    ])->assertOk()->assertJsonPath('user.role', 'super_admin');
+
+    config()->set('tender.telegram.superadmin_ids', '112233,778899');
+
+    $this->postJson('/telegram/session', [
+        'init_data' => signedTelegramInitData(['id' => 445566, 'first_name' => 'Admin']),
+    ])->assertOk()->assertJsonPath('user.role', 'subscriber');
+
+    expect(User::query()->where('telegram_id', '445566')->firstOrFail()->role)->toBe(UserRole::Subscriber);
 });
 
 it('rejects forged and expired telegram init data', function () {

@@ -17,7 +17,7 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 | ЕИС | Ручной RSS-поиск по фразе; 44/223‑ФЗ, НМЦК, дата; до 10 страниц; релевантность по предмету закупки | Полный каталог ЕИС, регион/ОКПД2 без RSS-ссылки, monitoring |
 | Карточки | Понятные поля, detail, дедупликация, личные статусы и bulk actions | Выдуманные поля, HTML-скрапинг, обогащение без публичного контракта источника |
 | Данные | Последняя выдача, история и статусы привязаны к пользователю и переживают refresh/restart | Общая история всех пользователей или удаление Docker volume |
-| Identity | Подписанный Telegram `initData`; owner → `super_admin`, остальные → `subscriber` | Доверие к Telegram ID из браузера или `/start` как авторизации |
+| Identity | Подписанный Telegram `initData`; IDs из `TELEGRAM_SUPERADMIN_IDS` → `super_admin`, остальные → `subscriber` | Доверие к Telegram ID из браузера или `/start` как авторизации |
 | Access | `preview`, `trialing`, `paid`, `granted`, `expired`; one-time 72h trial после consent | Роль `subscriber_trial`, рабочая оплата Stars |
 | Админка | Закрытый `super_admin` экран агрегатов доступа без персональных данных | Полноценные Users/Commerce/Campaigns или реальная выручка |
 | Бот | Webhook, дедупликация обновлений, `/start`, `/help`, очередь отправки | Публично включённый webhook, рассылки и Stars |

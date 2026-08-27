@@ -4,6 +4,10 @@ return [
     'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+        // Comma-separated personal Telegram user IDs allowed to administer
+        // the product after a verified Mini App login. Keep owner_id for
+        // backward-compatible single-owner deployments.
+        'superadmin_ids' => env('TELEGRAM_SUPERADMIN_IDS'),
         'owner_id' => env('TELEGRAM_OWNER_ID'),
         'init_data_max_age_seconds' => (int) env('TELEGRAM_INIT_DATA_MAX_AGE_SECONDS', 300),
         'bot_request_timeout_seconds' => (int) env('TELEGRAM_BOT_REQUEST_TIMEOUT_SECONDS', 5),
@@ -28,6 +32,12 @@ return [
         // production Telegram authentication.
         'enabled' => (bool) env('LOCAL_MVP_OPERATOR_ENABLED', false),
         'active_query_limit' => (int) env('LOCAL_MVP_OPERATOR_ACTIVE_QUERY_LIMIT', 20),
+    ],
+
+    'remote_mvp_operator' => [
+        // Production testing is opt-in and can only start with an expiring
+        // signed link generated in the private Railway console.
+        'enabled' => (bool) env('REMOTE_MVP_OPERATOR_ENABLED', false),
     ],
 
     'local_mvp_subscriber' => [
