@@ -62,7 +62,9 @@ RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php \
 USER www-data
 EXPOSE 8080
 ENTRYPOINT ["tender-entrypoint"]
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080", "--no-reload"]
+# Railway injects PORT for the public web service. Docker Compose keeps using
+# its explicit 8080 command, while this default also works outside Compose.
+CMD ["sh", "-c", "exec php artisan serve --host=0.0.0.0 --port=\"${PORT:-8080}\" --no-reload"]
 
 FROM app-base AS app-dev
 

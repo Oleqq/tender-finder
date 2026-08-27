@@ -36,11 +36,11 @@ class AppServiceProvider extends ServiceProvider
 
         if (! $this->app->runningInConsole()) {
             $host = $this->app['request']->getHost();
-            $isVercelRequest = str_ends_with($host, '.vercel.app');
 
-            if ($this->app->environment('production') || $isVercelRequest) {
-                // Vercel invokes PHP over HTTP and can retain that asset root in
-                // its config cache. Resolve Vite assets from the public HTTPS host.
+            if ($this->app->environment('production')) {
+                // Generate absolute HTTPS URLs from the host that received the
+                // request. This works behind Railway's public proxy and on a
+                // future custom domain without baking a host into config cache.
                 URL::forceScheme('https');
                 URL::forceRootUrl('https://'.$host);
                 $this->app->make(ViteManager::class)->createAssetPathsUsing(

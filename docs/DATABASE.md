@@ -98,8 +98,8 @@ migration переводится в `subscriber`, поэтому у неё не�
 entitlement как `expired`, меняет активные `search_queries` на `frozen` и
 помечает ожидающие `notification_deliveries` как `skipped`. Ничего не
 удаляется физически: это сохраняет объяснимую историю и не даёт повторной
-очереди отправить старое уведомление. Эта задача выполнится только в будущем
-VPS scheduler, а не в Vercel demo.
+очереди отправить старое уведомление. Эта задача выполняется только постоянным
+Railway scheduler service, а не HTTP-процессом web-приложения.
 
 ### Tender core
 
@@ -149,15 +149,16 @@ migrations проверяются локально; production contract — Post
 ## Порядок production migration
 
 1. Сделать managed PostgreSQL backup/snapshot и проверить restore-процедуру.
-2. Заполнить secrets в VPS secret store или некоммитируемом `.env.production`.
-   В том числе DB/Redis, Telegram, legal URLs/versions и readiness token.
-3. Запустить container image и только операторским service выполнить
-   `docker compose -f compose.production.yml --profile ops run --rm migrate`.
+2. Заполнить Railway Variables: DB/Redis reference variables, Telegram,
+   legal URLs/versions и readiness token.
+3. Запустить web service с Railway Pre-Deploy Command
+   `sh railway/migrate.sh`; worker и scheduler не должны запускать миграции.
 4. Проверить authenticated `GET /ops/readiness` и public `GET /health`.
 5. Выполнить smoke-test подписанной Telegram session, consent и trial на
    отдельном тестовом пользователе. Не включать webhook или live RSS раньше.
-6. После проверки переключить Mini App URL/webhook на VPS. Vercel оставить
-   rollback, пока не пройдёт период наблюдения.
+6. После проверки установить Railway HTTPS URL как Mini App URL и Telegram
+   webhook. Откат выполняется на предыдущий Railway deployment после backup и
+   проверки совместимости migration.
 
 Миграции намеренно не включают будущие `payments`, `billing_events`,
 `campaigns`, `campaign_deliveries`, `admin_audit_logs` и aggregated
@@ -168,7 +169,7 @@ migrations проверяются локально; production contract — Post
 
 `compose.local.yml` поднимает отдельный PostgreSQL 16 в именованном Docker
 volume `tender_finder_local_postgres`. Он не публикует порт базы наружу и не
-используется Vercel или production. Для него создаётся только
+используется Railway production. Для него создаётся только
 некоммитируемый `deploy/local-runtime.env`; его значения локальны и не должны
 совпадать с VPS.
 

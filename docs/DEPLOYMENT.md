@@ -1,143 +1,153 @@
-# Tender Finder: развёртывание и безопасное переключение
+# Tender Finder: Railway deployment (pre-MVP)
 
-## Коротко
+## Итоговая схема
 
-Сейчас Vercel обслуживает безопасный demo Mini App и остаётся rollback-контуром.
-Настоящие сессии Telegram, очередь, scheduler, trial и RSS требуют постоянного
-runtime. Для него подготовлен один VPS с контейнерами `web`, `queue`,
-`scheduler` и Caddy. PostgreSQL и Redis должны быть managed-сервисами вне VPS.
-
-Ничего из этого документа не означает, что переключение уже выполнено. Для
-production нужны доступ к VPS, домен, managed connection strings, публичные
-legal URLs и Telegram secrets. Эти значения никогда не попадают в Git,
-документацию или логи.
-
-## Локальная разработка без VPS
-
-Для личной разработки есть отдельный `compose.local.yml`: он поднимает Laravel,
-очередь, scheduler, PostgreSQL 16 и Redis на `127.0.0.1`. Это не замена
-production Compose: локальная база хранится в Docker volume на компьютере.
-Ручной поиск ЕИС там работает, но Telegram webhook, legal publication,
-платежи и automatic RSS polling не включаются.
-
-Инструкция для manual EIS search и локальных проверок находится в
-[`LOCAL-RUNTIME.md`](LOCAL-RUNTIME.md). Локальный конфигурационный файл
-`deploy/local-runtime.env` создаёт только оператор из шаблона и не передаёт в
-Git, чат или логи.
-
-## Из чего состоит runtime
+Railway разворачивает не Docker Compose «одной кнопкой», а несколько постоянных
+сервисов из одного репозитория. Это полностью покрывает нужный pre-MVP контур:
 
 ```text
-Internet / Telegram
-        │ HTTPS
-      Caddy
-        │
-      web (Laravel) ─────────── managed PostgreSQL
-        │  └ session/auth                 ▲
-        │                                 │
-      queue (Laravel worker) ─────── managed Redis
-        │  └ bot / matching / delivery    ▲
-        │                                 │
-      scheduler (Laravel schedule:work) ──┘
+Telegram Mini App / webhook
+              │ HTTPS
+              ▼
+      Railway: tender-web (public)
+         │        │
+         │        ├──────── Railway PostgreSQL
+         │        └──────── Railway Redis
+         │
+         ├── Railway: tender-worker (private, queue:work)
+         └── Railway: tender-scheduler (private, schedule:work)
 ```
 
-Файлы для этого контура:
+`web` обслуживает браузер и Telegram webhook. `worker` обрабатывает Redis
+очередь, а `scheduler` запускает lifecycle-задачи Laravel каждую минуту.
+PostgreSQL и Redis — managed database services Railway; у приложения нет
+Docker volume с пользовательскими данными.
 
-- `Dockerfile` — один собранный PHP+frontend image;
-- `compose.production.yml` — процессы `web`, `queue`, `scheduler`, Caddy и
-  отдельная operator-only migration job;
-- `deploy/Caddyfile` — HTTPS reverse proxy;
-- `deploy/entrypoint.sh` — кэш конфигурации/маршрутов без вывода secrets;
-- `.env.example` — список имён переменных, не набор реальных значений.
+Обычный Railway service постоянный по умолчанию. Не включайте **Serverless**
+для `web`, `worker` или `scheduler`: это режим сна, не production-оптимизация.
+После завершения trial/перехода на оплачиваемый план задайте для worker и
+scheduler Restart Policy **Always**. На trial Railway ограничивает эту
+политику, поэтому «работает 24/7» нельзя гарантировать при исчерпании trial
+кредитов или лимитов аккаунта.
 
-## Что подготовить оператору
+## Что уже подготовлено в репозитории
 
-1. VPS с Docker Engine и Compose plugin, домен с A/AAAA записью на VPS и
-   открытыми TCP 80/443.
-2. Для первой закрытой beta VPS, managed PostgreSQL и managed Redis физически
-   размещены в РФ. Managed service означает, что провайдер обслуживает
-   обновления, базовую доступность и backup-средства; выбор провайдера остаётся
-   за владельцем.
-3. Managed PostgreSQL 16: отдельный database/user, TLS по требованиям
-   провайдера, backup и проверенный restore.
-4. Managed Redis: TLS/пароль по требованиям провайдера, отдельные DB/namespace
-   для session/cache/queue и доступ только с VPS.
-5. Секретный store VPS (или защищённый некоммитируемый `.env.production`) с
-   `APP_KEY`, DB/Redis, Telegram token/webhook secret/owner ID, legal URLs и
-   versions, `OPERATIONS_READINESS_TOKEN`.
-6. Значения runtime: `APP_ENV=production`, `APP_DEBUG=false`,
-   `SESSION_SECURE_COOKIE=true`, `SESSION_DRIVER=redis`, `CACHE_STORE=redis`,
-   `QUEUE_CONNECTION=redis`, `DB_CONNECTION=pgsql` и `APP_DOMAIN` для Caddy.
+- `Dockerfile` — один production image PHP + Laravel + Vite assets; web
+  использует Railway-переменную `$PORT`.
+- `railway.json` — Railway всегда собирает этот image через Dockerfile, но не
+  задаёт общий start command.
+- `railway/run-web.sh` — HTTP web process.
+- `railway/run-worker.sh` — Redis worker.
+- `railway/run-scheduler.sh` — постоянный Laravel scheduler.
+- `railway/migrate.sh` — безопасная команда migration только для web service.
 
-Не запускайте `.env.example` как production-файл: он специально пустой в
-чувствительных местах и содержит локальные примеры.
+`compose.local.yml` остаётся исключительно локальным контуром и не участвует
+в Railway production deployment.
 
-### Legal publication gate
+## Создание Railway проекта
 
-Vercel хранит будущие постоянные `/offer` и `/privacy`, но не должен выдавать
-черновики за действующие документы. Пока реквизиты ИП и тексты не проверены
-юристом, `LEGAL_DOCUMENTS_PUBLISHED=false`; оба URL отвечают `503`, а trial
-fail-closed — не запускается. После проверки оператор сначала публикует
-финальные тексты на Vercel, затем задаёт в VPS secret store только реальные
-`LEGAL_OFFER_URL`, `LEGAL_PRIVACY_URL` и их версии, и лишь потом включает gate.
-Значения, токены и реквизиты не коммитируются и не передаются в чат.
+После регистрации создать пустой проект, затем на Canvas добавить:
 
-## Первый запуск без переключения Telegram
+1. **PostgreSQL**. Оставить private networking; сервис создаёт
+   `DATABASE_URL`.
+2. **Redis**. Оставить private networking; сервис создаёт `REDIS_URL`.
+3. Три сервиса из одного GitHub-репозитория и ветки `main`:
+   `tender-web`, `tender-worker`, `tender-scheduler`.
 
-На VPS в checkout репозитория оператор выполняет следующие шаги. Команды не
-содержат secrets; перед ними они уже должны быть в secret store.
+Для всех трёх сервисов Railway сам найдёт `railway.json` и `Dockerfile`.
+Публичный домен создаётся только у `tender-web`. Не выдавайте домены database,
+Redis, worker и scheduler.
 
-```sh
-docker compose -f compose.production.yml build
-docker compose -f compose.production.yml --profile ops run --rm migrate
-docker compose -f compose.production.yml up -d web queue scheduler caddy
+## Команды сервисов
+
+Задать их в **Service → Settings → Deploy**:
+
+| Service | Custom Start Command | Healthcheck | Pre-Deploy Command |
+|---|---|---|---|
+| `tender-web` | `sh railway/run-web.sh` | `/health` | `sh railway/migrate.sh` |
+| `tender-worker` | `sh railway/run-worker.sh` | не задавать | не задавать |
+| `tender-scheduler` | `sh railway/run-scheduler.sh` | не задавать | не задавать |
+
+Сначала развернуть PostgreSQL и Redis, затем `tender-web` (он выполнит
+migrations), после успешного healthcheck — worker и scheduler. Каждый из
+worker/scheduler запускается как отдельный постоянный контейнер; не пытайтесь
+запустить их фоном внутри web service.
+
+## Variables
+
+У каждой из трёх application-служб должны быть одинаковые runtime variables.
+Секреты добавляются через Railway Variables и не коммитятся в Git.
+
+### Reference variables
+
+Если database services названы именно `Postgres` и `Redis`, добавить:
+
+```text
+DB_CONNECTION=pgsql
+DB_URL=${{Postgres.DATABASE_URL}}
+REDIS_URL=${{Redis.REDIS_URL}}
+REDIS_CLIENT=phpredis
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+QUEUE_FAILED_DRIVER=database-uuids
+SESSION_SECURE_COOKIE=true
 ```
 
-Затем обязательно проверить:
+Если в Canvas выбраны другие имена, Railway подставляет их в reference
+variables: `${{<имя-сервиса>.DATABASE_URL}}` и
+`${{<имя-сервиса>.REDIS_URL}}`. Не используйте public DB URL между сервисами.
 
-1. Public `GET /health` возвращает только `status: ok` — это liveness и он
-   намеренно не раскрывает доступность PostgreSQL/Redis.
-2. Operator делает `GET /ops/readiness` с Bearer readiness token. Успех
-   означает, что Laravel смог выполнить `select 1` в PostgreSQL и `PING` Redis;
-   при ошибке виден только `not_ready`, без строки подключения.
-3. `docker compose ... ps`, logs web/queue/scheduler, Laravel migrations и
-   HTTPS certificate Caddy выглядят штатно.
-4. На отдельном тестовом Telegram-пользователе проверяются signed Mini App
-   session, consent, ровно один trial, `/start` и `/help`. Ни цены Stars, ни
-   live RSS на этом шаге не включаются.
-5. Проверить, что `scheduler` исполняет `trials:process-lifecycle` каждую
-   минуту: он создаёт не более одного reminder за 24 и 3 часа, а после
-   окончания trial замораживает запросы и переводит ожидающие delivery в
-   `skipped`. Полную 72-часовую временную проверку проводят на отдельном
-   staging/test runtime либо естественным временем до cutover; не меняйте
-   длительность публичного trial ради smoke-test.
+### Application variables
 
-## Controlled cutover и rollback
+Во все три application-службы добавить одинаковые значения:
 
-После успешного smoke-test:
+```text
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=<сгенерировать один раз; не менять между сервисами>
+APP_URL=https://<домен-tender-web>
+LOG_CHANNEL=stderr
+LOG_LEVEL=info
+TELEGRAM_BOT_TOKEN=<secret>
+TELEGRAM_WEBHOOK_SECRET=<secret>
+TELEGRAM_OWNER_ID=<числовой Telegram ID владельца>
+OPERATIONS_READINESS_TOKEN=<случайный secret>
+LEGAL_DOCUMENTS_PUBLISHED=false
+RSS_LIVE_POLLING_ENABLED=false
+```
 
-1. Установить VPS HTTPS URL как URL Mini App/menu button.
-2. Установить Telegram webhook на VPS с секретным token header.
-3. Наблюдать health, readiness, queue failures, webhook updates и source runs.
-4. Не включать `RSS_LIVE_POLLING_ENABLED=true` автоматически. Для этого нужно
-   отдельное решение владельца, проверка прав источника, rate limits и
-   наблюдаемость source runs.
+Остальные имена сверять с `.env.example`. Не переносите локальный
+`deploy/local-runtime.env`, `.env` или Redis dump в Railway. Перед выпуском
+legal-документов нельзя включать `LEGAL_DOCUMENTS_PUBLISHED=true`; trial
+останется безопасно заблокированным.
 
-Если smoke-test или наблюдение не проходят, вернуть menu button/webhook на
-Vercel demo URL. Не откатывать миграции на живых данных автоматически: сначала
-остановить пользовательские mutations, взять backup и определить обратимую
-процедуру для конкретной migration.
+## Первый запуск и проверки
 
-## Что Vercel делает дальше
+1. В `tender-web` сгенерировать Railway domain и записать его HTTPS URL в
+   `APP_URL`, затем redeploy web.
+2. Убедиться, что `/health` возвращает `{"status":"ok"}`.
+3. С приватным `OPERATIONS_READINESS_TOKEN` вызвать
+   `GET /ops/readiness` с `Authorization: Bearer …`; ответ `ready` означает,
+   что приложение подключилось и к PostgreSQL, и к Redis.
+4. Просмотреть логи всех трёх сервисов. Worker должен оставаться в
+   `queue:work`, scheduler — в `schedule:work`; у них не должно быть restarts.
+5. На тестовом Telegram-аккаунте проверить подписанную Mini App session,
+   consent, trial и ручной поиск ЕИС. `RSS_LIVE_POLLING_ENABLED` оставлять
+   `false` до отдельного решения владельца.
+6. Только затем настроить Telegram Mini App URL и webhook на Railway HTTPS
+   domain с заданным webhook secret.
 
-Vercel не удаляется и не превращается в real worker: там остаётся текущий
-public demo/rollback. Его serverless filesystem и короткие процессы не подходят
-для очередей и scheduler. После устойчивого VPS периода Vercel можно оставить
-как static rollback или закрыть отдельным инфраструктурным решением.
+## Обновление и rollback
 
-## Проверки при каждом обновлении
+Каждый push в `main` создаёт новый deployment каждого подключённого Railway
+service. Перед изменением схемы: сделать PostgreSQL backup, deploy web с
+migration, проверить health/readiness, затем worker и scheduler. При ошибке
+не откатывать migrations автоматически: сначала остановить mutations, сделать
+backup и оценить обратимость конкретной migration. Кодовой rollback выполняется
+на предыдущий успешный Railway deployment.
 
-До push выполняются локально:
+## Локальные проверки перед push
 
 ```powershell
 npm run build
@@ -146,7 +156,9 @@ vendor/bin/pint --test
 vendor/bin/phpstan analyse --memory-limit=1G
 npm run lint
 npm run format:check
+docker build -t tender-finder:railway .
 ```
 
-Перед migration в production: backup, operator readiness, deployment smoke-test
-и план rollback. Подробная таблица и порядок migration: [DATABASE.md](DATABASE.md).
+Официальные материалы: [Laravel on Railway](https://docs.railway.com/guides/laravel),
+[Dockerfiles](https://docs.railway.com/builds/dockerfiles),
+[restart policy](https://docs.railway.com/deployments/restart-policy).
