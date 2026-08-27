@@ -18,7 +18,7 @@ class LocalMvpTenderStateController extends Controller
         LocalMvpOperatorService $operator,
         LocalMvpTenderWorkspaceService $workspace,
     ): JsonResponse {
-        abort_unless($operator->isOperator($request->user()), 404);
+        abort_unless($operator->canUseWorkspace($request->user()), 404);
         abort_unless($workspace->canAccessTender($request->user(), $tender), 404);
 
         $attributes = $request->validate([
@@ -39,7 +39,7 @@ class LocalMvpTenderStateController extends Controller
         LocalMvpOperatorService $operator,
         LocalMvpTenderWorkspaceService $workspace,
     ): JsonResponse {
-        abort_unless($operator->isOperator($request->user()), 404);
+        abort_unless($operator->canUseWorkspace($request->user()), 404);
 
         $attributes = $request->validate([
             'tender_ids' => ['required', 'array', 'min:1', 'max:60'],

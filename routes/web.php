@@ -8,6 +8,7 @@ use App\Http\Controllers\LocalMvpSubscriberSessionController;
 use App\Http\Controllers\LocalMvpTenderDetailController;
 use App\Http\Controllers\LocalMvpTenderGuruPreviewController;
 use App\Http\Controllers\LocalMvpTenderStateController;
+use App\Http\Controllers\MvpWorkspaceController;
 use App\Http\Controllers\OperationsDashboardController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
 use App\Http\Controllers\SearchQueryController;
@@ -48,6 +49,9 @@ Route::post('/telegram/session', [TelegramSessionController::class, 'store'])
     ->name('telegram.session.store');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/mvp/workspace', [MvpWorkspaceController::class, 'show'])
+        ->middleware('super_admin')
+        ->name('mvp.workspace');
     Route::get('/operations-demo', [OperationsDashboardController::class, 'show'])
         ->name('operations.demo');
     Route::get('/queries', [SearchQueryController::class, 'index'])->name('queries.index');

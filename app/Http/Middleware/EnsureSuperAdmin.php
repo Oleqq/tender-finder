@@ -11,14 +11,16 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureSuperAdmin
 {
+    public function __construct(private readonly LocalMvpOperatorService $mvpOperator) {}
+
     /** @param Closure(Request): Response $next */
-    public function handle(Request $request, Closure $next, LocalMvpOperatorService $mvpOperator): Response
+    public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
         if (! $user instanceof User
             || $user->role !== UserRole::SuperAdmin
-            || ($mvpOperator->isTestOperatorIdentity($user) && ! $mvpOperator->isOperator($user))) {
+            || ($this->mvpOperator->isTestOperatorIdentity($user) && ! $this->mvpOperator->isOperator($user))) {
             abort(403);
         }
 

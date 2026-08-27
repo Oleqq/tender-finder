@@ -24,6 +24,11 @@ Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликац
   Telegram ID со списком `TELEGRAM_SUPERADMIN_IDS` даёт `super_admin`.
   Старый одиночный `TELEGRAM_OWNER_ID` поддержан для совместимости.
 
+**Telegram Login Widget здесь не нужен.** Он предназначен для входа на
+обычный внешний сайт, открытый вне Telegram. Main Mini App уже получает
+подписанный `initData` от Telegram; сервер проверяет его тем же bot token.
+Не настраивайте Login Widget вместо URL Main Mini App.
+
 `/start` не авторизует веб-приложение и не запускает trial. Trial начинается
 один раз, только после принятия опубликованных оферты и политики.
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -24,6 +25,11 @@ final class MvpOperatorWorkspaceResponseService
             $request->session()->regenerate();
         }
 
+        return $this->renderFor($user);
+    }
+
+    public function renderFor(User $user): Response
+    {
         $snapshot = $this->snapshots->currentFor($user);
 
         return Inertia::render('MvpWorkspace', [

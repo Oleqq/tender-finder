@@ -5,7 +5,7 @@ import { Badge, GlassCard } from '../Components/ui';
 import type { PageProps } from '../types';
 
 export default function Welcome() {
-    const { localMvpOperatorAvailable, localMvpSubscriberAvailable } = usePage<
+    const { auth, localMvpOperatorAvailable, localMvpSubscriberAvailable } = usePage<
         PageProps<{
             localMvpOperatorAvailable: boolean;
             localMvpSubscriberAvailable: boolean;
@@ -54,7 +54,18 @@ export default function Welcome() {
                 </GlassCard>
 
                 <div className="welcome-actions page-enter page-enter--later">
-                    {localMvpOperatorAvailable ? (
+                    {auth.user?.role === 'super_admin' ? (
+                        <>
+                            <Badge tone="success">Вы вошли как super_admin</Badge>
+                            <Link
+                                className="button button--primary button--lg"
+                                href="/mvp/workspace"
+                            >
+                                <span>Открыть ЕИС-рабочее место</span>
+                                <Icon name="arrow-right" size={20} />
+                            </Link>
+                        </>
+                    ) : localMvpOperatorAvailable ? (
                         <>
                             <Link
                                 className="button button--primary button--lg"
@@ -82,9 +93,11 @@ export default function Welcome() {
                             <Icon name="arrow-right" size={20} />
                         </Link>
                     )}
-                    <Link className="text-link" href="/dashboard">
-                        Открыть демо-обзор <Icon name="chevron-right" size={17} />
-                    </Link>
+                    {auth.user?.role === 'super_admin' ? null : (
+                        <Link className="text-link" href="/dashboard">
+                            Открыть демо-обзор <Icon name="chevron-right" size={17} />
+                        </Link>
+                    )}
                 </div>
                 <p className="welcome-footnote">
                     {localMvpOperatorAvailable

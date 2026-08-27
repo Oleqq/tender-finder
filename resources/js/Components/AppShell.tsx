@@ -1,6 +1,7 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
+import type { PageProps } from '../types';
 
 type NavigationItem = {
     href: string;
@@ -43,8 +44,11 @@ export function AppShell({
     action,
     navigationVisible = true,
     className,
-    role = 'subscriber',
+    role,
 }: AppShellProps) {
+    const authenticatedRole = usePage<PageProps>().props.auth.user?.role;
+    const resolvedRole = role ?? authenticatedRole ?? 'subscriber';
+
     return (
         <main className="mini-app">
             <div className="ambient ambient--one" />
@@ -74,7 +78,7 @@ export function AppShell({
                 </header>
                 <div className={`page-content ${className ?? ''}`}>{children}</div>
                 {navigationVisible ? (
-                    <BottomNavigation activeNav={activeNav} role={role} />
+                    <BottomNavigation activeNav={activeNav} role={resolvedRole} />
                 ) : null}
             </div>
         </main>

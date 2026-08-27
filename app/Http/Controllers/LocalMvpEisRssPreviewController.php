@@ -24,7 +24,7 @@ class LocalMvpEisRssPreviewController extends Controller
         LocalMvpTenderWorkspaceService $workspace,
         EisRssSearchUrlFactory $searchUrls,
     ): JsonResponse {
-        abort_unless($operator->isOperator($request->user()), 404);
+        abort_unless($operator->canUseWorkspace($request->user()), 404);
 
         $attributes = $request->validate([
             'query' => ['required', 'string', 'min:2', 'max:120'],

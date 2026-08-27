@@ -61,6 +61,15 @@ final class LocalMvpOperatorService
         return $user !== null && $user->email === self::EMAIL;
     }
 
+    public function canUseWorkspace(?User $user): bool
+    {
+        if ($user === null || $user->role !== UserRole::SuperAdmin) {
+            return false;
+        }
+
+        return ! $this->isTestOperatorIdentity($user) || $this->isOperator($user);
+    }
+
     public function activeQueryLimit(): int
     {
         return max(1, (int) config('tender.local_mvp_operator.active_query_limit'));

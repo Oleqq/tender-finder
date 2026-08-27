@@ -145,6 +145,21 @@ legal-документов нельзя включать `LEGAL_DOCUMENTS_PUBLIS
 6. Только затем настроить Telegram Mini App URL и webhook на Railway HTTPS
    domain с заданным webhook secret.
 
+### Подключение Main Mini App в BotFather
+
+Для `tender-web`/`tender-finder` Login Widget не нужен. В BotFather для того
+же бота, чей token находится в `TELEGRAM_BOT_TOKEN`, настроить **Main Mini
+App** (или Menu Button) на точный Railway HTTPS URL из `APP_URL`. При открытии
+из бота Telegram сам передаёт подписанный `Telegram.WebApp.initData`; Laravel
+проверяет его и создаёт сессию.
+
+После первого открытия Mini App приложение один раз перезагрузится, чтобы
+получить новую CSRF-сессию. Пользователь с ID из
+`TELEGRAM_SUPERADMIN_IDS` увидит пункт «Операции» и кнопку «Открыть
+ЕИС-рабочее место»; subscriber увидит обычный onboarding. Если роль не
+появилась, проверить, что `TELEGRAM_BOT_TOKEN` — token именно этого бота, а
+значение `TELEGRAM_SUPERADMIN_IDS` — личный numeric user ID без `@username`.
+
 ## Контролируемая удалённая проверка MVP
 
 До подключения Telegram можно временно открыть рабочее место ЕИС на Railway,

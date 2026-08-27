@@ -17,7 +17,7 @@ class LocalMvpTenderDetailController extends Controller
         LocalMvpOperatorService $operator,
         LocalMvpTenderWorkspaceService $workspace,
     ): Response {
-        abort_unless($operator->isOperator($request->user()), 404);
+        abort_unless($operator->canUseWorkspace($request->user()), 404);
 
         $detail = $workspace->tenderDetailFor($request->user(), $tender);
         abort_if($detail === null, 404);
