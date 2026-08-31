@@ -11,6 +11,7 @@ use App\Http\Controllers\LocalMvpTenderStateController;
 use App\Http\Controllers\MvpWorkspaceController;
 use App\Http\Controllers\OperationsDashboardController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
+use App\Http\Controllers\SavedSearchRunController;
 use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderFeedController;
@@ -57,6 +58,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/queries', [SearchQueryController::class, 'index'])->name('queries.index');
     Route::post('/queries', [SearchQueryController::class, 'store'])->name('queries.store');
     Route::patch('/queries/{query}', [SearchQueryController::class, 'update'])->name('queries.update');
+    Route::post('/queries/{query}/run', SavedSearchRunController::class)
+        ->middleware(['super_admin', 'throttle:local-mvp-rss-preview'])
+        ->name('queries.run');
     Route::post('/queries/{query}/pause', [SearchQueryController::class, 'pause'])->name('queries.pause');
     Route::post('/queries/{query}/resume', [SearchQueryController::class, 'resume'])->name('queries.resume');
     Route::post('/queries/{query}/freeze', [SearchQueryController::class, 'freeze'])->name('queries.freeze');

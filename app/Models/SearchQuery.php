@@ -6,6 +6,7 @@ use App\Enums\QueryStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -14,6 +15,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property list<string> $keywords
  * @property list<string>|null $minus_keywords
+ * @property array<string, mixed>|null $filters
  * @property string|null $region
  * @property string|null $budget_min
  * @property string|null $budget_max
@@ -22,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property QueryStatus $status
  * @property Carbon|null $monitoring_started_at
  * @property User $user
+ * @property LocalMvpSearchSnapshot|null $latestManualRun
  */
 class SearchQuery extends Model
 {
@@ -69,5 +72,17 @@ class SearchQuery extends Model
     public function matches(): HasMany
     {
         return $this->hasMany(TenderQueryMatch::class);
+    }
+
+    /** @return HasMany<LocalMvpSearchSnapshot, $this> */
+    public function manualRuns(): HasMany
+    {
+        return $this->hasMany(LocalMvpSearchSnapshot::class);
+    }
+
+    /** @return HasOne<LocalMvpSearchSnapshot, $this> */
+    public function latestManualRun(): HasOne
+    {
+        return $this->hasOne(LocalMvpSearchSnapshot::class)->latestOfMany();
     }
 }

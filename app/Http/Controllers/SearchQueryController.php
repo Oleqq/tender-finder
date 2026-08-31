@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SearchQuery;
 use App\Services\QueryAccessDeniedException;
 use App\Services\QueryLimitReachedException;
+use App\Services\SearchQueryPresenter;
 use App\Services\SearchQueryService;
 use App\Tenders\EisRssUrlValidator;
 use App\Tenders\RssSourceException;
@@ -16,7 +17,10 @@ use Inertia\Response;
 
 class SearchQueryController extends Controller
 {
-    public function __construct(private readonly EisRssUrlValidator $eisRssUrls) {}
+    public function __construct(
+        private readonly EisRssUrlValidator $eisRssUrls,
+        private readonly SearchQueryPresenter $presenter,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -24,9 +28,10 @@ class SearchQueryController extends Controller
             'queries' => $request->user()
                 ->searchQueries()
                 ->where('status', '!=', 'deleted')
+                ->with('latestManualRun')
                 ->latest()
                 ->get()
-                ->map(fn (SearchQuery $query): array => $this->queryDto($query))
+                ->map(fn (SearchQuery $query): array => $this->presenter->toArray($query))
                 ->values(),
         ]);
     }
@@ -45,21 +50,21 @@ class SearchQueryController extends Controller
             ]);
         }
 
-        return response()->json(['query' => $this->queryDto($query)], 201);
+        return response()->json(['query' => $this->presenter->toArray($query)], 201);
     }
 
     public function update(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
     {
         $this->assertOwnership($request, $query);
 
-        return response()->json(['query' => $this->queryDto($queries->update($query, $this->validatedAttributes($request)))]);
+        return response()->json(['query' => $this->presenter->toArray($queries->update($query, $this->validatedAttributes($request)))]);
     }
 
     public function pause(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
     {
         $this->assertOwnership($request, $query);
 
-        return response()->json(['query' => $this->queryDto($queries->pause($query))]);
+        return response()->json(['query' => $this->presenter->toArray($queries->pause($query))]);
     }
 
     public function resume(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
@@ -78,14 +83,14 @@ class SearchQueryController extends Controller
             ]);
         }
 
-        return response()->json(['query' => $this->queryDto($query)]);
+        return response()->json(['query' => $this->presenter->toArray($query)]);
     }
 
     public function freeze(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
     {
         $this->assertOwnership($request, $query);
 
-        return response()->json(['query' => $this->queryDto($queries->freeze($query))]);
+        return response()->json(['query' => $this->presenter->toArray($queries->freeze($query))]);
     }
 
     public function destroy(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
@@ -187,24 +192,5 @@ class SearchQueryController extends Controller
     private function assertOwnership(Request $request, SearchQuery $query): void
     {
         abort_unless($query->user_id === $request->user()?->id, 404);
-    }
-
-    /** @return array<string, mixed> */
-    private function queryDto(SearchQuery $query): array
-    {
-        return [
-            'id' => $query->id,
-            'name' => $query->name,
-            'keywords' => $query->keywords,
-            'minus_keywords' => $query->minus_keywords,
-            'region' => $query->region,
-            'budget_min' => $query->budget_min,
-            'budget_max' => $query->budget_max,
-            'deadline_from' => $query->deadline_from?->format('Y-m-d'),
-            'deadline_to' => $query->deadline_to?->format('Y-m-d'),
-            'filters' => $query->filters,
-            'status' => $query->status->value,
-            'monitoring_started_at' => $query->monitoring_started_at?->toAtomString(),
-        ];
     }
 }

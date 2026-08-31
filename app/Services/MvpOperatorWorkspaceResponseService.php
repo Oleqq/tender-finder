@@ -14,6 +14,7 @@ final class MvpOperatorWorkspaceResponseService
         private readonly LocalMvpOperatorService $operator,
         private readonly LocalMvpSearchSnapshotService $snapshots,
         private readonly LocalMvpTenderWorkspaceService $workspace,
+        private readonly SearchQueryPresenter $queryPresenter,
     ) {}
 
     public function open(Request $request): Response
@@ -52,14 +53,10 @@ final class MvpOperatorWorkspaceResponseService
             ),
             'savedSearches' => $user->searchQueries()
                 ->where('status', '!=', 'deleted')
+                ->with('latestManualRun')
                 ->latest()
-                ->get(['id', 'name', 'keywords', 'filters'])
-                ->map(fn ($query): array => [
-                    'id' => $query->id,
-                    'name' => $query->name,
-                    'keywords' => $query->keywords,
-                    'filters' => $query->filters,
-                ])
+                ->get()
+                ->map(fn ($query): array => $this->queryPresenter->toArray($query))
                 ->values(),
         ]);
     }

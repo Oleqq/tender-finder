@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\LocalMvpSearchSnapshot;
+use App\Models\SearchQuery;
 use App\Models\User;
 
 final class LocalMvpSearchSnapshotService
@@ -13,10 +14,12 @@ final class LocalMvpSearchSnapshotService
         string $query,
         LocalMvpEisRssImportResult $result,
         array $tenderIds,
+        ?SearchQuery $savedQuery = null,
     ): LocalMvpSearchSnapshot {
         /** @var LocalMvpSearchSnapshot $snapshot */
         $snapshot = LocalMvpSearchSnapshot::query()->create([
             'user_id' => $user->id,
+            'search_query_id' => $savedQuery?->id,
             'query' => $query,
             'source' => 'eis_rss',
             'tender_ids' => array_values(array_unique($tenderIds)),

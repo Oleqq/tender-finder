@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property int $id
  * @property int $user_id
+ * @property int|null $search_query_id
  * @property string $query
  * @property string $source
  * @property list<int> $tender_ids
@@ -17,11 +18,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $pages_requested
  * @property int $pages_loaded
  * @property bool $partially_loaded
+ * @property SearchQuery|null $searchQuery
  */
 class LocalMvpSearchSnapshot extends Model
 {
     protected $fillable = [
         'user_id',
+        'search_query_id',
         'query',
         'source',
         'tender_ids',
@@ -45,5 +48,11 @@ class LocalMvpSearchSnapshot extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<SearchQuery, $this> */
+    public function searchQuery(): BelongsTo
+    {
+        return $this->belongsTo(SearchQuery::class);
     }
 }

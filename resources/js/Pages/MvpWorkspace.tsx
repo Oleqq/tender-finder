@@ -47,8 +47,11 @@ type TenderDto = {
 type SavedSearchDto = {
     id: number;
     name: string;
+    phrase: string;
     keywords: string[];
     filters: { source?: SavedSourceFilters } | null;
+    last_run_at: string | null;
+    last_run: PreviewResponse['preview'] | null;
 };
 
 type MvpWorkspaceProps = {
@@ -72,6 +75,7 @@ type PreviewResponse = {
 
 type BulkResponse = { tenders: TenderDto[] };
 type SearchResponse = { query: SavedSearchDto };
+type SavedSearchRunResponse = PreviewResponse & { query: SavedSearchDto };
 
 type SearchContext = {
     query: string;
@@ -105,6 +109,7 @@ export default function MvpWorkspace() {
     const [searchBudgetTo, setSearchBudgetTo] = useState('');
     const [searchPublishedFrom, setSearchPublishedFrom] = useState('');
     const [searchPublishedTo, setSearchPublishedTo] = useState('');
+    const [savedSearchName, setSavedSearchName] = useState('');
     const [regionFilter, setRegionFilter] = useState('');
     const [budgetMin, setBudgetMin] = useState('');
     const [budgetMax, setBudgetMax] = useState('');
@@ -120,6 +125,7 @@ export default function MvpWorkspace() {
     const [isSavingSearch, setIsSavingSearch] = useState(false);
     const [updatingTenderId, setUpdatingTenderId] = useState<number | null>(null);
     const [deletingSearchId, setDeletingSearchId] = useState<number | null>(null);
+    const [runningSearchId, setRunningSearchId] = useState<number | null>(null);
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedTenderIds, setSelectedTenderIds] = useState<number[]>([]);
     const [bulkStatus, setBulkStatus] = useState<TenderStatus | null>(null);
@@ -189,6 +195,29 @@ export default function MvpWorkspace() {
         [collectionTenders],
     );
 
+    const acceptSearchResult = (
+        response: PreviewResponse,
+        query: string,
+        noticePrefix = '',
+    ): void => {
+        setCurrentTenders(response.tenders);
+        setHistoryTenders((current) => mergeTenders(response.tenders, current));
+        setSearchContext({
+            query,
+            itemsSeen: response.preview.items_seen,
+            itemsMatched: response.preview.items_matched,
+            itemsCreated: response.preview.items_created,
+            pagesRequested: response.preview.pages_requested,
+            pagesLoaded: response.preview.pages_loaded,
+            partiallyLoaded: response.preview.partially_loaded,
+        });
+        setCollection('current');
+        setView('inbox');
+        setSelectedTenderIds([]);
+        setSelectionMode(false);
+        setSearchNotice(`${noticePrefix}${rssImportNotice(response.preview)}`);
+    };
+
     const importEisRssPreview = async (
         event: FormEvent<HTMLFormElement>,
     ): Promise<void> => {
@@ -221,24 +250,7 @@ export default function MvpWorkspace() {
                     published_to: !url ? searchPublishedTo || undefined : undefined,
                 },
             );
-            setCurrentTenders(response.data.tenders);
-            setHistoryTenders((current) =>
-                mergeTenders(response.data.tenders, current),
-            );
-            setSearchContext({
-                query,
-                itemsSeen: response.data.preview.items_seen,
-                itemsMatched: response.data.preview.items_matched,
-                itemsCreated: response.data.preview.items_created,
-                pagesRequested: response.data.preview.pages_requested,
-                pagesLoaded: response.data.preview.pages_loaded,
-                partiallyLoaded: response.data.preview.partially_loaded,
-            });
-            setCollection('current');
-            setView('inbox');
-            setSelectedTenderIds([]);
-            setSelectionMode(false);
-            setSearchNotice(rssImportNotice(response.data.preview));
+            acceptSearchResult(response.data, query);
         } catch (error) {
             setSearchError(
                 requestErrorMessage(
@@ -341,7 +353,7 @@ export default function MvpWorkspace() {
 
         try {
             const response = await window.axios.post<SearchResponse>('/queries', {
-                name: phrase,
+                name: savedSearchName.trim() || phrase,
                 keywords,
                 minus_keywords: [],
                 region: null,
@@ -363,6 +375,7 @@ export default function MvpWorkspace() {
                 },
             });
             setSavedSearches((current) => [response.data.query, ...current]);
+            setSavedSearchName('');
         } catch {
             setActionError(
                 'Не удалось сохранить поиск. Тендеры и их статусы не изменены.',
@@ -375,7 +388,7 @@ export default function MvpWorkspace() {
     const applySavedSearch = (savedSearch: SavedSearchDto): void => {
         const source = savedSearch.filters?.source;
 
-        setSearchPhrase(savedSearch.name);
+        setSearchPhrase(savedSearch.phrase);
         setSearchLaw44(Boolean(source?.law_44));
         setSearchLaw223(Boolean(source?.law_223));
         setSearchBudgetFrom(source?.budget_from ?? '');
@@ -385,6 +398,39 @@ export default function MvpWorkspace() {
         setSearchPages(String(source?.pages ?? 3));
         setRssUrl(source?.rss_url ?? '');
         setActionError('');
+    };
+
+    const runSavedSearch = async (savedSearch: SavedSearchDto): Promise<void> => {
+        setActionError('');
+        setSearchError('');
+        setSearchNotice('');
+        setRunningSearchId(savedSearch.id);
+
+        try {
+            const response = await window.axios.post<SavedSearchRunResponse>(
+                `/queries/${savedSearch.id}/run`,
+            );
+            setSavedSearches((current) =>
+                current.map((item) =>
+                    item.id === savedSearch.id ? response.data.query : item,
+                ),
+            );
+            applySavedSearch(response.data.query);
+            acceptSearchResult(
+                response.data,
+                response.data.query.phrase,
+                `Запрос «${response.data.query.name}» выполнен. `,
+            );
+        } catch (error) {
+            setActionError(
+                requestErrorMessage(
+                    error,
+                    'Не удалось запустить сохранённый запрос. Попробуйте позже.',
+                ),
+            );
+        } finally {
+            setRunningSearchId(null);
+        }
     };
 
     const deleteSavedSearch = async (savedSearch: SavedSearchDto): Promise<void> => {
@@ -806,17 +852,28 @@ export default function MvpWorkspace() {
                         <Badge tone="neutral">{savedSearches.length}</Badge>
                     </div>
                     <p>
-                        Сохраните фразу и условия ЕИС, затем подставьте их одним
-                        нажатием. Повторный поиск не запускается сам, а расписание и
-                        уведомления не включаются.
+                        Сохраните фразу и все условия ЕИС. Запрос можно повторно
+                        запустить одной кнопкой; расписание и уведомления при этом не
+                        включаются.
                     </p>
+                    <label className="form-field">
+                        <span>Название сохранённого запроса</span>
+                        <input
+                            maxLength={120}
+                            onChange={(event) => setSavedSearchName(event.target.value)}
+                            placeholder={
+                                searchPhrase.trim() || 'Например, Поддержка сайтов'
+                            }
+                            value={savedSearchName}
+                        />
+                    </label>
                     <Button
                         disabled={isSavingSearch || searchPhrase.trim().length < 2}
                         icon="plus"
                         onClick={saveCurrentSearch}
                         variant="secondary"
                     >
-                        {isSavingSearch ? 'Сохраняем…' : 'Сохранить текущий поиск'}
+                        {isSavingSearch ? 'Сохраняем…' : 'Сохранить запрос'}
                     </Button>
                     {savedSearches.length > 0 ? (
                         <div className="mvp-workspace__saved-list">
@@ -827,14 +884,24 @@ export default function MvpWorkspace() {
                                 >
                                     <div>
                                         <strong>{savedSearch.name}</strong>
-                                        <span>{savedSearch.keywords.join(' · ')}</span>
+                                        <span>{savedSearch.phrase}</span>
                                         <span>
                                             {savedSearchFilterLabel(
                                                 savedSearch.filters?.source,
                                             )}
                                         </span>
+                                        <span>{savedSearchRunLabel(savedSearch)}</span>
                                     </div>
                                     <div className="mvp-workspace__saved-actions">
+                                        <Button
+                                            disabled={runningSearchId !== null}
+                                            onClick={() => runSavedSearch(savedSearch)}
+                                            size="sm"
+                                        >
+                                            {runningSearchId === savedSearch.id
+                                                ? 'Запускаем…'
+                                                : 'Запустить сейчас'}
+                                        </Button>
                                         <Button
                                             onClick={() =>
                                                 applySavedSearch(savedSearch)
@@ -842,7 +909,7 @@ export default function MvpWorkspace() {
                                             size="sm"
                                             variant="secondary"
                                         >
-                                            Подставить
+                                            Изменить условия
                                         </Button>
                                         <Button
                                             disabled={
@@ -1115,6 +1182,19 @@ function savedSearchFilterLabel(source?: SavedSourceFilters): string {
     parts.push(`до ${source.pages ?? 3} RSS-стр.`);
 
     return parts.join(' · ');
+}
+
+function savedSearchRunLabel(savedSearch: SavedSearchDto): string {
+    if (!savedSearch.last_run_at || !savedSearch.last_run) {
+        return 'Ещё не запускался';
+    }
+
+    const date = new Intl.DateTimeFormat('ru-RU', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+    }).format(new Date(savedSearch.last_run_at));
+
+    return `Последний запуск: ${date} · найдено ${savedSearch.last_run.items_matched} · новых ${savedSearch.last_run.items_created}`;
 }
 
 function replaceTenders(current: TenderDto[], updates: TenderDto[]): TenderDto[] {

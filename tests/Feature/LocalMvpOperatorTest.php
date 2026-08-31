@@ -5,6 +5,7 @@ use App\Enums\TenderUserStatus;
 use App\Enums\UserRole;
 use App\Jobs\MatchTender;
 use App\Models\LocalMvpSearchSnapshot;
+use App\Models\SearchQuery;
 use App\Models\SourceFeed;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
@@ -306,6 +307,95 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
             ->where('savedSearches.0.filters.source.law_44', true)
             ->where('savedSearches.0.filters.source.budget_to', '750000')
             ->where('savedSearches.0.filters.source.pages', 1));
+});
+
+it('runs a saved EIS search with all stored conditions and records its latest result', function () {
+    Queue::fake();
+    $fixture = file_get_contents(base_path('tests/Fixtures/eis-rss-initial.xml'));
+    expect($fixture)->not->toBeFalse();
+
+    Http::fake([
+        'https://zakupki.gov.ru/epz/order/extendedsearch/rss.html*' => Http::response(
+            $fixture,
+            200,
+            ['Content-Type' => 'application/rss+xml'],
+        ),
+    ]);
+
+    $this->get('/local/mvp-operator')->assertOk();
+
+    $queryId = $this->postJson('/queries', [
+        'name' => 'Сайты по 44-ФЗ',
+        'keywords' => ['поддержка', 'сайта'],
+        'filters' => [
+            'source' => [
+                'law_44' => true,
+                'budget_from' => '100000',
+                'budget_to' => '750000',
+                'published_from' => '2026-08-01',
+                'published_to' => '2026-08-27',
+                'pages' => 1,
+            ],
+        ],
+    ])->assertCreated()->json('query.id');
+
+    $this->postJson("/queries/{$queryId}/run")
+        ->assertOk()
+        ->assertJsonPath('query.name', 'Сайты по 44-ФЗ')
+        ->assertJsonPath('query.phrase', 'поддержка сайта')
+        ->assertJsonPath('query.last_run.items_seen', 1)
+        ->assertJsonPath('query.last_run.items_matched', 1)
+        ->assertJsonPath('query.last_run.pages_loaded', 1)
+        ->assertJsonPath('preview.items_matched', 1)
+        ->assertJsonCount(1, 'tenders');
+
+    $this->assertDatabaseHas('local_mvp_search_snapshots', [
+        'search_query_id' => $queryId,
+        'query' => 'поддержка сайта',
+        'items_matched' => 1,
+    ]);
+
+    Http::assertSent(function ($request): bool {
+        parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $parameters);
+
+        return ($parameters['searchString'] ?? null) === 'поддержка сайта'
+            && ($parameters['fz44'] ?? null) === 'on'
+            && ($parameters['priceFromGeneral'] ?? null) === '100000'
+            && ($parameters['priceToGeneral'] ?? null) === '750000'
+            && ($parameters['publishDateFrom'] ?? null) === '01.08.2026'
+            && ($parameters['publishDateTo'] ?? null) === '27.08.2026';
+    });
+    Queue::assertNotPushed(MatchTender::class);
+
+    $this->get('/local/mvp-operator')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('savedSearches.0.id', $queryId)
+            ->where('savedSearches.0.last_run.items_matched', 1)
+            ->where('currentSearch.query', 'поддержка сайта'));
+});
+
+it('does not let another super admin run someone elses saved search', function () {
+    $this->get('/local/mvp-operator')->assertOk();
+    $owner = User::query()
+        ->where('email', 'local-mvp-operator@tenderfinder.invalid')
+        ->firstOrFail();
+    $query = SearchQuery::query()->create([
+        'user_id' => $owner->id,
+        'name' => 'Закрытый запрос',
+        'keywords' => ['поддержка', 'сайта'],
+        'status' => 'active',
+    ]);
+    $otherAdmin = User::factory()->create([
+        'role' => UserRole::SuperAdmin,
+        'telegram_id' => 'saved-search-other-admin',
+    ]);
+
+    $this->actingAs($otherAdmin)
+        ->postJson("/queries/{$query->id}/run")
+        ->assertNotFound();
+
+    expect(LocalMvpSearchSnapshot::query()->count())->toBe(0);
 });
 
 it('keeps local result histories and tender statuses scoped to each user', function () {

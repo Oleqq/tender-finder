@@ -2,12 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\LocalMvpEisRssImportService;
+use App\Services\LocalMvpEisRssSearchService;
 use App\Services\LocalMvpOperatorService;
-use App\Services\LocalMvpSearchSnapshotService;
-use App\Services\LocalMvpTenderWorkspaceService;
 use App\Tenders\EisRssSearchCriteria;
-use App\Tenders\EisRssSearchUrlFactory;
 use App\Tenders\RssSourceException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,10 +16,7 @@ class LocalMvpEisRssPreviewController extends Controller
     public function store(
         Request $request,
         LocalMvpOperatorService $operator,
-        LocalMvpEisRssImportService $importer,
-        LocalMvpSearchSnapshotService $snapshots,
-        LocalMvpTenderWorkspaceService $workspace,
-        EisRssSearchUrlFactory $searchUrls,
+        LocalMvpEisRssSearchService $search,
     ): JsonResponse {
         abort_unless($operator->canUseWorkspace($request->user()), 404);
 
@@ -48,15 +42,17 @@ class LocalMvpEisRssPreviewController extends Controller
             publishedTo: $attributes['published_to'] ?? null,
         );
 
-        $url = filled($attributes['url'] ?? null)
-            ? $attributes['url']
-            : $searchUrls->forPhrase($attributes['query'], $criteria);
-
         $errorField = filled($attributes['url'] ?? null) ? 'url' : 'query';
         $pages = (int) ($attributes['pages'] ?? config('tender.rss.manual_search_max_pages', 3));
 
         try {
-            $result = $importer->import($url, $attributes['query'], $pages);
+            $result = $search->run(
+                $request->user(),
+                $attributes['query'],
+                $attributes['url'] ?? null,
+                $pages,
+                $criteria,
+            );
         } catch (RssSourceException $exception) {
             throw ValidationException::withMessages([
                 $errorField => $this->errorMessage($exception->codeName),
@@ -67,28 +63,16 @@ class LocalMvpEisRssPreviewController extends Controller
             ]);
         }
 
-        $tenders = $workspace->tendersForSourceExternalIds(
-            $request->user(),
-            'eis_rss',
-            $result->externalIds,
-        );
-        $snapshots->remember(
-            $request->user(),
-            $attributes['query'],
-            $result,
-            array_map(fn (array $tender): int => $tender['id'], $tenders),
-        );
-
         return response()->json([
             'preview' => [
-                'items_seen' => $result->itemsSeen,
-                'items_matched' => $result->itemsMatched,
-                'items_created' => $result->itemsCreated,
-                'pages_requested' => $result->pagesRequested,
-                'pages_loaded' => $result->pagesLoaded,
-                'partially_loaded' => $result->partiallyLoaded,
+                'items_seen' => $result->preview->itemsSeen,
+                'items_matched' => $result->preview->itemsMatched,
+                'items_created' => $result->preview->itemsCreated,
+                'pages_requested' => $result->preview->pagesRequested,
+                'pages_loaded' => $result->preview->pagesLoaded,
+                'partially_loaded' => $result->preview->partiallyLoaded,
             ],
-            'tenders' => $tenders,
+            'tenders' => $result->tenders,
         ]);
     }
 

@@ -41,7 +41,7 @@ export default function Consents() {
             setError(
                 typeof message === 'string' && message.trim() !== ''
                     ? message
-                    : 'Не удалось начать trial. Откройте Mini App в Telegram и попробуйте ещё раз.',
+                    : 'Не удалось начать пробный период. Откройте Mini App в Telegram и попробуйте ещё раз.',
             );
         } finally {
             setIsSubmitting(false);
@@ -67,7 +67,8 @@ export default function Consents() {
                     </h2>
                     <p>
                         После принятия оферты и политики сервер запишет согласия и
-                        начнёт ваш единственный trial. Уведомления можно изменить позже.
+                        начнёт ваш единственный пробный период. Уведомления можно
+                        изменить позже.
                     </p>
                 </section>
                 <GlassCard className="consent-card page-enter page-enter--delay">
@@ -102,7 +103,9 @@ export default function Consents() {
                             type="button"
                         >
                             <span>
-                                {isSubmitting ? 'Запускаем trial…' : 'Начать trial'}
+                                {isSubmitting
+                                    ? 'Запускаем пробный период…'
+                                    : 'Начать пробный период'}
                             </span>
                             <Icon name="arrow-right" size={20} />
                         </button>

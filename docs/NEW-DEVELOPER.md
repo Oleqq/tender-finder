@@ -14,7 +14,7 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 
 | Область | Готово сейчас | Не считать готовым |
 |---|---|---|
-| ЕИС | Ручной RSS-поиск по фразе; 44/223‑ФЗ, НМЦК, дата; до 10 страниц; релевантность по предмету закупки | Полный каталог ЕИС, регион/ОКПД2 без RSS-ссылки, monitoring |
+| ЕИС | Ручной RSS-поиск по фразе; 44/223‑ФЗ, НМЦК, дата; до 10 страниц; сохранение полного набора условий и повторный запуск одной кнопкой; релевантность по предмету закупки | Полный каталог ЕИС, регион/ОКПД2 без RSS-ссылки, monitoring |
 | Карточки | Понятные поля, detail, дедупликация, личные статусы и bulk actions | Выдуманные поля, HTML-скрапинг, обогащение без публичного контракта источника |
 | Данные | Последняя выдача, история и статусы привязаны к пользователю и переживают refresh/restart | Общая история всех пользователей или удаление Docker volume |
 | Identity | Подписанный Telegram `initData`; IDs из `TELEGRAM_SUPERADMIN_IDS` → `super_admin` с ЕИС-workspace/«Операции», остальные → `subscriber` | Login Widget вместо Mini App, доверие к Telegram ID из браузера или `/start` как авторизации |
@@ -25,7 +25,8 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 ## Где искать код
 
 - `app/Tenders/` — контракт и разбор RSS ЕИС.
-- `app/Services/LocalMvp*` — ручной поиск, снимки выдачи и личные статусы.
+- `app/Services/LocalMvp*` — ручной поиск, запуск сохранённых запросов, снимки
+  выдачи и личные статусы.
 - `app/Telegram/`, `TelegramIdentityService`, `TelegramBotClient` — проверка
   Mini App и Bot API.
 - `app/Services/TrialService`, `AccessService` — consent, trial и права.
