@@ -6,7 +6,9 @@ use App\Http\Controllers\LegalDocumentController;
 use App\Http\Controllers\LocalMvpEisRssPreviewController;
 use App\Http\Controllers\LocalMvpOperatorSessionController;
 use App\Http\Controllers\LocalMvpSubscriberSessionController;
+use App\Http\Controllers\LocalMvpTenderAnnotationController;
 use App\Http\Controllers\LocalMvpTenderDetailController;
+use App\Http\Controllers\LocalMvpTenderEnrichmentController;
 use App\Http\Controllers\LocalMvpTenderGuruPreviewController;
 use App\Http\Controllers\LocalMvpTenderStateController;
 use App\Http\Controllers\MvpWorkspaceController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\SavedSearchRunController;
 use App\Http\Controllers\SavedSearchRunHistoryController;
 use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
+use App\Http\Controllers\TenderExportController;
 use App\Http\Controllers\TenderFeedController;
 use App\Http\Controllers\TrialController;
 use App\Services\LocalMvpOperatorService;
@@ -85,6 +88,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/local/mvp/eis/okpd2-options', [EisCatalogController::class, 'okpd2'])
         ->middleware('throttle:local-mvp-rss-preview')
         ->name('local.mvp.eis.okpd2-options');
+    Route::post('/local/mvp/tenders/export', TenderExportController::class)
+        ->middleware('throttle:local-mvp-preview')
+        ->name('local.mvp.tenders.export');
+    Route::patch('/local/mvp/tenders/{tender}/annotation', LocalMvpTenderAnnotationController::class)
+        ->name('local.mvp.tenders.annotation');
+    Route::post('/local/mvp/tenders/{tender}/enrich', LocalMvpTenderEnrichmentController::class)
+        ->middleware('throttle:local-mvp-rss-preview')
+        ->name('local.mvp.tenders.enrich');
     Route::post('/local/mvp/tenders/{tender}/status', [LocalMvpTenderStateController::class, 'update'])
         ->name('local.mvp.tenders.status');
     Route::post('/local/mvp/tenders/status', [LocalMvpTenderStateController::class, 'bulkUpdate'])

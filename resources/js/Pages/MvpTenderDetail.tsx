@@ -1,6 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
-import { Badge, GlassCard } from '../Components/ui';
+import { Badge, Button, FieldError, GlassCard, InlineAlert } from '../Components/ui';
 import type { PageProps } from '../types';
 
 type AttachmentDto = {
@@ -26,12 +27,83 @@ type TenderDetailDto = {
     canonical_url: string;
     source_label: string;
     attachments: AttachmentDto[];
+    delivery_place: string | null;
+    contact_name: string | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    postal_address: string | null;
+    application_security: string | null;
+    contract_security: string | null;
+    enriched_at: string | null;
+    can_enrich: boolean;
+    note: string | null;
+    tags: string[];
+    next_action_on: string | null;
 };
 
 type MvpTenderDetailProps = { tender: TenderDetailDto };
 
 export default function MvpTenderDetail() {
-    const { tender } = usePage<PageProps<MvpTenderDetailProps>>().props;
+    const { tender: initialTender } = usePage<PageProps<MvpTenderDetailProps>>().props;
+    const [tender, setTender] = useState(initialTender);
+    const [note, setNote] = useState(initialTender.note ?? '');
+    const [tags, setTags] = useState(initialTender.tags.join(', '));
+    const [nextActionOn, setNextActionOn] = useState(
+        initialTender.next_action_on ?? '',
+    );
+    const [saving, setSaving] = useState(false);
+    const [enriching, setEnriching] = useState(false);
+    const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
+
+    const saveAnnotation = async (): Promise<void> => {
+        setSaving(true);
+        setError('');
+        setNotice('');
+
+        try {
+            const response = await window.axios.patch<{ tender: TenderDetailDto }>(
+                `/local/mvp/tenders/${tender.id}/annotation`,
+                {
+                    note: note.trim() || null,
+                    tags: parseTags(tags),
+                    next_action_on: nextActionOn || null,
+                },
+            );
+            setTender(response.data.tender);
+            setTags(response.data.tender.tags.join(', '));
+            setNotice('Личная заметка сохранена.');
+        } catch (requestError) {
+            setError(
+                requestErrorMessage(requestError, 'Не удалось сохранить заметку.'),
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const enrich = async (): Promise<void> => {
+        setEnriching(true);
+        setError('');
+        setNotice('');
+
+        try {
+            const response = await window.axios.post<{ tender: TenderDetailDto }>(
+                `/local/mvp/tenders/${tender.id}/enrich`,
+            );
+            setTender(response.data.tender);
+            setNotice('Публичные сведения карточки ЕИС обновлены.');
+        } catch (requestError) {
+            setError(
+                requestErrorMessage(
+                    requestError,
+                    'Не удалось обновить публичные сведения ЕИС.',
+                ),
+            );
+        } finally {
+            setEnriching(false);
+        }
+    };
 
     return (
         <>
@@ -51,7 +123,32 @@ export default function MvpTenderDetail() {
                         Внутри приложения показаны только сведения, которые передал
                         источник. Ничего не дополнено догадками.
                     </p>
+                    {tender.can_enrich ? (
+                        <Button
+                            disabled={enriching}
+                            onClick={enrich}
+                            variant="secondary"
+                        >
+                            {enriching
+                                ? 'Получаем сведения ЕИС…'
+                                : tender.enriched_at
+                                  ? 'Обновить сведения ЕИС'
+                                  : 'Дополнить из карточки ЕИС'}
+                        </Button>
+                    ) : null}
+                    {tender.enriched_at ? (
+                        <small>
+                            Последнее обогащение: {formatDateTime(tender.enriched_at)}
+                        </small>
+                    ) : null}
                 </GlassCard>
+
+                {notice ? (
+                    <InlineAlert title="Готово" tone="success">
+                        {notice}
+                    </InlineAlert>
+                ) : null}
+                {error ? <FieldError>{error}</FieldError> : null}
 
                 <section className="mvp-tender-detail__section">
                     <h2>Основная информация</h2>
@@ -83,7 +180,69 @@ export default function MvpTenderDetail() {
                                     : null
                             }
                         />
+                        <DetailRow
+                            label="Место поставки"
+                            value={tender.delivery_place}
+                        />
+                        <DetailRow
+                            label="Обеспечение заявки"
+                            value={tender.application_security}
+                        />
+                        <DetailRow
+                            label="Обеспечение контракта"
+                            value={tender.contract_security}
+                        />
                     </dl>
+                </section>
+
+                <section className="mvp-tender-detail__section">
+                    <h2>Контактная информация</h2>
+                    <dl className="mvp-tender-detail__grid">
+                        <DetailRow
+                            label="Контактное лицо"
+                            value={tender.contact_name}
+                        />
+                        <DetailRow label="Телефон" value={tender.contact_phone} />
+                        <DetailRow label="Email" value={tender.contact_email} />
+                        <DetailRow
+                            label="Почтовый адрес"
+                            value={tender.postal_address}
+                        />
+                    </dl>
+                </section>
+
+                <section className="mvp-tender-detail__section mvp-tender-detail__annotation">
+                    <h2>Моя работа с закупкой</h2>
+                    <p>Заметка, теги и дата следующего действия видны только вам.</p>
+                    <label className="form-field">
+                        <span>Заметка</span>
+                        <textarea
+                            maxLength={5000}
+                            onChange={(event) => setNote(event.target.value)}
+                            placeholder="Что проверить, кому позвонить, какие документы подготовить"
+                            rows={5}
+                            value={note}
+                        />
+                    </label>
+                    <label className="form-field">
+                        <span>Теги через запятую</span>
+                        <input
+                            onChange={(event) => setTags(event.target.value)}
+                            placeholder="приоритет, позвонить, документы"
+                            value={tags}
+                        />
+                    </label>
+                    <label className="form-field">
+                        <span>Следующее действие</span>
+                        <input
+                            onChange={(event) => setNextActionOn(event.target.value)}
+                            type="date"
+                            value={nextActionOn}
+                        />
+                    </label>
+                    <Button disabled={saving} onClick={saveAnnotation}>
+                        {saving ? 'Сохраняем…' : 'Сохранить заметку'}
+                    </Button>
                 </section>
 
                 <section className="mvp-tender-detail__section">
@@ -118,8 +277,9 @@ export default function MvpTenderDetail() {
                         </ul>
                     ) : (
                         <p className="mvp-tender-detail__missing">
-                            RSS ЕИС не передала ссылки на ТЗ или вложения. Мы не создаём
-                            фальшивые PDF и не извлекаем защищённые документы.
+                            Ссылки на документы ещё не получены. Для карточки ЕИС
+                            нажмите «Дополнить из карточки ЕИС»; защищённые документы
+                            приложение не извлекает.
                         </p>
                     )}
                 </section>
@@ -175,6 +335,35 @@ function formatDate(value: string | null): string | null {
         month: 'long',
         year: 'numeric',
     }).format(new Date(value));
+}
+
+function formatDateTime(value: string): string {
+    return new Intl.DateTimeFormat('ru-RU', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+    }).format(new Date(value));
+}
+
+function parseTags(value: string): string[] {
+    const unique = new Map<string, string>();
+
+    value
+        .split(/[,;\n]+/)
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .slice(0, 10)
+        .forEach((tag) => unique.set(tag.toLocaleLowerCase('ru-RU'), tag));
+
+    return [...unique.values()];
+}
+
+function requestErrorMessage(error: unknown, fallback: string): string {
+    const validation = (
+        error as { response?: { data?: { errors?: Record<string, string[]> } } }
+    ).response?.data?.errors;
+    const message = validation ? Object.values(validation).flat()[0] : undefined;
+
+    return message ?? fallback;
 }
 
 function formatSize(sizeBytes: number): string {

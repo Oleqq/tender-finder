@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, FieldError } from './ui';
+import { downloadTenderExport, type TenderExportFormat } from '../lib/tenderExport';
 
 export type SavedSearchRun = {
     id: number;
@@ -30,6 +31,7 @@ export function SavedSearchRunHistory<TTender>({
     const [onlyNew, setOnlyNew] = useState(false);
     const [loading, setLoading] = useState(true);
     const [openingId, setOpeningId] = useState<number | null>(null);
+    const [exporting, setExporting] = useState('');
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -76,6 +78,29 @@ export function SavedSearchRunHistory<TTender>({
         }
     };
 
+    const exportNew = async (
+        run: SavedSearchRun,
+        format: TenderExportFormat,
+    ): Promise<void> => {
+        const key = `${run.id}-${format}`;
+        setExporting(key);
+        setError('');
+
+        try {
+            await downloadTenderExport({
+                format,
+                scope: 'run_new',
+                query_id: queryId,
+                run_id: run.id,
+                filter_summary: 'Только новые относительно предыдущего запуска',
+            });
+        } catch {
+            setError('Не удалось выгрузить новые карточки выбранного запуска.');
+        } finally {
+            setExporting('');
+        }
+    };
+
     return (
         <div className="saved-run-history">
             <div className="saved-run-history__heading">
@@ -101,18 +126,36 @@ export function SavedSearchRunHistory<TTender>({
                             {run.pages_requested}
                         </span>
                     </div>
-                    <Button
-                        disabled={openingId !== null}
-                        onClick={() => openRun(run)}
-                        size="sm"
-                        variant="secondary"
-                    >
-                        {openingId === run.id
-                            ? 'Открываем…'
-                            : onlyNew
-                              ? 'Показать новые'
-                              : 'Показать'}
-                    </Button>
+                    <div className="saved-run-history__actions">
+                        <Button
+                            disabled={openingId !== null}
+                            onClick={() => openRun(run)}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            {openingId === run.id
+                                ? 'Открываем…'
+                                : onlyNew
+                                  ? 'Показать новые'
+                                  : 'Показать'}
+                        </Button>
+                        <Button
+                            disabled={exporting !== '' || run.new_count === 0}
+                            onClick={() => exportNew(run, 'csv')}
+                            size="sm"
+                            variant="ghost"
+                        >
+                            {exporting === `${run.id}-csv` ? 'CSV…' : 'Новые CSV'}
+                        </Button>
+                        <Button
+                            disabled={exporting !== '' || run.new_count === 0}
+                            onClick={() => exportNew(run, 'xlsx')}
+                            size="sm"
+                            variant="ghost"
+                        >
+                            {exporting === `${run.id}-xlsx` ? 'XLSX…' : 'Новые XLSX'}
+                        </Button>
+                    </div>
                 </div>
             ))}
             {error ? <FieldError>{error}</FieldError> : null}

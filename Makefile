@@ -49,7 +49,7 @@ migrate: ## Run database migrations
 	$(COMPOSE) --profile ops run --rm migrate
 
 test: ## Run the Laravel test suite
-	$(COMPOSE) exec -T web php artisan test
+	$(COMPOSE) run --rm --no-deps test
 
 lint: ## Check PHP formatting
 	$(COMPOSE) exec -T web vendor/bin/pint --test

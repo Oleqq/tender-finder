@@ -57,4 +57,12 @@ return [
         'max_response_bytes' => (int) env('RSS_MAX_RESPONSE_BYTES', 5 * 1024 * 1024),
         'request_timeout_seconds' => (int) env('RSS_REQUEST_TIMEOUT_SECONDS', 30),
     ],
+
+    'eis_enrichment' => [
+        // Enrichment is always triggered by an explicit operator action and
+        // reads only the public print form and document list for one notice.
+        'request_timeout_seconds' => (int) env('EIS_ENRICHMENT_TIMEOUT_SECONDS', 30),
+        'max_response_bytes' => (int) env('EIS_ENRICHMENT_MAX_RESPONSE_BYTES', 2 * 1024 * 1024),
+        'max_attachments' => (int) env('EIS_ENRICHMENT_MAX_ATTACHMENTS', 30),
+    ],
 ];

@@ -13,6 +13,11 @@ type ComparisonTender = {
     customer: string | null;
     category: string | null;
     procurement_law: string | null;
+    delivery_place: string | null;
+    application_security: string | null;
+    contract_security: string | null;
+    tags: string[];
+    next_action_on: string | null;
     canonical_url: string;
     status: string;
     match_reason: { matched_terms: string[] } | null;
@@ -73,6 +78,11 @@ export function TenderComparison({
                             value={(tender) => tender.region}
                         />
                         <ComparisonRow
+                            label="Место поставки"
+                            tenders={tenders}
+                            value={(tender) => tender.delivery_place}
+                        />
+                        <ComparisonRow
                             label="Опубликовано"
                             tenders={tenders}
                             value={(tender) => date(tender.published_at)}
@@ -93,6 +103,26 @@ export function TenderComparison({
                             label="Номер ЕИС"
                             tenders={tenders}
                             value={(tender) => tender.reg_number}
+                        />
+                        <ComparisonRow
+                            label="Обеспечение заявки"
+                            tenders={tenders}
+                            value={(tender) => tender.application_security}
+                        />
+                        <ComparisonRow
+                            label="Обеспечение контракта"
+                            tenders={tenders}
+                            value={(tender) => tender.contract_security}
+                        />
+                        <ComparisonRow
+                            label="Мои теги"
+                            tenders={tenders}
+                            value={(tender) => tender.tags.join(', ') || null}
+                        />
+                        <ComparisonRow
+                            label="Следующее действие"
+                            tenders={tenders}
+                            value={(tender) => date(tender.next_action_on)}
                         />
                         <tr>
                             <th>Действия</th>

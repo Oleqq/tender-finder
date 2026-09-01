@@ -110,7 +110,7 @@ Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликац
 ```powershell
 docker compose -f compose.local.yml -f compose.local.dev.yml ps
 docker compose -f compose.local.yml -f compose.local.dev.yml logs --tail=100 web queue
-docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web php artisan test
+make test
 ```
 
 - `403` от webhook: отсутствует или не совпадает secret header token.

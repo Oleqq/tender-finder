@@ -131,10 +131,18 @@ class LocalMvpTenderWorkspaceService
 
         DB::transaction(function () use ($user, $tenderIds, $status): void {
             if ($status === TenderUserStatus::New) {
-                TenderUserState::query()
+                $states = TenderUserState::query()
                     ->where('user_id', $user->id)
                     ->whereIn('tender_id', $tenderIds)
-                    ->delete();
+                    ->get();
+
+                foreach ($states as $state) {
+                    if ($this->hasAnnotation($state)) {
+                        $state->forceFill(['status' => $status])->save();
+                    } else {
+                        $state->delete();
+                    }
+                }
 
                 return;
             }
@@ -163,6 +171,46 @@ class LocalMvpTenderWorkspaceService
             ))
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  list<string>  $tags
+     * @return array<string, mixed>
+     */
+    public function updateAnnotation(
+        User $user,
+        Tender $tender,
+        ?string $note,
+        array $tags,
+        ?string $nextActionOn,
+    ): array {
+        $state = TenderUserState::query()->firstOrNew([
+            'user_id' => $user->id,
+            'tender_id' => $tender->id,
+        ]);
+        $state->status ??= TenderUserStatus::New;
+        $state->forceFill([
+            'note' => $note,
+            'tags' => $tags === [] ? null : $tags,
+            'next_action_on' => $nextActionOn,
+        ]);
+
+        if ($state->status === TenderUserStatus::New
+            && $note === null
+            && $tags === []
+            && $nextActionOn === null
+        ) {
+            if ($state->exists) {
+                $state->delete();
+            }
+        } else {
+            $state->save();
+        }
+
+        $updated = $this->tenderQueryFor($user)->whereKey($tender->id)->firstOrFail();
+        $matchReasons = $this->snapshots->matchReasonsFor($this->snapshots->currentFor($user));
+
+        return $this->tenderDto($updated, $matchReasons[$updated->id] ?? null);
     }
 
     public function canAccessTender(User $user, Tender $tender): bool
@@ -212,6 +260,17 @@ class LocalMvpTenderWorkspaceService
             'customer' => $this->nullableMetadataText($metadata['customer'] ?? null),
             'category' => $this->nullableMetadataText($metadata['category'] ?? null),
             'procurement_law' => $this->nullableMetadataText($metadata['procurement_law'] ?? null),
+            'delivery_place' => $this->nullableMetadataText($metadata['delivery_place'] ?? null),
+            'contact_name' => $this->nullableMetadataText($metadata['contact_name'] ?? null),
+            'contact_email' => $this->nullableMetadataText($metadata['contact_email'] ?? null),
+            'contact_phone' => $this->nullableMetadataText($metadata['contact_phone'] ?? null),
+            'postal_address' => $this->nullableMetadataText($metadata['postal_address'] ?? null),
+            'application_security' => $this->nullableMetadataText($metadata['application_security'] ?? null),
+            'contract_security' => $this->nullableMetadataText($metadata['contract_security'] ?? null),
+            'enriched_at' => $this->nullableMetadataText($metadata['enriched_at'] ?? null),
+            'can_enrich' => $tender->source === 'eis_rss'
+                && is_string($tender->reg_number)
+                && preg_match('/^\d{19,20}$/', $tender->reg_number) === 1,
             'source_label' => match ($tender->source) {
                 'eis_rss' => 'ЕИС · государственные закупки · RSS-поиск',
                 default => 'TenderGuru public preview · ручной запрос',
@@ -256,10 +315,27 @@ class LocalMvpTenderWorkspaceService
             'customer' => $this->nullableMetadataText($metadata['customer'] ?? null),
             'category' => $this->nullableMetadataText($metadata['category'] ?? null),
             'procurement_law' => $this->nullableMetadataText($metadata['procurement_law'] ?? null),
+            'delivery_place' => $this->nullableMetadataText($metadata['delivery_place'] ?? null),
+            'contact_name' => $this->nullableMetadataText($metadata['contact_name'] ?? null),
+            'contact_email' => $this->nullableMetadataText($metadata['contact_email'] ?? null),
+            'contact_phone' => $this->nullableMetadataText($metadata['contact_phone'] ?? null),
+            'application_security' => $this->nullableMetadataText($metadata['application_security'] ?? null),
+            'contract_security' => $this->nullableMetadataText($metadata['contract_security'] ?? null),
+            'enriched_at' => $this->nullableMetadataText($metadata['enriched_at'] ?? null),
             'canonical_url' => $tender->canonical_url,
             'status' => $state?->status->value ?? TenderUserStatus::New->value,
+            'note' => $state?->note,
+            'tags' => is_array($state?->tags) ? array_values(array_filter($state->tags, 'is_string')) : [],
+            'next_action_on' => $state?->next_action_on?->format('Y-m-d'),
             'match_reason' => $matchReason,
         ];
+    }
+
+    private function hasAnnotation(TenderUserState $state): bool
+    {
+        return filled($state->note)
+            || (is_array($state->tags) && $state->tags !== [])
+            || $state->next_action_on !== null;
     }
 
     private function nullableMetadataText(mixed $value): ?string

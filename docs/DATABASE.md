@@ -111,8 +111,8 @@ Railway scheduler service, а не HTTP-процессом web-приложен�
 | `search_queries` | название, keywords/minus words, region, money/deadline range, условия источника и status | active/paused/frozen/deleted; максимум 3 active при Basic/trial; ручной запуск сам не включает polling |
 | `source_feeds` | канонический RSS URL и SHA-256 hash, расписание, freshness/error | ручные страницы ЕИС имеют `manual_preview`; active polling не включён |
 | `source_feed_items` | отдельная RSS-запись, URL hash, `reg_number`, content hash | уникальны на ленту по URL hash |
-| `tenders` | каноническая карточка, source + external ID, поля для фильтра | уникальны по `(source, external_id)` |
-| `tender_user_states` | личная отметка local MVP для карточки | уникальна по `(user_id, tender_id)`; `favorite`, `potential`, `dismissed` или `archived` |
+| `tenders` | каноническая карточка, source + external ID, поля для фильтра и проверенные metadata явного обогащения ЕИС | уникальны по `(source, external_id)`; RSS refresh не стирает обогащение |
+| `tender_user_states` | личный статус, заметка, JSON-теги и дата следующего действия | уникальна по `(user_id, tender_id)`; строка с аннотацией сохраняется и при статусе `new` |
 | `local_mvp_search_snapshots` | nullable ссылка на сохранённый запрос, фраза, режим релевантности, минус-слова, причины совпадения, счётчики и IDs карточек одной ручной выдачи ЕИС | пользователь владеет снимком; ссылка позволяет показать последние 20 запусков запроса; «только новые» вычисляется относительно непосредственно предыдущего снимка того же запроса; разовые поиски остаются без ссылки; история переживает refresh/restart и не смешивается между пользователями |
 | `tender_query_matches` | связь тендер ↔ запрос и JSON причин | уникальна по `(tender_id, search_query_id)` |
 | `notification_deliveries` | тип, idempotency key, status и безопасный payload | повторный job не пошлёт одну карточку дважды |

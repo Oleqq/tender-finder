@@ -47,7 +47,7 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Actions | button, icon button, toast, bottom sheet/modal | confirmation dialog, undo, destructive action pattern |
 | Inputs | input/search, chips, segmented control, switch, select/combobox, multi-select, date range, money range, validation | slider, stepper, saved-filter persistence |
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
-| Tender UI | local MVP ЕИС: поиск, все/любое/точная фраза, минус-слова, видимые причины совпадения, текущая выдача/история, карточка detail, именованные сохранённые запросы со всеми условиями, история запусков и «только новые», 44/223‑ФЗ, НМЦК, даты, регион/ОКПД2 через справочники ЕИС, этапы закупки, дополнительная информация, сравнение 2–5 карточек, personal states и bulk actions | обогащение карточки |
+| Tender UI | local MVP ЕИС: поиск, все/любое/точная фраза, минус-слова, причины совпадения, текущая выдача/история, detail и явное обогащение, сохранённые запросы и «только новые», фильтры ЕИС, сравнение 2–5 карточек, personal states/bulk actions, заметки/теги/дата действия, CSV/XLSX | сортировка выдачи, обзор ближайших действий |
 | Commerce | plan card, preview paywall, access gate, Basic/PRO comparison, demo checkout states and access-state preview | Stars invoice state, entitlement gate API, subscription management |
 | Admin | role-aware shell variant, server-guarded read-only Overview, aggregate access metrics, metric grid, health/data rows | chart wrapper, filter bar, user drawer, timeline, campaign composer, delivery funnel, audit event |
 

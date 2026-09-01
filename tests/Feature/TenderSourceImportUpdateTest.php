@@ -18,12 +18,19 @@ it('refreshes an existing tender when the source sends cleaner data', function (
     $clean = eisItemForRefresh('Понятный предмет закупки', 'Электронный аукцион · 44-ФЗ', '728800.00', 'clean');
 
     $importer->import($feed, new SourceFetchResult([$first]), 'eis_rss', false);
+    Tender::query()->where('source', 'eis_rss')->sole()->update([
+        'metadata' => [
+            'delivery_place' => 'Адрес из публичной карточки ЕИС',
+            'enriched_at' => '2026-09-01T12:00:00+03:00',
+        ],
+    ]);
     $run = $importer->import($feed->fresh(), new SourceFetchResult([$clean]), 'eis_rss', false);
 
     expect($run->items_created)->toBe(0)
         ->and(Tender::query()->where('source', 'eis_rss')->sole()->title)->toBe('Понятный предмет закупки')
         ->and(Tender::query()->where('source', 'eis_rss')->sole()->description)->toBe('Электронный аукцион · 44-ФЗ')
-        ->and(Tender::query()->where('source', 'eis_rss')->sole()->budget_amount)->toBe('728800.00');
+        ->and(Tender::query()->where('source', 'eis_rss')->sole()->budget_amount)->toBe('728800.00')
+        ->and(Tender::query()->where('source', 'eis_rss')->sole()->metadata['delivery_place'])->toBe('Адрес из публичной карточки ЕИС');
 });
 
 function eisItemForRefresh(string $title, string $summary, ?string $budgetAmount, string $content): EisRssItem

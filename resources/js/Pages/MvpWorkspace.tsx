@@ -12,6 +12,7 @@ import {
     type SavedSearchRunResult,
 } from '../Components/SavedSearchRunHistory';
 import { TenderComparison } from '../Components/TenderComparison';
+import { downloadTenderExport, type TenderExportFormat } from '../lib/tenderExport';
 import {
     Badge,
     Button,
@@ -103,8 +104,18 @@ type TenderDto = {
     customer: string | null;
     category: string | null;
     procurement_law: string | null;
+    delivery_place: string | null;
+    contact_name: string | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    application_security: string | null;
+    contract_security: string | null;
+    enriched_at: string | null;
     canonical_url: string;
     status: TenderStatus;
+    note: string | null;
+    tags: string[];
+    next_action_on: string | null;
     match_reason: TenderMatchReason | null;
 };
 
@@ -193,6 +204,7 @@ export default function MvpWorkspace() {
     const [regionFilter, setRegionFilter] = useState('');
     const [budgetMin, setBudgetMin] = useState('');
     const [budgetMax, setBudgetMax] = useState('');
+    const [tagFilter, setTagFilter] = useState('');
     const [collection, setCollection] = useState<TenderCollection>('current');
     const [view, setView] = useState<TenderView>('inbox');
     const [searchContext, setSearchContext] = useState<SearchContext | null>(
@@ -211,10 +223,15 @@ export default function MvpWorkspace() {
     const [bulkStatus, setBulkStatus] = useState<TenderStatus | null>(null);
     const [comparisonOpen, setComparisonOpen] = useState(false);
     const [historySearchId, setHistorySearchId] = useState<number | null>(null);
+    const [exportingFormat, setExportingFormat] = useState<TenderExportFormat | null>(
+        null,
+    );
 
     const collectionTenders =
         collection === 'current' ? currentTenders : historyTenders;
-    const hasActiveFilters = Boolean(regionFilter.trim() || budgetMin || budgetMax);
+    const hasActiveFilters = Boolean(
+        regionFilter.trim() || budgetMin || budgetMax || tagFilter.trim(),
+    );
     const hasManualRssUrl = Boolean(rssUrl.trim());
     const comparisonTenders = collectionTenders.filter((tender) =>
         selectedTenderIds.includes(tender.id),
@@ -224,6 +241,7 @@ export default function MvpWorkspace() {
         const min = Number(budgetMin);
         const max = Number(budgetMax);
         const region = regionFilter.trim().toLocaleLowerCase('ru-RU');
+        const tag = tagFilter.trim().toLocaleLowerCase('ru-RU');
 
         return collectionTenders.filter((tender) => {
             if (
@@ -256,9 +274,18 @@ export default function MvpWorkspace() {
                 return false;
             }
 
+            if (
+                tag &&
+                !tender.tags.some((item) =>
+                    item.toLocaleLowerCase('ru-RU').includes(tag),
+                )
+            ) {
+                return false;
+            }
+
             return true;
         });
-    }, [budgetMax, budgetMin, collectionTenders, regionFilter, view]);
+    }, [budgetMax, budgetMin, collectionTenders, regionFilter, tagFilter, view]);
 
     const viewCounts = useMemo(
         () => ({
@@ -466,6 +493,43 @@ export default function MvpWorkspace() {
         setView('inbox');
         setSelectionMode(false);
         setSelectedTenderIds([]);
+    };
+
+    const exportTenders = async (format: TenderExportFormat): Promise<void> => {
+        const selected = selectionMode && selectedTenderIds.length > 0;
+        const tenderIds = selected
+            ? selectedTenderIds
+            : visibleTenders.map((tender) => tender.id);
+
+        if (tenderIds.length === 0) {
+            setActionError('Нет карточек для экспорта.');
+            return;
+        }
+
+        setExportingFormat(format);
+        setActionError('');
+
+        try {
+            await downloadTenderExport({
+                format,
+                scope: selected ? 'selected' : 'current',
+                tender_ids: tenderIds,
+                filter_summary: exportFilterSummary({
+                    collection,
+                    searchContext,
+                    view,
+                    regionFilter,
+                    budgetMin,
+                    budgetMax,
+                    tagFilter,
+                    selectedCount: selected ? tenderIds.length : 0,
+                }),
+            });
+        } catch {
+            setActionError('Не удалось подготовить файл экспорта.');
+        } finally {
+            setExportingFormat(null);
+        }
     };
 
     const saveCurrentSearch = async (): Promise<void> => {
@@ -1102,14 +1166,38 @@ export default function MvpWorkspace() {
                                     : 'Здесь появится результат следующего поиска в ЕИС.'
                                 : 'Это просмотренные карточки; они не смешаны с новым запросом.'}
                         </p>
-                        <Button
-                            disabled={collectionTenders.length === 0}
-                            onClick={toggleSelectionMode}
-                            size="sm"
-                            variant={selectionMode ? 'secondary' : 'ghost'}
-                        >
-                            {selectionMode ? 'Отменить выбор' : 'Выбрать'}
-                        </Button>
+                        <div className="mvp-workspace__toolbar-actions">
+                            <Button
+                                disabled={
+                                    visibleTenders.length === 0 ||
+                                    exportingFormat !== null
+                                }
+                                onClick={() => exportTenders('csv')}
+                                size="sm"
+                                variant="ghost"
+                            >
+                                {exportingFormat === 'csv' ? 'CSV…' : 'CSV'}
+                            </Button>
+                            <Button
+                                disabled={
+                                    visibleTenders.length === 0 ||
+                                    exportingFormat !== null
+                                }
+                                onClick={() => exportTenders('xlsx')}
+                                size="sm"
+                                variant="ghost"
+                            >
+                                {exportingFormat === 'xlsx' ? 'XLSX…' : 'XLSX'}
+                            </Button>
+                            <Button
+                                disabled={collectionTenders.length === 0}
+                                onClick={toggleSelectionMode}
+                                size="sm"
+                                variant={selectionMode ? 'secondary' : 'ghost'}
+                            >
+                                {selectionMode ? 'Отменить выбор' : 'Выбрать'}
+                            </Button>
+                        </div>
                     </div>
 
                     {selectionMode ? (
@@ -1197,6 +1285,14 @@ export default function MvpWorkspace() {
                                 }
                                 placeholder="например, Москва"
                                 value={regionFilter}
+                            />
+                        </label>
+                        <label className="form-field">
+                            <span>Личный тег</span>
+                            <input
+                                onChange={(event) => setTagFilter(event.target.value)}
+                                placeholder="например, приоритет"
+                                value={tagFilter}
                             />
                         </label>
                         <div className="mvp-workspace__budget">
@@ -1437,6 +1533,21 @@ function TenderWorkspaceCard({
             ) : null}
             {tender.description ? (
                 <p className="mvp-tender-card__description">{tender.description}</p>
+            ) : null}
+            {tender.tags.length > 0 ? (
+                <div className="mvp-tender-card__tags" aria-label="Личные теги">
+                    {tender.tags.map((tag) => (
+                        <span key={tag}>{tag}</span>
+                    ))}
+                </div>
+            ) : null}
+            {tender.next_action_on ? (
+                <p className="mvp-tender-card__next-action">
+                    Следующее действие: {formatDate(tender.next_action_on)}
+                </p>
+            ) : null}
+            {tender.note ? (
+                <p className="mvp-tender-card__note">Моя заметка: {tender.note}</p>
             ) : null}
             {tender.match_reason ? (
                 <div className="mvp-tender-card__match-reason">
@@ -1785,6 +1896,39 @@ function replaceTenders(current: TenderDto[], updates: TenderDto[]): TenderDto[]
     const updatesById = new Map(updates.map((tender) => [tender.id, tender]));
 
     return current.map((tender) => updatesById.get(tender.id) ?? tender);
+}
+
+function exportFilterSummary({
+    collection,
+    searchContext,
+    view,
+    regionFilter,
+    budgetMin,
+    budgetMax,
+    tagFilter,
+    selectedCount,
+}: {
+    collection: TenderCollection;
+    searchContext: SearchContext | null;
+    view: TenderView;
+    regionFilter: string;
+    budgetMin: string;
+    budgetMax: string;
+    tagFilter: string;
+    selectedCount: number;
+}): string {
+    const parts = [
+        collection === 'current' ? 'Текущая выдача' : 'История',
+        searchContext ? `Запрос: ${searchContext.query}` : null,
+        view !== 'inbox' ? `Статус: ${statusLabel(view)}` : null,
+        regionFilter.trim() ? `Регион/название: ${regionFilter.trim()}` : null,
+        budgetMin ? `НМЦК от ${budgetMin}` : null,
+        budgetMax ? `НМЦК до ${budgetMax}` : null,
+        tagFilter.trim() ? `Тег: ${tagFilter.trim()}` : null,
+        selectedCount > 0 ? `Выбрано вручную: ${selectedCount}` : null,
+    ].filter((part): part is string => part !== null);
+
+    return parts.join(' · ').slice(0, 500);
 }
 
 function getEmptyState({

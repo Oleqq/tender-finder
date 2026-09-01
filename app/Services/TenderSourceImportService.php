@@ -51,6 +51,10 @@ class TenderSourceImportService
                     'external_id' => $item->externalId,
                 ]);
                 $isNewTender = ! $tender->exists;
+                /** @var mixed $rawStoredMetadata */
+                $rawStoredMetadata = $tender->getAttribute('metadata');
+                $storedMetadata = is_array($rawStoredMetadata) ? $rawStoredMetadata : [];
+                $metadata = array_replace($storedMetadata, $item->metadata);
                 $tender->fill([
                     'source_feed_item_id' => $sourceItem->id,
                     'reg_number' => $item->regNumber,
@@ -63,7 +67,7 @@ class TenderSourceImportService
                     'currency' => $item->currency,
                     'published_at' => $item->publishedAt,
                     'deadline_at' => $item->deadlineAt,
-                    'metadata' => $item->metadata === [] ? null : $item->metadata,
+                    'metadata' => $metadata === [] ? null : $metadata,
                 ]);
                 $tender->save();
 

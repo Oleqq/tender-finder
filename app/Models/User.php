@@ -80,4 +80,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(ConsentEvent::class);
     }
+
+    /** @return HasMany<TenderUserState, $this> */
+    public function tenderStates(): HasMany
+    {
+        return $this->hasMany(TenderUserState::class);
+    }
 }

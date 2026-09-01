@@ -15,8 +15,8 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 | Область | Готово сейчас | Не считать готовым |
 |---|---|---|
 | ЕИС | Ручной RSS-поиск по фразе; режимы релевантности и минус-слова; 44/223‑ФЗ, НМЦК, дата, этапы, дополнительная информация, до 5 регионов КЛАДР и до 5 ОКПД2; до 10 страниц; сохранение полного набора условий и повторный запуск | Полный каталог ЕИС, monitoring |
-| Карточки | Понятные поля, detail, дедупликация, сравнение 2–5 карточек, личные статусы и bulk actions | Выдуманные поля, HTML-скрапинг, обогащение без публичного контракта источника |
-| Данные | Последняя выдача, последние 20 запусков сохранённого запроса, «только новые» и статусы привязаны к пользователю и переживают refresh/restart | Общая история всех пользователей или удаление Docker volume |
+| Карточки | Понятные поля, detail, дедупликация, сравнение 2–5 карточек, явное обогащение одной карточки из публичной формы ЕИС, личные статусы и bulk actions | Выдуманные поля, массовый HTML-обход или обогащение без публичного контракта источника |
+| Данные | Последняя выдача, последние 20 запусков, «только новые», заметки, теги, дата действия и CSV/XLSX привязаны к пользователю и переживают refresh/restart | Общая история всех пользователей или удаление Docker volume |
 | Identity | Подписанный Telegram `initData`; IDs из `TELEGRAM_SUPERADMIN_IDS` → `super_admin` с ЕИС-workspace/«Операции», остальные → `subscriber` | Login Widget вместо Mini App, доверие к Telegram ID из браузера или `/start` как авторизации |
 | Access | `preview`, `trialing`, `paid`, `granted`, `expired`; one-time 72h trial после consent | Роль `subscriber_trial`, рабочая оплата Stars |
 | Админка | Закрытый `super_admin` экран агрегатов доступа без персональных данных | Полноценные Users/Commerce/Campaigns или реальная выручка |
@@ -24,7 +24,7 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 
 ## Где искать код
 
-- `app/Tenders/` — контракт и разбор RSS ЕИС.
+- `app/Tenders/` — контракт и разбор RSS и публичной формы ЕИС.
 - `app/Services/LocalMvp*` — ручной поиск, запуск сохранённых запросов, снимки
   выдачи и личные статусы.
 - `app/Telegram/`, `TelegramIdentityService`, `TelegramBotClient` — проверка
@@ -40,7 +40,7 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 docker compose -f compose.local.yml -f compose.local.dev.yml build
 docker compose -f compose.local.yml -f compose.local.dev.yml --profile ops run --rm migrate
 docker compose -f compose.local.yml -f compose.local.dev.yml up -d web queue scheduler vite
-docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web php artisan test
+make test
 ```
 
 Локальный оператор: `http://127.0.0.1:8080/local/mvp-operator`.
@@ -64,10 +64,14 @@ docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web php art
 
 ```powershell
 npm run build
-php artisan test
+make test
 vendor/bin/pint --test
 vendor/bin/phpstan analyse --memory-limit=1G
 ```
+
+Laravel-тесты запускаются только через отдельный Compose-сервис `test` с
+SQLite `:memory:`. Встроенный fail-safe останавливает suite до миграций, если
+он случайно увидит постоянную PostgreSQL.
 
 Перед работой со следующей функцией сначала обновляйте
 [CURRENT-STATE.md](CURRENT-STATE.md), а историческое

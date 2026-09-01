@@ -13,7 +13,11 @@ Tender Finder — будущий Telegram SaaS для поиска и отбор
 карточки. Встроенные условия включают закон, НМЦК, период публикации, регион,
 ОКПД2, этап закупки и проверенные признаки из блока «Дополнительная
 информация» ЕИС. Из текущей выдачи можно выбрать от двух до пяти закупок и
-сравнить их в одной таблице.
+сравнить их в одной таблице. В detail карточку можно по явной команде
+дозагрузить срок подачи, место поставки, контакты, обеспечение и ссылки на
+документы из публичной печатной формы ЕИС. Для карточек доступны личные
+заметки, теги и дата следующего действия; текущую/выбранную выдачу и новые
+карточки отдельного запуска можно выгрузить в CSV или XLSX.
 Локальная проверка релевантности поддерживает все слова, любое слово или точную
 фразу, минус-слова и показывает причину попадания каждой карточки в выдачу.
 Автоматический мониторинг, Telegram-уведомления, платежи и production-доступ
@@ -37,7 +41,7 @@ docker compose -f compose.local.yml -f compose.local.dev.yml up -d web queue sch
 ## Проверки
 
 ```powershell
-docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web php artisan test
+make test
 docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web vendor/bin/pint --test
 docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web vendor/bin/phpstan analyse --memory-limit=1G
 npm run build
