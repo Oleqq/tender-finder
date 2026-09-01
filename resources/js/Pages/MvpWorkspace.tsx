@@ -3,6 +3,16 @@ import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import {
+    EisCatalogFilters,
+    type EisOkpd2Option,
+    type EisRegionOption,
+} from '../Components/EisCatalogFilters';
+import {
+    SavedSearchRunHistory,
+    type SavedSearchRunResult,
+} from '../Components/SavedSearchRunHistory';
+import { TenderComparison } from '../Components/TenderComparison';
+import {
     Badge,
     Button,
     FieldError,
@@ -43,6 +53,9 @@ type SavedSourceFilters = {
     budget_to?: string | null;
     published_from?: string | null;
     published_to?: string | null;
+    regions?: EisRegionOption[];
+    okpd2?: EisOkpd2Option[];
+    okpd2_with_nested?: boolean;
     pages?: number;
     rss_url?: string | null;
 };
@@ -114,6 +127,7 @@ type MvpWorkspaceProps = {
     currentSearch: SearchContext | null;
     historyTenders: TenderDto[];
     savedSearches: SavedSearchDto[];
+    eisRegions: EisRegionOption[];
 };
 
 type PreviewResponse = {
@@ -150,6 +164,7 @@ export default function MvpWorkspace() {
         currentSearch: initialCurrentSearch,
         historyTenders: initialHistoryTenders,
         savedSearches: initialSavedSearches,
+        eisRegions,
     } = usePage<PageProps<MvpWorkspaceProps>>().props;
     const [currentTenders, setCurrentTenders] =
         useState<TenderDto[]>(initialCurrentTenders);
@@ -171,6 +186,9 @@ export default function MvpWorkspace() {
     const [searchBudgetTo, setSearchBudgetTo] = useState('');
     const [searchPublishedFrom, setSearchPublishedFrom] = useState('');
     const [searchPublishedTo, setSearchPublishedTo] = useState('');
+    const [searchRegions, setSearchRegions] = useState<EisRegionOption[]>([]);
+    const [searchOkpd2, setSearchOkpd2] = useState<EisOkpd2Option[]>([]);
+    const [searchOkpd2WithNested, setSearchOkpd2WithNested] = useState(true);
     const [savedSearchName, setSavedSearchName] = useState('');
     const [regionFilter, setRegionFilter] = useState('');
     const [budgetMin, setBudgetMin] = useState('');
@@ -191,11 +209,16 @@ export default function MvpWorkspace() {
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedTenderIds, setSelectedTenderIds] = useState<number[]>([]);
     const [bulkStatus, setBulkStatus] = useState<TenderStatus | null>(null);
+    const [comparisonOpen, setComparisonOpen] = useState(false);
+    const [historySearchId, setHistorySearchId] = useState<number | null>(null);
 
     const collectionTenders =
         collection === 'current' ? currentTenders : historyTenders;
     const hasActiveFilters = Boolean(regionFilter.trim() || budgetMin || budgetMax);
     const hasManualRssUrl = Boolean(rssUrl.trim());
+    const comparisonTenders = collectionTenders.filter((tender) =>
+        selectedTenderIds.includes(tender.id),
+    );
 
     const visibleTenders = useMemo(() => {
         const min = Number(budgetMin);
@@ -348,6 +371,12 @@ export default function MvpWorkspace() {
                     budget_to: !url ? searchBudgetTo || undefined : undefined,
                     published_from: !url ? searchPublishedFrom || undefined : undefined,
                     published_to: !url ? searchPublishedTo || undefined : undefined,
+                    regions: !url && searchRegions.length > 0 ? searchRegions : undefined,
+                    okpd2: !url && searchOkpd2.length > 0 ? searchOkpd2 : undefined,
+                    okpd2_with_nested:
+                        !url && searchOkpd2.length > 0
+                            ? searchOkpd2WithNested
+                            : undefined,
                 },
             );
             acceptSearchResult(response.data, query, {
@@ -484,6 +513,9 @@ export default function MvpWorkspace() {
                         budgetTo: searchBudgetTo,
                         publishedFrom: searchPublishedFrom,
                         publishedTo: searchPublishedTo,
+                        regions: searchRegions,
+                        okpd2: searchOkpd2,
+                        okpd2WithNested: searchOkpd2WithNested,
                         pages: searchPages,
                         rssUrl,
                     }),
@@ -527,6 +559,9 @@ export default function MvpWorkspace() {
         setSearchBudgetTo(source?.budget_to ?? '');
         setSearchPublishedFrom(source?.published_from ?? '');
         setSearchPublishedTo(source?.published_to ?? '');
+        setSearchRegions(source?.regions ?? []);
+        setSearchOkpd2(source?.okpd2 ?? []);
+        setSearchOkpd2WithNested(source?.okpd2_with_nested ?? true);
         setSearchPages(String(source?.pages ?? 3));
         setRssUrl(source?.rss_url ?? '');
         setActionError('');
@@ -585,6 +620,40 @@ export default function MvpWorkspace() {
         } finally {
             setDeletingSearchId(null);
         }
+    };
+
+    const openSavedSearchRun = (
+        savedSearch: SavedSearchDto,
+        result: SavedSearchRunResult<TenderDto>,
+    ): void => {
+        setCurrentTenders(result.tenders);
+        setHistoryTenders((current) => mergeTenders(result.tenders, current));
+        setSearchContext({
+            query: result.only_new
+                ? `${savedSearch.phrase} · только новые`
+                : savedSearch.phrase,
+            itemsSeen: result.run.items_seen,
+            itemsMatched: result.only_new
+                ? result.run.new_count
+                : result.run.items_matched,
+            itemsCreated: result.only_new
+                ? result.run.new_count
+                : result.run.items_created,
+            pagesRequested: result.run.pages_requested,
+            pagesLoaded: result.run.pages_loaded,
+            partiallyLoaded: result.run.partially_loaded,
+            matchMode: savedSearchMatchMode(savedSearch.filters?.relevance),
+            minusKeywords: savedSearch.minus_keywords ?? [],
+        });
+        setCollection('current');
+        setView('inbox');
+        setSelectionMode(false);
+        setSelectedTenderIds([]);
+        setSearchNotice(
+            result.only_new
+                ? `Открыт запуск «${savedSearch.name}»: новых карточек относительно предыдущего запуска — ${result.run.new_count}.`
+                : `Открыт сохранённый запуск «${savedSearch.name}».`,
+        );
     };
 
     const emptyState = getEmptyState({
@@ -908,17 +977,26 @@ export default function MvpWorkspace() {
                                     />
                                 </label>
                             </div>
+                            <EisCatalogFilters
+                                okpd2WithNested={searchOkpd2WithNested}
+                                onOkpd2Change={setSearchOkpd2}
+                                onOkpd2WithNestedChange={setSearchOkpd2WithNested}
+                                onRegionsChange={setSearchRegions}
+                                regions={eisRegions}
+                                selectedOkpd2={searchOkpd2}
+                                selectedRegions={searchRegions}
+                            />
                             <small>
                                 {hasManualRssUrl
                                     ? 'Ручная RSS-ссылка уже содержит условия ЕИС и заменяет поля выше.'
-                                    : 'Регион и ОКПД2 пока задаются только через RSS-ссылку, созданную в ЕИС: для них нужны служебные идентификаторы портала.'}
+                                    : 'Регион передаётся по официальному КЛАДР-коду, ОКПД2 — вместе с внутренним идентификатором справочника ЕИС.'}
                             </small>
                         </fieldset>
                         <details className="mvp-workspace__advanced-search">
                             <summary>Расширенные фильтры ЕИС</summary>
                             <p>
-                                Необязательно: если настраивали регион, НМЦК или ОКПД2 в
-                                ЕИС, вставьте созданную там RSS-ссылку.
+                                Необязательно: вставьте готовую RSS-ссылку ЕИС, если в ней
+                                есть условия, которых ещё нет в форме выше.
                             </p>
                             <label className="form-field">
                                 <span>RSS-ссылка из ЕИС</span>
@@ -1045,6 +1123,16 @@ export default function MvpWorkspace() {
                             <div className="mvp-workspace__bulk-actions">
                                 <Button
                                     disabled={
+                                        selectedTenderIds.length < 2 ||
+                                        selectedTenderIds.length > 5
+                                    }
+                                    onClick={() => setComparisonOpen(true)}
+                                    size="sm"
+                                >
+                                    Сравнить 2–5
+                                </Button>
+                                <Button
+                                    disabled={
                                         selectedTenderIds.length === 0 ||
                                         bulkStatus !== null
                                     }
@@ -1091,6 +1179,12 @@ export default function MvpWorkspace() {
                                 </Button>
                             </div>
                         </GlassCard>
+                    ) : null}
+                    {selectionMode && selectedTenderIds.length > 5 ? (
+                        <FieldError>
+                            Для сравнения оставьте не более пяти карточек. Групповые
+                            действия по-прежнему доступны для всего выбора.
+                        </FieldError>
                     ) : null}
 
                     <div className="mvp-workspace__filters">
@@ -1229,6 +1323,21 @@ export default function MvpWorkspace() {
                                             Изменить условия
                                         </Button>
                                         <Button
+                                            onClick={() =>
+                                                setHistorySearchId((current) =>
+                                                    current === savedSearch.id
+                                                        ? null
+                                                        : savedSearch.id,
+                                                )
+                                            }
+                                            size="sm"
+                                            variant="secondary"
+                                        >
+                                            {historySearchId === savedSearch.id
+                                                ? 'Скрыть историю'
+                                                : 'История запусков'}
+                                        </Button>
+                                        <Button
                                             disabled={
                                                 deletingSearchId === savedSearch.id
                                             }
@@ -1243,6 +1352,14 @@ export default function MvpWorkspace() {
                                                 : 'Удалить'}
                                         </Button>
                                     </div>
+                                    {historySearchId === savedSearch.id ? (
+                                        <SavedSearchRunHistory<TenderDto>
+                                            onOpenRun={(result) =>
+                                                openSavedSearchRun(savedSearch, result)
+                                            }
+                                            queryId={savedSearch.id}
+                                        />
+                                    ) : null}
                                 </div>
                             ))}
                         </div>
@@ -1251,11 +1368,16 @@ export default function MvpWorkspace() {
 
                 <p className="mvp-workspace__source-note">
                     Источник — RSS расширенного поиска ЕИС. По фразе ссылка создаётся
-                    автоматически; ручная RSS-ссылка нужна только для расширенных
-                    фильтров. Автоматический мониторинг и Telegram-уведомления пока не
-                    включены.
+                    автоматически; ручная RSS-ссылка нужна только для условий, которых
+                    нет во встроенной форме. Автоматический мониторинг и
+                    Telegram-уведомления пока не включены.
                 </p>
             </AppShell>
+            <TenderComparison
+                onClose={() => setComparisonOpen(false)}
+                open={comparisonOpen}
+                tenders={comparisonTenders}
+            />
         </>
     );
 }
@@ -1449,6 +1571,9 @@ function savedSourceFilters({
     budgetTo,
     publishedFrom,
     publishedTo,
+    regions,
+    okpd2,
+    okpd2WithNested,
     pages,
     rssUrl,
 }: {
@@ -1460,6 +1585,9 @@ function savedSourceFilters({
     budgetTo: string;
     publishedFrom: string;
     publishedTo: string;
+    regions: EisRegionOption[];
+    okpd2: EisOkpd2Option[];
+    okpd2WithNested: boolean;
     pages: string;
     rssUrl: string;
 }): SavedSourceFilters {
@@ -1486,6 +1614,9 @@ function savedSourceFilters({
         budget_to: manualRssUrl === '' ? budgetTo || null : null,
         published_from: manualRssUrl === '' ? publishedFrom || null : null,
         published_to: manualRssUrl === '' ? publishedTo || null : null,
+        regions: manualRssUrl === '' ? regions : [],
+        okpd2: manualRssUrl === '' ? okpd2 : [],
+        okpd2_with_nested: manualRssUrl === '' ? okpd2WithNested : true,
         pages: Number(pages) || 3,
         rss_url: manualRssUrl || null,
     };
@@ -1581,6 +1712,14 @@ function savedSearchFilterLabel(savedSearch: SavedSearchDto): string {
                 ? `Опубликовано ${source.published_from} — ${source.published_to}`
                 : `Опубликовано ${source.published_from ?? `до ${source.published_to}`}`,
         );
+    }
+
+    if ((source.regions ?? []).length > 0) {
+        parts.push(`Регионы: ${source.regions?.map((region) => region.name).join(', ')}`);
+    }
+
+    if ((source.okpd2 ?? []).length > 0) {
+        parts.push(`ОКПД2: ${source.okpd2?.map((item) => item.code).join(', ')}`);
     }
 
     parts.push(`до ${source.pages ?? 3} RSS-стр.`);

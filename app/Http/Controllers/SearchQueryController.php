@@ -7,6 +7,7 @@ use App\Services\QueryAccessDeniedException;
 use App\Services\QueryLimitReachedException;
 use App\Services\SearchQueryPresenter;
 use App\Services\SearchQueryService;
+use App\Tenders\EisRegionCatalog;
 use App\Tenders\EisRssUrlValidator;
 use App\Tenders\RssSourceException;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ class SearchQueryController extends Controller
     public function __construct(
         private readonly EisRssUrlValidator $eisRssUrls,
         private readonly SearchQueryPresenter $presenter,
+        private readonly EisRegionCatalog $regions,
     ) {}
 
     public function index(Request $request): Response
@@ -118,7 +120,7 @@ class SearchQueryController extends Controller
             'filters' => ['nullable', 'array:source,relevance'],
             'filters.relevance' => ['nullable', 'array:match_mode'],
             'filters.relevance.match_mode' => ['nullable', 'string', 'in:all,any,exact'],
-            'filters.source' => ['nullable', 'array:law_44,law_223,stage_application,stage_commission,stage_completed,stage_cancelled,joint_purchase,placed_by_separate_subdivision,union_state_budget,created_by_customer_representative,smp_sono,budget_from,budget_to,published_from,published_to,pages,rss_url'],
+            'filters.source' => ['nullable', 'array:law_44,law_223,stage_application,stage_commission,stage_completed,stage_cancelled,joint_purchase,placed_by_separate_subdivision,union_state_budget,created_by_customer_representative,smp_sono,budget_from,budget_to,published_from,published_to,regions,okpd2,okpd2_with_nested,pages,rss_url'],
             'filters.source.law_44' => ['nullable', 'boolean'],
             'filters.source.law_223' => ['nullable', 'boolean'],
             'filters.source.stage_application' => ['nullable', 'boolean'],
@@ -134,6 +136,16 @@ class SearchQueryController extends Controller
             'filters.source.budget_to' => ['nullable', 'numeric', 'min:0', 'gte:filters.source.budget_from'],
             'filters.source.published_from' => ['nullable', 'date_format:Y-m-d'],
             'filters.source.published_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:filters.source.published_from'],
+            'filters.source.regions' => ['nullable', 'array', 'max:5'],
+            'filters.source.regions.*' => ['required', 'array:code,name'],
+            'filters.source.regions.*.code' => ['required', 'string', 'regex:/^\d{11}$/', 'distinct'],
+            'filters.source.regions.*.name' => ['required', 'string', 'max:120'],
+            'filters.source.okpd2' => ['nullable', 'array', 'max:5'],
+            'filters.source.okpd2.*' => ['required', 'array:id,code,name'],
+            'filters.source.okpd2.*.id' => ['required', 'string', 'regex:/^\d{1,12}$/', 'distinct'],
+            'filters.source.okpd2.*.code' => ['required', 'string', 'regex:/^(?:[A-U]|\d{2}(?:\.\d{1,3}){0,3})$/', 'distinct'],
+            'filters.source.okpd2.*.name' => ['required', 'string', 'max:500'],
+            'filters.source.okpd2_with_nested' => ['nullable', 'boolean'],
             'filters.source.pages' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('tender.rss.manual_search_max_pages', 3))],
             'filters.source.rss_url' => ['nullable', 'url', 'max:2000'],
         ]);
@@ -165,6 +177,7 @@ class SearchQueryController extends Controller
         }
 
         $this->validateSourceStages($source);
+        $this->validateSourceRegions($source['regions'] ?? []);
 
         $rssUrl = $this->nullableString($source['rss_url'] ?? null);
 
@@ -196,6 +209,9 @@ class SearchQueryController extends Controller
                 'budget_to' => $this->nullableString($source['budget_to'] ?? null),
                 'published_from' => $this->nullableString($source['published_from'] ?? null),
                 'published_to' => $this->nullableString($source['published_to'] ?? null),
+                'regions' => is_array($source['regions'] ?? null) ? array_values($source['regions']) : [],
+                'okpd2' => is_array($source['okpd2'] ?? null) ? array_values($source['okpd2']) : [],
+                'okpd2_with_nested' => (bool) ($source['okpd2_with_nested'] ?? true),
                 'pages' => (int) ($source['pages'] ?? 3),
                 'rss_url' => $rssUrl,
             ],
@@ -256,6 +272,25 @@ class SearchQueryController extends Controller
             throw ValidationException::withMessages([
                 'filters.source.stage_application' => 'Выберите хотя бы один этап закупки.',
             ]);
+        }
+    }
+
+    private function validateSourceRegions(mixed $items): void
+    {
+        if (! is_array($items)) {
+            return;
+        }
+
+        foreach ($items as $index => $item) {
+            $code = is_array($item) && is_string($item['code'] ?? null)
+                ? $item['code']
+                : '';
+
+            if (! $this->regions->contains($code)) {
+                throw ValidationException::withMessages([
+                    "filters.source.regions.{$index}.code" => 'Выберите регион из справочника ЕИС.',
+                ]);
+            }
         }
     }
 

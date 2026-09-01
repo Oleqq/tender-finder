@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ConsentController;
+use App\Http\Controllers\EisCatalogController;
 use App\Http\Controllers\LegalDocumentController;
 use App\Http\Controllers\LocalMvpEisRssPreviewController;
 use App\Http\Controllers\LocalMvpOperatorSessionController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\MvpWorkspaceController;
 use App\Http\Controllers\OperationsDashboardController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
 use App\Http\Controllers\SavedSearchRunController;
+use App\Http\Controllers\SavedSearchRunHistoryController;
 use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderFeedController;
@@ -61,6 +63,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/queries/{query}/run', SavedSearchRunController::class)
         ->middleware(['super_admin', 'throttle:local-mvp-rss-preview'])
         ->name('queries.run');
+    Route::get('/queries/{query}/runs', [SavedSearchRunHistoryController::class, 'index'])
+        ->middleware('super_admin')
+        ->name('queries.runs.index');
+    Route::get('/queries/{query}/runs/{run}', [SavedSearchRunHistoryController::class, 'show'])
+        ->middleware('super_admin')
+        ->name('queries.runs.show');
     Route::post('/queries/{query}/pause', [SearchQueryController::class, 'pause'])->name('queries.pause');
     Route::post('/queries/{query}/resume', [SearchQueryController::class, 'resume'])->name('queries.resume');
     Route::post('/queries/{query}/freeze', [SearchQueryController::class, 'freeze'])->name('queries.freeze');
@@ -74,6 +82,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/local/mvp/eis-rss-preview', [LocalMvpEisRssPreviewController::class, 'store'])
         ->middleware('throttle:local-mvp-rss-preview')
         ->name('local.mvp.eis-rss-preview');
+    Route::get('/local/mvp/eis/okpd2-options', [EisCatalogController::class, 'okpd2'])
+        ->middleware('throttle:local-mvp-rss-preview')
+        ->name('local.mvp.eis.okpd2-options');
     Route::post('/local/mvp/tenders/{tender}/status', [LocalMvpTenderStateController::class, 'update'])
         ->name('local.mvp.tenders.status');
     Route::post('/local/mvp/tenders/status', [LocalMvpTenderStateController::class, 'bulkUpdate'])

@@ -141,4 +141,25 @@ final class LocalMvpSearchSnapshotService
             ->values()
             ->all();
     }
+
+    /** @return list<int> */
+    public function newTenderIdsFor(LocalMvpSearchSnapshot $snapshot): array
+    {
+        if ($snapshot->search_query_id === null) {
+            return $snapshot->tender_ids;
+        }
+
+        $previous = LocalMvpSearchSnapshot::query()
+            ->where('user_id', $snapshot->user_id)
+            ->where('search_query_id', $snapshot->search_query_id)
+            ->where('id', '<', $snapshot->id)
+            ->latest('id')
+            ->first(['tender_ids']);
+
+        if ($previous === null) {
+            return $snapshot->tender_ids;
+        }
+
+        return array_values(array_diff($snapshot->tender_ids, $previous->tender_ids));
+    }
 }

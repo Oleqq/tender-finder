@@ -70,3 +70,30 @@ it('adds verified EIS procurement stages and additional-information flags', func
         'procurementSMPAndSONO' => 'on',
     ])->not->toHaveKeys(['ca', 'pa']);
 });
+
+it('adds verified EIS KLADR regions and OKPD2 identifiers', function () {
+    $url = app(EisRssSearchUrlFactory::class)->forPhrase(
+        'разработка сайта',
+        new EisRssSearchCriteria(
+            regions: [
+                ['code' => '77000000000', 'name' => 'г. Москва'],
+                ['code' => '50000000000', 'name' => 'Московская область'],
+            ],
+            okpd2: [[
+                'id' => '8890621',
+                'code' => '62.01.11.000',
+                'name' => 'Разработка программного обеспечения',
+            ]],
+            okpd2WithNested: true,
+        ),
+    );
+    parse_str((string) parse_url($url, PHP_URL_QUERY), $parameters);
+
+    expect($parameters)->toMatchArray([
+        'delKladrIds' => '77000000000,50000000000',
+        'delKladrIdsCodes' => '77000000000,50000000000',
+        'okpd2Ids' => '8890621',
+        'okpd2IdsCodes' => '62.01.11.000',
+        'okpd2IdsWithNested' => 'on',
+    ]);
+});

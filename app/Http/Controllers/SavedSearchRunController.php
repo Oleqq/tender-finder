@@ -61,6 +61,9 @@ final class SavedSearchRunController extends Controller
             budgetTo: $this->nullableString($source['budget_to'] ?? null),
             publishedFrom: $this->nullableString($source['published_from'] ?? null),
             publishedTo: $this->nullableString($source['published_to'] ?? null),
+            regions: $this->regionItems($source['regions'] ?? null),
+            okpd2: $this->okpd2Items($source['okpd2'] ?? null),
+            okpd2WithNested: (bool) ($source['okpd2_with_nested'] ?? true),
         );
 
         try {
@@ -118,5 +121,30 @@ final class SavedSearchRunController extends Controller
             'tls_failed' => 'Сервер не смог безопасно проверить сертификат ЕИС. Попробуйте позже.',
             default => 'ЕИС временно не ответила. Повторите запуск позже.',
         };
+    }
+
+    /** @return list<array{code: string, name: string}> */
+    private function regionItems(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter($value, fn (mixed $item): bool => is_array($item)
+            && is_string($item['code'] ?? null)
+            && is_string($item['name'] ?? null)));
+    }
+
+    /** @return list<array{id: string, code: string, name: string}> */
+    private function okpd2Items(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter($value, fn (mixed $item): bool => is_array($item)
+            && is_string($item['id'] ?? null)
+            && is_string($item['code'] ?? null)
+            && is_string($item['name'] ?? null)));
     }
 }

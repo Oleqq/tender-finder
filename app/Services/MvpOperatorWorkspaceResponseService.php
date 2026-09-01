@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Tenders\EisRegionCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -15,6 +16,7 @@ final class MvpOperatorWorkspaceResponseService
         private readonly LocalMvpSearchSnapshotService $snapshots,
         private readonly LocalMvpTenderWorkspaceService $workspace,
         private readonly SearchQueryPresenter $queryPresenter,
+        private readonly EisRegionCatalog $regions,
     ) {}
 
     public function open(Request $request): Response
@@ -67,6 +69,7 @@ final class MvpOperatorWorkspaceResponseService
                 ->get()
                 ->map(fn ($query): array => $this->queryPresenter->toArray($query))
                 ->values(),
+            'eisRegions' => $this->regions->options(),
         ]);
     }
 }

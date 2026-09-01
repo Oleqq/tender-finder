@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\LocalMvpEisRssSearchService;
 use App\Services\LocalMvpOperatorService;
+use App\Tenders\EisRegionCatalog;
 use App\Tenders\EisRssMatchMode;
 use App\Tenders\EisRssRelevanceCriteria;
 use App\Tenders\EisRssSearchCriteria;
@@ -19,6 +20,7 @@ class LocalMvpEisRssPreviewController extends Controller
         Request $request,
         LocalMvpOperatorService $operator,
         LocalMvpEisRssSearchService $search,
+        EisRegionCatalog $regions,
     ): JsonResponse {
         abort_unless($operator->canUseWorkspace($request->user()), 404);
 
@@ -44,10 +46,21 @@ class LocalMvpEisRssPreviewController extends Controller
             'budget_to' => ['nullable', 'regex:/^\d{1,13}(?:[.,]\d{1,2})?$/'],
             'published_from' => ['nullable', 'date_format:Y-m-d'],
             'published_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:published_from'],
+            'regions' => ['nullable', 'array', 'max:5'],
+            'regions.*' => ['required', 'array:code,name'],
+            'regions.*.code' => ['required', 'string', 'regex:/^\d{11}$/', 'distinct'],
+            'regions.*.name' => ['required', 'string', 'max:120'],
+            'okpd2' => ['nullable', 'array', 'max:5'],
+            'okpd2.*' => ['required', 'array:id,code,name'],
+            'okpd2.*.id' => ['required', 'string', 'regex:/^\d{1,12}$/', 'distinct'],
+            'okpd2.*.code' => ['required', 'string', 'regex:/^(?:[A-U]|\d{2}(?:\.\d{1,3}){0,3})$/', 'distinct'],
+            'okpd2.*.name' => ['required', 'string', 'max:500'],
+            'okpd2_with_nested' => ['nullable', 'boolean'],
         ]);
 
         $this->validateRanges($attributes);
         $this->validateStages($attributes);
+        $this->validateRegions($attributes['regions'] ?? [], $regions);
         $relevance = new EisRssRelevanceCriteria(
             phrase: $attributes['query'],
             matchMode: EisRssMatchMode::tryFrom($attributes['match_mode'] ?? '')
@@ -70,6 +83,9 @@ class LocalMvpEisRssPreviewController extends Controller
             budgetTo: $attributes['budget_to'] ?? null,
             publishedFrom: $attributes['published_from'] ?? null,
             publishedTo: $attributes['published_to'] ?? null,
+            regions: $attributes['regions'] ?? [],
+            okpd2: $attributes['okpd2'] ?? [],
+            okpd2WithNested: (bool) ($attributes['okpd2_with_nested'] ?? true),
         );
 
         $errorField = filled($attributes['url'] ?? null) ? 'url' : 'query';
@@ -178,6 +194,25 @@ class LocalMvpEisRssPreviewController extends Controller
             throw ValidationException::withMessages([
                 'stage_application' => 'Выберите хотя бы один этап закупки.',
             ]);
+        }
+    }
+
+    private function validateRegions(mixed $items, EisRegionCatalog $regions): void
+    {
+        if (! is_array($items)) {
+            return;
+        }
+
+        foreach ($items as $index => $item) {
+            $code = is_array($item) && is_string($item['code'] ?? null)
+                ? $item['code']
+                : '';
+
+            if (! $regions->contains($code)) {
+                throw ValidationException::withMessages([
+                    "regions.{$index}.code" => 'Выберите регион из справочника ЕИС.',
+                ]);
+            }
         }
     }
 }

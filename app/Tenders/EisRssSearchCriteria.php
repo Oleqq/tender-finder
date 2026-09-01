@@ -6,6 +6,10 @@ use Carbon\CarbonImmutable;
 
 final readonly class EisRssSearchCriteria
 {
+    /**
+     * @param  list<array{code: string, name: string}>  $regions
+     * @param  list<array{id: string, code: string, name: string}>  $okpd2
+     */
     public function __construct(
         public bool $law44 = false,
         public bool $law223 = false,
@@ -22,6 +26,9 @@ final readonly class EisRssSearchCriteria
         public ?string $budgetTo = null,
         public ?string $publishedFrom = null,
         public ?string $publishedTo = null,
+        public array $regions = [],
+        public array $okpd2 = [],
+        public bool $okpd2WithNested = true,
     ) {}
 
     /** @return array<string, string|int> */
@@ -93,7 +100,38 @@ final readonly class EisRssSearchCriteria
             $parameters['publishDateTo'] = $this->date($this->publishedTo);
         }
 
+        $regionCodes = $this->values($this->regions, 'code');
+
+        if ($regionCodes !== []) {
+            $parameters['delKladrIds'] = implode(',', $regionCodes);
+            $parameters['delKladrIdsCodes'] = implode(',', $regionCodes);
+        }
+
+        $okpd2Ids = $this->values($this->okpd2, 'id');
+        $okpd2Codes = $this->values($this->okpd2, 'code');
+
+        if ($okpd2Ids !== [] && count($okpd2Ids) === count($okpd2Codes)) {
+            $parameters['okpd2Ids'] = implode(',', $okpd2Ids);
+            $parameters['okpd2IdsCodes'] = implode(',', $okpd2Codes);
+
+            if ($this->okpd2WithNested) {
+                $parameters['okpd2IdsWithNested'] = 'on';
+            }
+        }
+
         return $parameters;
+    }
+
+    /**
+     * @param  list<array<string, string>>  $items
+     * @return list<string>
+     */
+    private function values(array $items, string $key): array
+    {
+        return array_values(array_unique(array_filter(array_map(
+            fn (array $item): string => trim($item[$key] ?? ''),
+            $items,
+        ))));
     }
 
     private function date(string $value): string

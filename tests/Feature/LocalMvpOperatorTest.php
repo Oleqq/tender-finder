@@ -33,7 +33,8 @@ it('opens the local MVP workspace as the local-only super admin', function () {
             ->has('currentTenders')
             ->has('currentSearch')
             ->has('historyTenders')
-            ->has('savedSearches'));
+            ->has('savedSearches')
+            ->where('eisRegions.0.code', '01000000000'));
 
     $operator = User::query()->where('email', 'local-mvp-operator@tenderfinder.invalid')->firstOrFail();
 
@@ -261,6 +262,32 @@ it('applies verified EIS filters when it builds an automatic RSS search', functi
     });
 });
 
+it('searches the official EIS OKPD2 catalog without exposing its raw response', function () {
+    Http::fake([
+        'https://zakupki.gov.ru/epz/api/nsi/okpd2/search.html*' => Http::response([
+            'children' => [[
+                'key' => 8879022,
+                'code' => '62.01.11',
+                'name' => 'Услуги по проектированию программного обеспечения',
+                'children' => [[
+                    'key' => 8890621,
+                    'code' => '62.01.11.000',
+                    'name' => 'Разработка программного обеспечения',
+                    'children' => null,
+                ]],
+            ]],
+        ]),
+    ]);
+
+    $this->get('/local/mvp-operator')->assertOk();
+
+    $this->getJson('/local/mvp/eis/okpd2-options?search=62.01.11.000')
+        ->assertOk()
+        ->assertJsonPath('options.0.id', '8890621')
+        ->assertJsonPath('options.0.code', '62.01.11.000')
+        ->assertJsonMissingPath('options.0.children');
+});
+
 it('rejects an automatic EIS search without a procurement stage', function () {
     Http::fake();
     $this->get('/local/mvp-operator')->assertOk();
@@ -337,6 +364,16 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
                 'budget_to' => '750000',
                 'published_from' => '2026-08-01',
                 'published_to' => '2026-08-27',
+                'regions' => [[
+                    'code' => '77000000000',
+                    'name' => 'г. Москва',
+                ]],
+                'okpd2' => [[
+                    'id' => '8890621',
+                    'code' => '62.01.11.000',
+                    'name' => 'Разработка программного обеспечения',
+                ]],
+                'okpd2_with_nested' => true,
                 'pages' => 1,
             ],
         ],
@@ -350,6 +387,8 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
         ->assertJsonPath('query.filters.source.joint_purchase', true)
         ->assertJsonPath('query.filters.source.budget_from', '100000')
         ->assertJsonPath('query.filters.source.published_to', '2026-08-27')
+        ->assertJsonPath('query.filters.source.regions.0.code', '77000000000')
+        ->assertJsonPath('query.filters.source.okpd2.0.id', '8890621')
         ->assertJsonPath('query.filters.source.pages', 1);
 
     $this->get('/local/mvp-operator')
@@ -362,6 +401,8 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
             ->where('savedSearches.0.filters.source.stage_commission', true)
             ->where('savedSearches.0.filters.source.smp_sono', true)
             ->where('savedSearches.0.filters.source.budget_to', '750000')
+            ->where('savedSearches.0.filters.source.regions.0.name', 'г. Москва')
+            ->where('savedSearches.0.filters.source.okpd2.0.code', '62.01.11.000')
             ->where('savedSearches.0.filters.source.pages', 1));
 });
 
@@ -401,6 +442,16 @@ it('runs a saved EIS search with all stored conditions and records its latest re
                 'budget_to' => '750000',
                 'published_from' => '2026-08-01',
                 'published_to' => '2026-08-27',
+                'regions' => [[
+                    'code' => '77000000000',
+                    'name' => 'г. Москва',
+                ]],
+                'okpd2' => [[
+                    'id' => '8890621',
+                    'code' => '62.01.11.000',
+                    'name' => 'Разработка программного обеспечения',
+                ]],
+                'okpd2_with_nested' => true,
                 'pages' => 1,
             ],
         ],
@@ -440,7 +491,12 @@ it('runs a saved EIS search with all stored conditions and records its latest re
             && ($parameters['priceFromGeneral'] ?? null) === '100000'
             && ($parameters['priceToGeneral'] ?? null) === '750000'
             && ($parameters['publishDateFrom'] ?? null) === '01.08.2026'
-            && ($parameters['publishDateTo'] ?? null) === '27.08.2026';
+            && ($parameters['publishDateTo'] ?? null) === '27.08.2026'
+            && ($parameters['delKladrIds'] ?? null) === '77000000000'
+            && ($parameters['delKladrIdsCodes'] ?? null) === '77000000000'
+            && ($parameters['okpd2Ids'] ?? null) === '8890621'
+            && ($parameters['okpd2IdsCodes'] ?? null) === '62.01.11.000'
+            && ($parameters['okpd2IdsWithNested'] ?? null) === 'on';
     });
     Queue::assertNotPushed(MatchTender::class);
 
@@ -476,6 +532,78 @@ it('does not let another super admin run someone elses saved search', function (
         ->assertNotFound();
 
     expect(LocalMvpSearchSnapshot::query()->count())->toBe(0);
+});
+
+it('returns saved search run history and only tenders new since the previous run', function () {
+    $this->get('/local/mvp-operator')->assertOk();
+    $operator = User::query()
+        ->where('email', 'local-mvp-operator@tenderfinder.invalid')
+        ->firstOrFail();
+    $query = SearchQuery::query()->create([
+        'user_id' => $operator->id,
+        'name' => 'История сайтов',
+        'keywords' => ['сайт'],
+        'status' => 'active',
+    ]);
+    $firstTender = Tender::query()->create([
+        'source' => 'eis_rss',
+        'external_id' => 'run-history-first',
+        'canonical_url' => 'https://zakupki.gov.ru/epz/order/notice/ea20/view/common-info.html?regNumber=01234567890123456771',
+        'canonical_url_hash' => hash('sha256', 'run-history-first'),
+        'title' => 'Первый тендер',
+        'currency' => 'RUB',
+    ]);
+    $secondTender = Tender::query()->create([
+        'source' => 'eis_rss',
+        'external_id' => 'run-history-second',
+        'canonical_url' => 'https://zakupki.gov.ru/epz/order/notice/ea20/view/common-info.html?regNumber=01234567890123456772',
+        'canonical_url_hash' => hash('sha256', 'run-history-second'),
+        'title' => 'Новый тендер второго запуска',
+        'currency' => 'RUB',
+    ]);
+    LocalMvpSearchSnapshot::query()->create([
+        'user_id' => $operator->id,
+        'search_query_id' => $query->id,
+        'query' => 'сайт',
+        'source' => 'eis_rss',
+        'tender_ids' => [$firstTender->id],
+        'items_seen' => 1,
+        'items_matched' => 1,
+        'pages_requested' => 1,
+        'pages_loaded' => 1,
+    ]);
+    $latestRun = LocalMvpSearchSnapshot::query()->create([
+        'user_id' => $operator->id,
+        'search_query_id' => $query->id,
+        'query' => 'сайт',
+        'source' => 'eis_rss',
+        'tender_ids' => [$firstTender->id, $secondTender->id],
+        'items_seen' => 2,
+        'items_matched' => 2,
+        'pages_requested' => 1,
+        'pages_loaded' => 1,
+    ]);
+
+    $this->getJson("/queries/{$query->id}/runs")
+        ->assertOk()
+        ->assertJsonCount(2, 'runs')
+        ->assertJsonPath('runs.0.id', $latestRun->id)
+        ->assertJsonPath('runs.0.new_count', 1);
+
+    $this->getJson("/queries/{$query->id}/runs/{$latestRun->id}?only_new=1")
+        ->assertOk()
+        ->assertJsonPath('only_new', true)
+        ->assertJsonPath('run.new_count', 1)
+        ->assertJsonPath('tenders.0.id', $secondTender->id)
+        ->assertJsonCount(1, 'tenders');
+
+    $otherAdmin = User::factory()->create([
+        'role' => UserRole::SuperAdmin,
+        'telegram_id' => 'run-history-other-admin',
+    ]);
+    $this->actingAs($otherAdmin)
+        ->getJson("/queries/{$query->id}/runs")
+        ->assertNotFound();
 });
 
 it('keeps local result histories and tender statuses scoped to each user', function () {
