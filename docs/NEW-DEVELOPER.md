@@ -17,9 +17,9 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 | ЕИС | Ручной RSS-поиск по фразе; режимы релевантности и минус-слова; 44/223‑ФЗ, НМЦК, дата, этапы, дополнительная информация, до 5 регионов КЛАДР и до 5 ОКПД2; до 10 страниц; сохранение полного набора условий и повторный запуск | Полный каталог ЕИС, monitoring |
 | Карточки | Понятные поля, detail, дедупликация, сравнение 2–5 карточек, личные статусы и bulk actions | Выдуманные поля, HTML-скрапинг, обогащение без публичного контракта источника |
 | Данные | Последняя выдача, последние 20 запусков сохранённого запроса, «только новые» и статусы привязаны к пользователю и переживают refresh/restart | Общая история всех пользователей или удаление Docker volume |
-| Identity | Подписанный Telegram `initData`; IDs из `TELEGRAM_SUPERADMIN_IDS` → `super_admin` с ЕИС-workspace/«Операции», остальные → `subscriber` | Login Widget вместо Mini App, доверие к Telegram ID из браузера или `/start` как авторизации |
+| Identity | Подписанный Telegram `initData`; IDs из `TELEGRAM_SUPERADMIN_IDS` → `super_admin` с ЕИС-workspace/«Аналитикой», остальные → `subscriber` | Login Widget вместо Mini App, доверие к Telegram ID из браузера или `/start` как авторизации |
 | Access | `preview`, `trialing`, `paid`, `granted`, `expired`; one-time 72h trial после consent | Роль `subscriber_trial`, рабочая оплата Stars |
-| Админка | Закрытый `super_admin` экран агрегатов доступа без персональных данных | Полноценные Users/Commerce/Campaigns или реальная выручка |
+| Админка | Закрытая маркетинговая аналитика `super_admin`: аудитория, trial и доступы без персональных данных | Полноценные Users/Commerce/Campaigns, технический мониторинг или реальная выручка |
 | Бот | Webhook, дедупликация обновлений, `/start`, `/help`, очередь отправки | Публично включённый webhook, рассылки и Stars |
 
 ## Где искать код
@@ -31,7 +31,7 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
   Mini App и Bot API.
 - `app/Services/TrialService`, `AccessService` — consent, trial и права.
 - `resources/js/Pages/MvpWorkspace.tsx` — local MVP; `Consents.tsx` — trial
-  flow; `OperationsDemo.tsx` — агрегаты администратора.
+  flow; `OperationsDashboard.tsx` — агрегированная аналитика администратора.
 - `tests/Feature/` — главный источник проверяемого поведения.
 
 ## Первые команды

@@ -49,7 +49,7 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
 | Tender UI | local MVP ЕИС: поиск, все/любое/точная фраза, минус-слова, видимые причины совпадения, текущая выдача/история, карточка detail, именованные сохранённые запросы со всеми условиями, история запусков и «только новые», 44/223‑ФЗ, НМЦК, даты, регион/ОКПД2 через справочники ЕИС, этапы закупки, дополнительная информация, сравнение 2–5 карточек, personal states и bulk actions | обогащение карточки |
 | Commerce | plan card, preview paywall, access gate, Basic/PRO comparison, demo checkout states and access-state preview | Stars invoice state, entitlement gate API, subscription management |
-| Admin | role-aware shell variant, server-guarded read-only Overview, aggregate access metrics, metric grid, health/data rows | chart wrapper, filter bar, user drawer, timeline, campaign composer, delivery funnel, audit event |
+| Admin | role-aware shell variant, server-guarded read-only access aggregates | marketing dashboard: period switcher, funnel, growth chart and access distribution; user drawer, campaigns, audit and technical Live Ops remain out of scope |
 
 «Готово» означает работающий переиспользуемый React-компонент; строка
 «backlog» не считается сделанной до API, states и тестов. Сначала создаются
@@ -63,14 +63,16 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Preview | Welcome, value tour, demo dashboard, feature highlights, paywall entry |
 | Trial / Basic | My Tenders, filters/queries, tender detail, monitoring, profile, billing |
 | Expired | сохранённые данные, объяснение заморозки, paywall и help |
-| Super-admin | клиентские экраны + Overview, Live Ops, Users, Commerce, Campaigns, Sources, Audit |
+| Super-admin | клиентские экраны + закрытая «Аналитика» аудитории и воронки; Users, Campaigns, Sources, Audit и технический Live Ops не входят в MVP |
 
-Operations — server-guarded read-only экран: он открывается только из
+«Аналитика» — server-guarded read-only экран: он открывается только из
 доверенной session с ролью `super_admin` и показывает лишь агрегаты
-верифицированных Telegram-пользователей. Роли не меняются с trial или
-оплатой: состояния `preview`, `trialing`, `paid`, `granted` и `expired`
-вычисляются сервером по entitlement и источнику подписки. Вход в production
-остаётся доступным только после проверки Telegram `initData`.
+верифицированных Telegram-пользователей. На широком экране он использует
+data-first сетку, на мобильном — плотную последовательность тех же блоков;
+CSS-графики всегда сопровождаются текстовыми значениями. Роли не меняются с
+trial или оплатой: состояния `preview`, `trialing`, `paid`, `granted` и
+`expired` вычисляются сервером по entitlement и источнику подписки. Вход в
+production остаётся доступным только после проверки Telegram `initData`.
 
 Экран `/queries` уже является защищённым Inertia-маршрутом: без server session
 он ведёт обратно в onboarding, а с session сохраняет запрос через Laravel.
@@ -84,5 +86,6 @@ Browser preview не получает скрытого доступа к дан�
    нескольких живых выдачах ЕИС.
 2. Добавлять deadline, регион и документы в detail только после подтверждения
    разрешённого источникового формата.
-3. Возвращаться к invoice или Operations UI только вместе с серверным API,
-   VPS и проверенной Telegram-сессией.
+3. Реализовать закрытую маркетинговую «Аналитику» вместе с server-side
+   read-model, периодами и проверками; не добавлять Users, рассылки или
+   технический мониторинг без отдельных решений.
