@@ -28,7 +28,11 @@ export function TenderComparison({
     onClose: () => void;
 }) {
     return (
-        <BottomSheet onClose={onClose} open={open} title={`Сравнение · ${tenders.length}`}>
+        <BottomSheet
+            onClose={onClose}
+            open={open}
+            title={`Сравнение · ${tenders.length}`}
+        >
             <p className="sheet-description">
                 Поля сравниваются только по данным, которые вернула ЕИС.
             </p>
@@ -81,7 +85,9 @@ export function TenderComparison({
                         <ComparisonRow
                             label="Совпадение"
                             tenders={tenders}
-                            value={(tender) => tender.match_reason?.matched_terms.join(', ') ?? null}
+                            value={(tender) =>
+                                tender.match_reason?.matched_terms.join(', ') ?? null
+                            }
                         />
                         <ComparisonRow
                             label="Номер ЕИС"
@@ -92,7 +98,9 @@ export function TenderComparison({
                             <th>Действия</th>
                             {tenders.map((tender) => (
                                 <td key={tender.id}>
-                                    <Link href={`/local/mvp/tenders/${tender.id}`}>Карточка</Link>
+                                    <Link href={`/local/mvp/tenders/${tender.id}`}>
+                                        Карточка
+                                    </Link>
                                     <a
                                         href={tender.canonical_url}
                                         rel="noreferrer"

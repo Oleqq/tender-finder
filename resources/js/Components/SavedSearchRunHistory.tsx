@@ -97,7 +97,8 @@ export function SavedSearchRunHistory<TTender>({
                         <strong>{formatDate(run.created_at)}</strong>
                         <span>
                             Найдено {run.items_matched} · новых относительно прошлого{' '}
-                            {run.new_count} · страниц {run.pages_loaded}/{run.pages_requested}
+                            {run.new_count} · страниц {run.pages_loaded}/
+                            {run.pages_requested}
                         </span>
                     </div>
                     <Button
@@ -106,7 +107,11 @@ export function SavedSearchRunHistory<TTender>({
                         size="sm"
                         variant="secondary"
                     >
-                        {openingId === run.id ? 'Открываем…' : onlyNew ? 'Показать новые' : 'Показать'}
+                        {openingId === run.id
+                            ? 'Открываем…'
+                            : onlyNew
+                              ? 'Показать новые'
+                              : 'Показать'}
                     </Button>
                 </div>
             ))}

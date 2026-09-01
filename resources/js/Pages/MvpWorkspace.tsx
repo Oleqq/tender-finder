@@ -371,7 +371,8 @@ export default function MvpWorkspace() {
                     budget_to: !url ? searchBudgetTo || undefined : undefined,
                     published_from: !url ? searchPublishedFrom || undefined : undefined,
                     published_to: !url ? searchPublishedTo || undefined : undefined,
-                    regions: !url && searchRegions.length > 0 ? searchRegions : undefined,
+                    regions:
+                        !url && searchRegions.length > 0 ? searchRegions : undefined,
                     okpd2: !url && searchOkpd2.length > 0 ? searchOkpd2 : undefined,
                     okpd2_with_nested:
                         !url && searchOkpd2.length > 0
@@ -995,8 +996,8 @@ export default function MvpWorkspace() {
                         <details className="mvp-workspace__advanced-search">
                             <summary>Расширенные фильтры ЕИС</summary>
                             <p>
-                                Необязательно: вставьте готовую RSS-ссылку ЕИС, если в ней
-                                есть условия, которых ещё нет в форме выше.
+                                Необязательно: вставьте готовую RSS-ссылку ЕИС, если в
+                                ней есть условия, которых ещё нет в форме выше.
                             </p>
                             <label className="form-field">
                                 <span>RSS-ссылка из ЕИС</span>
@@ -1715,7 +1716,9 @@ function savedSearchFilterLabel(savedSearch: SavedSearchDto): string {
     }
 
     if ((source.regions ?? []).length > 0) {
-        parts.push(`Регионы: ${source.regions?.map((region) => region.name).join(', ')}`);
+        parts.push(
+            `Регионы: ${source.regions?.map((region) => region.name).join(', ')}`,
+        );
     }
 
     if ((source.okpd2 ?? []).length > 0) {

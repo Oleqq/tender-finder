@@ -65,7 +65,9 @@ export function EisCatalogFilters({
             setOkpd2Options(response.data.options);
 
             if (response.data.options.length === 0) {
-                setError('В справочнике ЕИС ничего не найдено. Уточните код или название.');
+                setError(
+                    'В справочнике ЕИС ничего не найдено. Уточните код или название.',
+                );
             }
         } catch (requestError) {
             const message = (
@@ -127,7 +129,9 @@ export function EisCatalogFilters({
                         label: region.name,
                     }))}
                     onRemove={(code) =>
-                        onRegionsChange(selectedRegions.filter((item) => item.code !== code))
+                        onRegionsChange(
+                            selectedRegions.filter((item) => item.code !== code),
+                        )
                     }
                 />
             </div>
@@ -143,7 +147,12 @@ export function EisCatalogFilters({
                             value={okpd2Search}
                         />
                     </label>
-                    <Button disabled={isSearching} size="sm" type="submit" variant="secondary">
+                    <Button
+                        disabled={isSearching}
+                        size="sm"
+                        type="submit"
+                        variant="secondary"
+                    >
                         {isSearching ? 'Ищем…' : 'Найти код'}
                     </Button>
                 </form>
@@ -151,7 +160,9 @@ export function EisCatalogFilters({
                     <div className="eis-okpd2-options" role="list">
                         {okpd2Options.map((option) => (
                             <button
-                                disabled={selectedOkpd2.some((item) => item.id === option.id)}
+                                disabled={selectedOkpd2.some(
+                                    (item) => item.id === option.id,
+                                )}
                                 key={option.id}
                                 onClick={() => addOkpd2(option)}
                                 type="button"
