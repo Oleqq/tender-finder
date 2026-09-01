@@ -203,15 +203,15 @@ export default function OperationsDashboard() {
                         value={formatNumber(dashboard.audience.miniAppActive)}
                     />
                     <MetricCard
-                        detail={`стартов за ${periodLabel(dashboard.period.days)}`}
+                        detail={`всего trial: ${formatNumber(dashboard.activation.trialsTotal)}`}
                         icon="spark"
                         label="Начали trial"
                         trend={{
                             direction: 'neutral',
-                            label: 'Доля аудитории, когда-либо начавшей trial',
-                            value: `${dashboard.funnel.trialRate}% всего`,
+                            label: 'Старты за выбранный период',
+                            value: `${formatNumber(dashboard.activation.trialsStarted)} за ${periodLabel(dashboard.period.days)}`,
                         }}
-                        value={formatNumber(dashboard.activation.trialsTotal)}
+                        value={formatNumber(dashboard.activation.trialsStarted)}
                     />
                     <MetricCard
                         detail="активный доступ сейчас"
