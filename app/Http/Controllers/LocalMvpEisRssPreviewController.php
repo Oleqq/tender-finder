@@ -26,6 +26,15 @@ class LocalMvpEisRssPreviewController extends Controller
             'pages' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('tender.rss.manual_search_max_pages', 3))],
             'law_44' => ['nullable', 'boolean'],
             'law_223' => ['nullable', 'boolean'],
+            'stage_application' => ['nullable', 'boolean'],
+            'stage_commission' => ['nullable', 'boolean'],
+            'stage_completed' => ['nullable', 'boolean'],
+            'stage_cancelled' => ['nullable', 'boolean'],
+            'joint_purchase' => ['nullable', 'boolean'],
+            'placed_by_separate_subdivision' => ['nullable', 'boolean'],
+            'union_state_budget' => ['nullable', 'boolean'],
+            'created_by_customer_representative' => ['nullable', 'boolean'],
+            'smp_sono' => ['nullable', 'boolean'],
             'budget_from' => ['nullable', 'regex:/^\d{1,13}(?:[.,]\d{1,2})?$/'],
             'budget_to' => ['nullable', 'regex:/^\d{1,13}(?:[.,]\d{1,2})?$/'],
             'published_from' => ['nullable', 'date_format:Y-m-d'],
@@ -33,9 +42,19 @@ class LocalMvpEisRssPreviewController extends Controller
         ]);
 
         $this->validateRanges($attributes);
+        $this->validateStages($attributes);
         $criteria = new EisRssSearchCriteria(
             law44: (bool) ($attributes['law_44'] ?? false),
             law223: (bool) ($attributes['law_223'] ?? false),
+            stageApplication: (bool) ($attributes['stage_application'] ?? false),
+            stageCommission: (bool) ($attributes['stage_commission'] ?? false),
+            stageCompleted: (bool) ($attributes['stage_completed'] ?? false),
+            stageCancelled: (bool) ($attributes['stage_cancelled'] ?? false),
+            jointPurchase: (bool) ($attributes['joint_purchase'] ?? false),
+            placedBySeparateSubdivision: (bool) ($attributes['placed_by_separate_subdivision'] ?? false),
+            unionStateBudget: (bool) ($attributes['union_state_budget'] ?? false),
+            createdByCustomerRepresentative: (bool) ($attributes['created_by_customer_representative'] ?? false),
+            smpSono: (bool) ($attributes['smp_sono'] ?? false),
             budgetFrom: $attributes['budget_from'] ?? null,
             budgetTo: $attributes['budget_to'] ?? null,
             publishedFrom: $attributes['published_from'] ?? null,
@@ -107,5 +126,34 @@ class LocalMvpEisRssPreviewController extends Controller
         }
 
         return (float) str_replace(',', '.', $value);
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function validateStages(array $attributes): void
+    {
+        if (filled($attributes['url'] ?? null)) {
+            return;
+        }
+
+        $stageKeys = [
+            'stage_application',
+            'stage_commission',
+            'stage_completed',
+            'stage_cancelled',
+        ];
+        $providedStages = array_filter(
+            $stageKeys,
+            fn (string $key): bool => array_key_exists($key, $attributes),
+        );
+        $selectedStages = array_filter(
+            $stageKeys,
+            fn (string $key): bool => (bool) ($attributes[$key] ?? false),
+        );
+
+        if ($providedStages !== [] && $selectedStages === []) {
+            throw ValidationException::withMessages([
+                'stage_application' => 'Выберите хотя бы один этап закупки.',
+            ]);
+        }
     }
 }

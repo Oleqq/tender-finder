@@ -116,9 +116,18 @@ class SearchQueryController extends Controller
             'deadline_from' => ['nullable', 'date_format:Y-m-d'],
             'deadline_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:deadline_from'],
             'filters' => ['nullable', 'array:source'],
-            'filters.source' => ['nullable', 'array:law_44,law_223,budget_from,budget_to,published_from,published_to,pages,rss_url'],
+            'filters.source' => ['nullable', 'array:law_44,law_223,stage_application,stage_commission,stage_completed,stage_cancelled,joint_purchase,placed_by_separate_subdivision,union_state_budget,created_by_customer_representative,smp_sono,budget_from,budget_to,published_from,published_to,pages,rss_url'],
             'filters.source.law_44' => ['nullable', 'boolean'],
             'filters.source.law_223' => ['nullable', 'boolean'],
+            'filters.source.stage_application' => ['nullable', 'boolean'],
+            'filters.source.stage_commission' => ['nullable', 'boolean'],
+            'filters.source.stage_completed' => ['nullable', 'boolean'],
+            'filters.source.stage_cancelled' => ['nullable', 'boolean'],
+            'filters.source.joint_purchase' => ['nullable', 'boolean'],
+            'filters.source.placed_by_separate_subdivision' => ['nullable', 'boolean'],
+            'filters.source.union_state_budget' => ['nullable', 'boolean'],
+            'filters.source.created_by_customer_representative' => ['nullable', 'boolean'],
+            'filters.source.smp_sono' => ['nullable', 'boolean'],
             'filters.source.budget_from' => ['nullable', 'numeric', 'min:0'],
             'filters.source.budget_to' => ['nullable', 'numeric', 'min:0', 'gte:filters.source.budget_from'],
             'filters.source.published_from' => ['nullable', 'date_format:Y-m-d'],
@@ -152,6 +161,8 @@ class SearchQueryController extends Controller
             return;
         }
 
+        $this->validateSourceStages($source);
+
         $rssUrl = $this->nullableString($source['rss_url'] ?? null);
 
         if ($rssUrl !== null) {
@@ -168,6 +179,15 @@ class SearchQueryController extends Controller
             'source' => [
                 'law_44' => (bool) ($source['law_44'] ?? false),
                 'law_223' => (bool) ($source['law_223'] ?? false),
+                'stage_application' => (bool) ($source['stage_application'] ?? false),
+                'stage_commission' => (bool) ($source['stage_commission'] ?? false),
+                'stage_completed' => (bool) ($source['stage_completed'] ?? false),
+                'stage_cancelled' => (bool) ($source['stage_cancelled'] ?? false),
+                'joint_purchase' => (bool) ($source['joint_purchase'] ?? false),
+                'placed_by_separate_subdivision' => (bool) ($source['placed_by_separate_subdivision'] ?? false),
+                'union_state_budget' => (bool) ($source['union_state_budget'] ?? false),
+                'created_by_customer_representative' => (bool) ($source['created_by_customer_representative'] ?? false),
+                'smp_sono' => (bool) ($source['smp_sono'] ?? false),
                 'budget_from' => $this->nullableString($source['budget_from'] ?? null),
                 'budget_to' => $this->nullableString($source['budget_to'] ?? null),
                 'published_from' => $this->nullableString($source['published_from'] ?? null),
@@ -187,6 +207,35 @@ class SearchQueryController extends Controller
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    /** @param array<string, mixed> $source */
+    private function validateSourceStages(array $source): void
+    {
+        if ($this->nullableString($source['rss_url'] ?? null) !== null) {
+            return;
+        }
+
+        $stageKeys = [
+            'stage_application',
+            'stage_commission',
+            'stage_completed',
+            'stage_cancelled',
+        ];
+        $providedStages = array_filter(
+            $stageKeys,
+            fn (string $key): bool => array_key_exists($key, $source),
+        );
+        $selectedStages = array_filter(
+            $stageKeys,
+            fn (string $key): bool => (bool) ($source[$key] ?? false),
+        );
+
+        if ($providedStages !== [] && $selectedStages === []) {
+            throw ValidationException::withMessages([
+                'filters.source.stage_application' => 'Выберите хотя бы один этап закупки.',
+            ]);
+        }
     }
 
     private function assertOwnership(Request $request, SearchQuery $query): void

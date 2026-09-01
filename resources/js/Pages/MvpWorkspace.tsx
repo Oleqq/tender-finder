@@ -19,6 +19,15 @@ type TenderCollection = 'current' | 'history';
 type SavedSourceFilters = {
     law_44?: boolean;
     law_223?: boolean;
+    stage_application?: boolean;
+    stage_commission?: boolean;
+    stage_completed?: boolean;
+    stage_cancelled?: boolean;
+    joint_purchase?: boolean;
+    placed_by_separate_subdivision?: boolean;
+    union_state_budget?: boolean;
+    created_by_customer_representative?: boolean;
+    smp_sono?: boolean;
     budget_from?: string | null;
     budget_to?: string | null;
     published_from?: string | null;
@@ -26,6 +35,36 @@ type SavedSourceFilters = {
     pages?: number;
     rss_url?: string | null;
 };
+
+type SearchStages = {
+    application: boolean;
+    commission: boolean;
+    completed: boolean;
+    cancelled: boolean;
+};
+
+type SearchAdditionalInfo = {
+    jointPurchase: boolean;
+    placedBySeparateSubdivision: boolean;
+    unionStateBudget: boolean;
+    createdByCustomerRepresentative: boolean;
+    smpSono: boolean;
+};
+
+const defaultSearchStages = (): SearchStages => ({
+    application: true,
+    commission: true,
+    completed: true,
+    cancelled: true,
+});
+
+const defaultAdditionalInfo = (): SearchAdditionalInfo => ({
+    jointPurchase: false,
+    placedBySeparateSubdivision: false,
+    unionStateBudget: false,
+    createdByCustomerRepresentative: false,
+    smpSono: false,
+});
 
 type TenderDto = {
     id: number;
@@ -105,6 +144,9 @@ export default function MvpWorkspace() {
     const [searchPages, setSearchPages] = useState('3');
     const [searchLaw44, setSearchLaw44] = useState(false);
     const [searchLaw223, setSearchLaw223] = useState(false);
+    const [searchStages, setSearchStages] = useState<SearchStages>(defaultSearchStages);
+    const [searchAdditionalInfo, setSearchAdditionalInfo] =
+        useState<SearchAdditionalInfo>(defaultAdditionalInfo);
     const [searchBudgetFrom, setSearchBudgetFrom] = useState('');
     const [searchBudgetTo, setSearchBudgetTo] = useState('');
     const [searchPublishedFrom, setSearchPublishedFrom] = useState('');
@@ -230,6 +272,11 @@ export default function MvpWorkspace() {
             return;
         }
 
+        if (!url && !Object.values(searchStages).some(Boolean)) {
+            setSearchError('Выберите хотя бы один этап закупки.');
+            return;
+        }
+
         setSearchError('');
         setActionError('');
         setSearchNotice('');
@@ -244,6 +291,25 @@ export default function MvpWorkspace() {
                     pages: Number(searchPages),
                     law_44: !url && searchLaw44 ? true : undefined,
                     law_223: !url && searchLaw223 ? true : undefined,
+                    stage_application: !url ? searchStages.application : undefined,
+                    stage_commission: !url ? searchStages.commission : undefined,
+                    stage_completed: !url ? searchStages.completed : undefined,
+                    stage_cancelled: !url ? searchStages.cancelled : undefined,
+                    joint_purchase:
+                        !url && searchAdditionalInfo.jointPurchase ? true : undefined,
+                    placed_by_separate_subdivision:
+                        !url && searchAdditionalInfo.placedBySeparateSubdivision
+                            ? true
+                            : undefined,
+                    union_state_budget:
+                        !url && searchAdditionalInfo.unionStateBudget
+                            ? true
+                            : undefined,
+                    created_by_customer_representative:
+                        !url && searchAdditionalInfo.createdByCustomerRepresentative
+                            ? true
+                            : undefined,
+                    smp_sono: !url && searchAdditionalInfo.smpSono ? true : undefined,
                     budget_from: !url ? searchBudgetFrom || undefined : undefined,
                     budget_to: !url ? searchBudgetTo || undefined : undefined,
                     published_from: !url ? searchPublishedFrom || undefined : undefined,
@@ -365,6 +431,8 @@ export default function MvpWorkspace() {
                     source: savedSourceFilters({
                         law44: searchLaw44,
                         law223: searchLaw223,
+                        stages: searchStages,
+                        additionalInfo: searchAdditionalInfo,
                         budgetFrom: searchBudgetFrom,
                         budgetTo: searchBudgetTo,
                         publishedFrom: searchPublishedFrom,
@@ -391,6 +459,18 @@ export default function MvpWorkspace() {
         setSearchPhrase(savedSearch.phrase);
         setSearchLaw44(Boolean(source?.law_44));
         setSearchLaw223(Boolean(source?.law_223));
+        setSearchStages(savedSearchStages(source));
+        setSearchAdditionalInfo({
+            jointPurchase: Boolean(source?.joint_purchase),
+            placedBySeparateSubdivision: Boolean(
+                source?.placed_by_separate_subdivision,
+            ),
+            unionStateBudget: Boolean(source?.union_state_budget),
+            createdByCustomerRepresentative: Boolean(
+                source?.created_by_customer_representative,
+            ),
+            smpSono: Boolean(source?.smp_sono),
+        });
         setSearchBudgetFrom(source?.budget_from ?? '');
         setSearchBudgetTo(source?.budget_to ?? '');
         setSearchPublishedFrom(source?.published_from ?? '');
@@ -540,6 +620,155 @@ export default function MvpWorkspace() {
                                     <span>223-ФЗ</span>
                                 </label>
                             </div>
+                            <div className="mvp-workspace__source-group">
+                                <strong id="eis-stage-label">Этап закупки</strong>
+                                <div
+                                    aria-labelledby="eis-stage-label"
+                                    className="mvp-workspace__source-options mvp-workspace__source-options--compact"
+                                    role="group"
+                                >
+                                    <label>
+                                        <input
+                                            checked={searchStages.application}
+                                            onChange={(event) =>
+                                                setSearchStages((current) => ({
+                                                    ...current,
+                                                    application: event.target.checked,
+                                                }))
+                                            }
+                                            type="checkbox"
+                                        />
+                                        <span>Подача заявок</span>
+                                    </label>
+                                    <label>
+                                        <input
+                                            checked={searchStages.commission}
+                                            onChange={(event) =>
+                                                setSearchStages((current) => ({
+                                                    ...current,
+                                                    commission: event.target.checked,
+                                                }))
+                                            }
+                                            type="checkbox"
+                                        />
+                                        <span>Работа комиссии</span>
+                                    </label>
+                                    <label>
+                                        <input
+                                            checked={searchStages.completed}
+                                            onChange={(event) =>
+                                                setSearchStages((current) => ({
+                                                    ...current,
+                                                    completed: event.target.checked,
+                                                }))
+                                            }
+                                            type="checkbox"
+                                        />
+                                        <span>Закупка завершена</span>
+                                    </label>
+                                    <label>
+                                        <input
+                                            checked={searchStages.cancelled}
+                                            onChange={(event) =>
+                                                setSearchStages((current) => ({
+                                                    ...current,
+                                                    cancelled: event.target.checked,
+                                                }))
+                                            }
+                                            type="checkbox"
+                                        />
+                                        <span>Закупка отменена</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <details className="mvp-workspace__source-details">
+                                <summary>Дополнительная информация</summary>
+                                <div className="mvp-workspace__source-options">
+                                    <label>
+                                        <input
+                                            checked={searchAdditionalInfo.jointPurchase}
+                                            onChange={(event) =>
+                                                setSearchAdditionalInfo((current) => ({
+                                                    ...current,
+                                                    jointPurchase: event.target.checked,
+                                                }))
+                                            }
+                                            type="checkbox"
+                                        />
+                                        <span>Закупка является совместной</span>
+                                    </label>
+                                    <label>
+                                        <input
+                                            checked={
+                                                searchAdditionalInfo.placedBySeparateSubdivision
+                                            }
+                                            onChange={(event) =>
+                                                setSearchAdditionalInfo((current) => ({
+                                                    ...current,
+                                                    placedBySeparateSubdivision:
+                                                        event.target.checked,
+                                                }))
+                                            }
+                                            type="checkbox"
+                                        />
+                                        <span>
+                                            Извещение размещено обособленным
+                                            подразделением заказчика (223-ФЗ)
+                                        </span>
+                                    </label>
+                                    <label>
+                                        <input
+                                            checked={
+                                                searchAdditionalInfo.unionStateBudget
+                                            }
+                                            onChange={(event) =>
+                                                setSearchAdditionalInfo((current) => ({
+                                                    ...current,
+                                                    unionStateBudget:
+                                                        event.target.checked,
+                                                }))
+                                            }
+                                            type="checkbox"
+                                        />
+                                        <span>
+                                            За счёт средств бюджета Союзного государства
+                                            (44-ФЗ)
+                                        </span>
+                                    </label>
+                                    <label>
+                                        <input
+                                            checked={
+                                                searchAdditionalInfo.createdByCustomerRepresentative
+                                            }
+                                            onChange={(event) =>
+                                                setSearchAdditionalInfo((current) => ({
+                                                    ...current,
+                                                    createdByCustomerRepresentative:
+                                                        event.target.checked,
+                                                }))
+                                            }
+                                            type="checkbox"
+                                        />
+                                        <span>
+                                            Закупка создана представителем заказчика
+                                            (223-ФЗ)
+                                        </span>
+                                    </label>
+                                    <label>
+                                        <input
+                                            checked={searchAdditionalInfo.smpSono}
+                                            onChange={(event) =>
+                                                setSearchAdditionalInfo((current) => ({
+                                                    ...current,
+                                                    smpSono: event.target.checked,
+                                                }))
+                                            }
+                                            type="checkbox"
+                                        />
+                                        <span>Закупка у СМП и СОНО</span>
+                                    </label>
+                                </div>
+                            </details>
                             <div className="mvp-workspace__filter-grid">
                                 <label className="form-field">
                                     <span>НМЦК от, ₽</span>
@@ -1114,6 +1343,8 @@ function mergeTenders(incoming: TenderDto[], current: TenderDto[]): TenderDto[] 
 function savedSourceFilters({
     law44,
     law223,
+    stages,
+    additionalInfo,
     budgetFrom,
     budgetTo,
     publishedFrom,
@@ -1123,6 +1354,8 @@ function savedSourceFilters({
 }: {
     law44: boolean;
     law223: boolean;
+    stages: SearchStages;
+    additionalInfo: SearchAdditionalInfo;
     budgetFrom: string;
     budgetTo: string;
     publishedFrom: string;
@@ -1135,12 +1368,50 @@ function savedSourceFilters({
     return {
         law_44: manualRssUrl === '' ? law44 : false,
         law_223: manualRssUrl === '' ? law223 : false,
+        stage_application: manualRssUrl === '' ? stages.application : false,
+        stage_commission: manualRssUrl === '' ? stages.commission : false,
+        stage_completed: manualRssUrl === '' ? stages.completed : false,
+        stage_cancelled: manualRssUrl === '' ? stages.cancelled : false,
+        joint_purchase: manualRssUrl === '' ? additionalInfo.jointPurchase : false,
+        placed_by_separate_subdivision:
+            manualRssUrl === '' ? additionalInfo.placedBySeparateSubdivision : false,
+        union_state_budget:
+            manualRssUrl === '' ? additionalInfo.unionStateBudget : false,
+        created_by_customer_representative:
+            manualRssUrl === ''
+                ? additionalInfo.createdByCustomerRepresentative
+                : false,
+        smp_sono: manualRssUrl === '' ? additionalInfo.smpSono : false,
         budget_from: manualRssUrl === '' ? budgetFrom || null : null,
         budget_to: manualRssUrl === '' ? budgetTo || null : null,
         published_from: manualRssUrl === '' ? publishedFrom || null : null,
         published_to: manualRssUrl === '' ? publishedTo || null : null,
         pages: Number(pages) || 3,
         rss_url: manualRssUrl || null,
+    };
+}
+
+function savedSearchStages(source?: SavedSourceFilters): SearchStages {
+    if (source?.rss_url) {
+        return defaultSearchStages();
+    }
+
+    const hasStoredStages = [
+        'stage_application',
+        'stage_commission',
+        'stage_completed',
+        'stage_cancelled',
+    ].some((key) => Object.prototype.hasOwnProperty.call(source ?? {}, key));
+
+    if (!hasStoredStages) {
+        return defaultSearchStages();
+    }
+
+    return {
+        application: Boolean(source?.stage_application),
+        commission: Boolean(source?.stage_commission),
+        completed: Boolean(source?.stage_completed),
+        cancelled: Boolean(source?.stage_cancelled),
     };
 }
 
@@ -1161,6 +1432,31 @@ function savedSearchFilterLabel(source?: SavedSourceFilters): string {
 
     if (source.law_223) {
         parts.push('223-ФЗ');
+    }
+
+    const stages = savedSearchStages(source);
+    const selectedStages = [
+        stages.application ? 'подача заявок' : null,
+        stages.commission ? 'работа комиссии' : null,
+        stages.completed ? 'завершена' : null,
+        stages.cancelled ? 'отменена' : null,
+    ].filter(Boolean);
+    parts.push(
+        selectedStages.length === 4
+            ? 'Все этапы'
+            : `Этапы: ${selectedStages.join(', ')}`,
+    );
+
+    const additionalCount = [
+        source.joint_purchase,
+        source.placed_by_separate_subdivision,
+        source.union_state_budget,
+        source.created_by_customer_representative,
+        source.smp_sono,
+    ].filter(Boolean).length;
+
+    if (additionalCount > 0) {
+        parts.push(`Доп. условия: ${additionalCount}`);
     }
 
     if (source.budget_from) {

@@ -42,3 +42,31 @@ it('adds verified EIS law, price and publication date filters to an automatic RS
         'publishDateTo' => '27.08.2026',
     ])->not->toHaveKey('fz223');
 });
+
+it('adds verified EIS procurement stages and additional-information flags', function () {
+    $url = app(EisRssSearchUrlFactory::class)->forPhrase(
+        'разработка сайта',
+        new EisRssSearchCriteria(
+            stageApplication: true,
+            stageCommission: false,
+            stageCompleted: true,
+            stageCancelled: false,
+            jointPurchase: true,
+            placedBySeparateSubdivision: true,
+            unionStateBudget: true,
+            createdByCustomerRepresentative: true,
+            smpSono: true,
+        ),
+    );
+    parse_str((string) parse_url($url, PHP_URL_QUERY), $parameters);
+
+    expect($parameters)->toMatchArray([
+        'af' => 'on',
+        'pc' => 'on',
+        'jointPurchase' => 'on',
+        'isByPlacedSeparateSubdivisions' => 'on',
+        'budgetUnionState' => 'on',
+        'isByRepresentativeCreated' => 'on',
+        'procurementSMPAndSONO' => 'on',
+    ])->not->toHaveKeys(['ca', 'pa']);
+});

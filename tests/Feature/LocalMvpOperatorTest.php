@@ -218,6 +218,13 @@ it('applies verified EIS filters when it builds an automatic RSS search', functi
         'query' => 'поддержка сайта',
         'pages' => 1,
         'law_44' => true,
+        'stage_application' => true,
+        'stage_commission' => false,
+        'stage_completed' => true,
+        'stage_cancelled' => false,
+        'joint_purchase' => true,
+        'union_state_budget' => true,
+        'smp_sono' => true,
         'budget_from' => '100000',
         'budget_to' => '750000.50',
         'published_from' => '2026-08-01',
@@ -231,12 +238,36 @@ it('applies verified EIS filters when it builds an automatic RSS search', functi
 
         return ($parameters['fz44'] ?? null) === 'on'
             && ! isset($parameters['fz223'])
+            && ($parameters['af'] ?? null) === 'on'
+            && ! isset($parameters['ca'])
+            && ($parameters['pc'] ?? null) === 'on'
+            && ! isset($parameters['pa'])
+            && ($parameters['jointPurchase'] ?? null) === 'on'
+            && ($parameters['budgetUnionState'] ?? null) === 'on'
+            && ($parameters['procurementSMPAndSONO'] ?? null) === 'on'
             && ($parameters['priceFromGeneral'] ?? null) === '100000'
             && ($parameters['priceToGeneral'] ?? null) === '750000.5'
             && ($parameters['currencyIdGeneral'] ?? null) === '1'
             && ($parameters['publishDateFrom'] ?? null) === '01.08.2026'
             && ($parameters['publishDateTo'] ?? null) === '27.08.2026';
     });
+});
+
+it('rejects an automatic EIS search without a procurement stage', function () {
+    Http::fake();
+    $this->get('/local/mvp-operator')->assertOk();
+
+    $this->postJson('/local/mvp/eis-rss-preview', [
+        'query' => 'поддержка сайта',
+        'stage_application' => false,
+        'stage_commission' => false,
+        'stage_completed' => false,
+        'stage_cancelled' => false,
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('stage_application');
+
+    Http::assertNothingSent();
 });
 
 it('exposes source-provided EIS card facts in the local workspace', function () {
@@ -286,6 +317,12 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
             'source' => [
                 'law_44' => true,
                 'law_223' => false,
+                'stage_application' => true,
+                'stage_commission' => true,
+                'stage_completed' => false,
+                'stage_cancelled' => false,
+                'joint_purchase' => true,
+                'smp_sono' => true,
                 'budget_from' => '100000',
                 'budget_to' => '750000',
                 'published_from' => '2026-08-01',
@@ -296,6 +333,9 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
     ])
         ->assertCreated()
         ->assertJsonPath('query.filters.source.law_44', true)
+        ->assertJsonPath('query.filters.source.stage_application', true)
+        ->assertJsonPath('query.filters.source.stage_completed', false)
+        ->assertJsonPath('query.filters.source.joint_purchase', true)
         ->assertJsonPath('query.filters.source.budget_from', '100000')
         ->assertJsonPath('query.filters.source.published_to', '2026-08-27')
         ->assertJsonPath('query.filters.source.pages', 1);
@@ -305,6 +345,8 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
         ->assertInertia(fn (Assert $page) => $page
             ->where('savedSearches.0.name', 'Разработка сайта')
             ->where('savedSearches.0.filters.source.law_44', true)
+            ->where('savedSearches.0.filters.source.stage_commission', true)
+            ->where('savedSearches.0.filters.source.smp_sono', true)
             ->where('savedSearches.0.filters.source.budget_to', '750000')
             ->where('savedSearches.0.filters.source.pages', 1));
 });
@@ -330,6 +372,15 @@ it('runs a saved EIS search with all stored conditions and records its latest re
         'filters' => [
             'source' => [
                 'law_44' => true,
+                'stage_application' => true,
+                'stage_commission' => false,
+                'stage_completed' => false,
+                'stage_cancelled' => false,
+                'joint_purchase' => true,
+                'placed_by_separate_subdivision' => true,
+                'union_state_budget' => true,
+                'created_by_customer_representative' => true,
+                'smp_sono' => true,
                 'budget_from' => '100000',
                 'budget_to' => '750000',
                 'published_from' => '2026-08-01',
@@ -360,6 +411,12 @@ it('runs a saved EIS search with all stored conditions and records its latest re
 
         return ($parameters['searchString'] ?? null) === 'поддержка сайта'
             && ($parameters['fz44'] ?? null) === 'on'
+            && ($parameters['af'] ?? null) === 'on'
+            && ($parameters['jointPurchase'] ?? null) === 'on'
+            && ($parameters['isByPlacedSeparateSubdivisions'] ?? null) === 'on'
+            && ($parameters['budgetUnionState'] ?? null) === 'on'
+            && ($parameters['isByRepresentativeCreated'] ?? null) === 'on'
+            && ($parameters['procurementSMPAndSONO'] ?? null) === 'on'
             && ($parameters['priceFromGeneral'] ?? null) === '100000'
             && ($parameters['priceToGeneral'] ?? null) === '750000'
             && ($parameters['publishDateFrom'] ?? null) === '01.08.2026'
