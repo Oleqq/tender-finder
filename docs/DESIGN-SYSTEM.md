@@ -49,7 +49,7 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
 | Tender UI | local MVP ЕИС: поиск, все/любое/точная фраза, минус-слова, видимые причины совпадения, текущая выдача/история, карточка detail, именованные сохранённые запросы со всеми условиями, история запусков и «только новые», 44/223‑ФЗ, НМЦК, даты, регион/ОКПД2 через справочники ЕИС, этапы закупки, дополнительная информация, сравнение 2–5 карточек, personal states и bulk actions | обогащение карточки |
 | Commerce | plan card, preview paywall, access gate, Basic/PRO comparison, demo checkout states and access-state preview | Stars invoice state, entitlement gate API, subscription management |
-| Admin | role-aware shell variant, server-guarded read-only access aggregates | marketing dashboard: period switcher, funnel, growth chart and access distribution; user drawer, campaigns, audit and technical Live Ops remain out of scope |
+| Admin | role-aware shell variant, server-guarded read-only агрегаты, period switcher, funnel, growth chart и access distribution | user drawer, campaigns, audit и технический Live Ops остаются вне MVP |
 
 «Готово» означает работающий переиспользуемый React-компонент; строка
 «backlog» не считается сделанной до API, states и тестов. Сначала создаются

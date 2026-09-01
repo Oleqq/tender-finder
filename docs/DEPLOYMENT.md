@@ -155,7 +155,7 @@ App** (или Menu Button) на точный Railway HTTPS URL из `APP_URL`. �
 
 После первого открытия Mini App приложение один раз перезагрузится, чтобы
 получить новую CSRF-сессию. Пользователь с ID из
-`TELEGRAM_SUPERADMIN_IDS` увидит пункт «Операции» и кнопку «Открыть
+`TELEGRAM_SUPERADMIN_IDS` увидит пункт «Аналитика» и кнопку «Открыть
 ЕИС-рабочее место»; subscriber увидит обычный onboarding. Если роль не
 появилась, проверить, что `TELEGRAM_BOT_TOKEN` — token именно этого бота, а
 значение `TELEGRAM_SUPERADMIN_IDS` — личный numeric user ID без `@username`.
