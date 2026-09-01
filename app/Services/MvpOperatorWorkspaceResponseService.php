@@ -32,11 +32,13 @@ final class MvpOperatorWorkspaceResponseService
     public function renderFor(User $user): Response
     {
         $snapshot = $this->snapshots->currentFor($user);
+        $snapshotRelevance = is_array($snapshot?->relevance) ? $snapshot->relevance : [];
 
         return Inertia::render('MvpWorkspace', [
             'currentTenders' => $this->workspace->tendersForIds(
                 $user,
                 $snapshot === null ? [] : $snapshot->tender_ids,
+                $this->snapshots->matchReasonsFor($snapshot),
             ),
             'currentSearch' => $snapshot === null ? null : [
                 'query' => $snapshot->query,
@@ -46,10 +48,17 @@ final class MvpOperatorWorkspaceResponseService
                 'pagesRequested' => $snapshot->pages_requested,
                 'pagesLoaded' => $snapshot->pages_loaded,
                 'partiallyLoaded' => $snapshot->partially_loaded,
+                'matchMode' => is_string($snapshotRelevance['match_mode'] ?? null)
+                    ? $snapshotRelevance['match_mode']
+                    : 'all',
+                'minusKeywords' => is_array($snapshotRelevance['minus_keywords'] ?? null)
+                    ? array_values(array_filter($snapshotRelevance['minus_keywords'], 'is_string'))
+                    : [],
             ],
             'historyTenders' => $this->workspace->historyTendersFor(
                 $user,
                 $this->snapshots->historyTenderIdsFor($user),
+                $this->snapshots->historyMatchReasonsFor($user),
             ),
             'savedSearches' => $user->searchQueries()
                 ->where('status', '!=', 'deleted')

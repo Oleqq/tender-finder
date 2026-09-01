@@ -84,6 +84,24 @@ it('matches deterministic filters with explainable reasons and minus words', fun
     expect(app(TenderMatchingService::class)->evaluate($query, $tender)->matches)->toBeFalse();
 });
 
+it('uses the saved any-word and exact-phrase matching modes', function () {
+    $query = new SearchQuery([
+        'keywords' => ['поддержка', 'сайта'],
+        'minus_keywords' => [],
+        'filters' => ['relevance' => ['match_mode' => 'any']],
+    ]);
+    $tender = new Tender(['title' => 'Техническая поддержка серверов']);
+    $matcher = app(TenderMatchingService::class);
+
+    expect($matcher->evaluate($query, $tender)->matches)->toBeTrue();
+
+    $query->filters = ['relevance' => ['match_mode' => 'exact']];
+    expect($matcher->evaluate($query, $tender)->matches)->toBeFalse();
+
+    $tender->title = 'Техническая поддержка сайта';
+    expect($matcher->evaluate($query, $tender)->matches)->toBeTrue();
+});
+
 it('enforces the server-side three active query limit', function () {
     $user = User::factory()->create(['telegram_id' => '9002']);
     Entitlement::query()->create([

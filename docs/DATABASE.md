@@ -113,7 +113,7 @@ Railway scheduler service, а не HTTP-процессом web-приложен�
 | `source_feed_items` | отдельная RSS-запись, URL hash, `reg_number`, content hash | уникальны на ленту по URL hash |
 | `tenders` | каноническая карточка, source + external ID, поля для фильтра | уникальны по `(source, external_id)` |
 | `tender_user_states` | личная отметка local MVP для карточки | уникальна по `(user_id, tender_id)`; `favorite`, `potential`, `dismissed` или `archived` |
-| `local_mvp_search_snapshots` | nullable ссылка на сохранённый запрос, фраза, счётчики и IDs карточек одной ручной выдачи ЕИС | пользователь владеет снимком; ссылка позволяет показать последний запуск запроса; разовые несохранённые поиски остаются без неё; история переживает refresh/restart и не смешивается между пользователями |
+| `local_mvp_search_snapshots` | nullable ссылка на сохранённый запрос, фраза, режим релевантности, минус-слова, причины совпадения, счётчики и IDs карточек одной ручной выдачи ЕИС | пользователь владеет снимком; ссылка позволяет показать последний запуск запроса; разовые несохранённые поиски остаются без неё; история переживает refresh/restart и не смешивается между пользователями |
 | `tender_query_matches` | связь тендер ↔ запрос и JSON причин | уникальна по `(tender_id, search_query_id)` |
 | `notification_deliveries` | тип, idempotency key, status и безопасный payload | повторный job не пошлёт одну карточку дважды |
 | `source_runs` | start/end, status, счётчики, error class | материал для будущего Live Ops |

@@ -7,6 +7,8 @@ use App\Models\SearchQuery;
 use App\Services\LocalMvpEisRssSearchService;
 use App\Services\LocalMvpOperatorService;
 use App\Services\SearchQueryPresenter;
+use App\Tenders\EisRssMatchMode;
+use App\Tenders\EisRssRelevanceCriteria;
 use App\Tenders\EisRssSearchCriteria;
 use App\Tenders\RssSourceException;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +34,17 @@ final class SavedSearchRunController extends Controller
         $source = is_array($query->filters) && is_array($query->filters['source'] ?? null)
             ? $query->filters['source']
             : [];
+        $relevanceFilters = is_array($query->filters) && is_array($query->filters['relevance'] ?? null)
+            ? $query->filters['relevance']
+            : [];
         $phrase = trim(implode(' ', array_filter($query->keywords, 'is_string')));
+        $relevance = new EisRssRelevanceCriteria(
+            phrase: $phrase,
+            matchMode: EisRssMatchMode::tryFrom(
+                $this->nullableString($relevanceFilters['match_mode'] ?? null) ?? '',
+            ) ?? EisRssMatchMode::All,
+            minusKeywords: array_values(array_filter($query->minus_keywords ?? [], 'is_string')),
+        );
         $criteria = new EisRssSearchCriteria(
             law44: (bool) ($source['law_44'] ?? false),
             law223: (bool) ($source['law_223'] ?? false),
@@ -54,7 +66,7 @@ final class SavedSearchRunController extends Controller
         try {
             $result = $search->run(
                 $request->user(),
-                $phrase,
+                $relevance,
                 $this->nullableString($source['rss_url'] ?? null),
                 (int) ($source['pages'] ?? 3),
                 $criteria,

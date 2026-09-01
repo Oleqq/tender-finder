@@ -115,7 +115,9 @@ class SearchQueryController extends Controller
             'budget_max' => ['nullable', 'numeric', 'gte:budget_min'],
             'deadline_from' => ['nullable', 'date_format:Y-m-d'],
             'deadline_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:deadline_from'],
-            'filters' => ['nullable', 'array:source'],
+            'filters' => ['nullable', 'array:source,relevance'],
+            'filters.relevance' => ['nullable', 'array:match_mode'],
+            'filters.relevance.match_mode' => ['nullable', 'string', 'in:all,any,exact'],
             'filters.source' => ['nullable', 'array:law_44,law_223,stage_application,stage_commission,stage_completed,stage_cancelled,joint_purchase,placed_by_separate_subdivision,union_state_budget,created_by_customer_representative,smp_sono,budget_from,budget_to,published_from,published_to,pages,rss_url'],
             'filters.source.law_44' => ['nullable', 'boolean'],
             'filters.source.law_223' => ['nullable', 'boolean'],
@@ -148,6 +150,7 @@ class SearchQueryController extends Controller
             : null;
         $attributes['name'] = ($attributes['name'] ?? null) ?: mb_substr(implode(', ', $keywords), 0, 120);
         $this->normalizeEisSourceFilters($attributes);
+        $this->normalizeRelevanceFilters($attributes);
 
         return $attributes;
     }
@@ -176,6 +179,7 @@ class SearchQueryController extends Controller
         }
 
         $attributes['filters'] = [
+            ...$attributes['filters'],
             'source' => [
                 'law_44' => (bool) ($source['law_44'] ?? false),
                 'law_223' => (bool) ($source['law_223'] ?? false),
@@ -194,6 +198,23 @@ class SearchQueryController extends Controller
                 'published_to' => $this->nullableString($source['published_to'] ?? null),
                 'pages' => (int) ($source['pages'] ?? 3),
                 'rss_url' => $rssUrl,
+            ],
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function normalizeRelevanceFilters(array &$attributes): void
+    {
+        $relevance = $attributes['filters']['relevance'] ?? null;
+
+        if (! is_array($relevance)) {
+            return;
+        }
+
+        $attributes['filters'] = [
+            ...$attributes['filters'],
+            'relevance' => [
+                'match_mode' => $this->nullableString($relevance['match_mode'] ?? null) ?? 'all',
             ],
         ];
     }

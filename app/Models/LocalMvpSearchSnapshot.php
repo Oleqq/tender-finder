@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $query
  * @property string $source
  * @property list<int> $tender_ids
+ * @property array<string, mixed>|null $relevance
  * @property int $items_seen
  * @property int $items_matched
  * @property int $items_created
@@ -28,6 +29,7 @@ class LocalMvpSearchSnapshot extends Model
         'query',
         'source',
         'tender_ids',
+        'relevance',
         'items_seen',
         'items_matched',
         'items_created',
@@ -40,6 +42,7 @@ class LocalMvpSearchSnapshot extends Model
     {
         return [
             'tender_ids' => 'array',
+            'relevance' => 'array',
             'partially_loaded' => 'boolean',
         ];
     }

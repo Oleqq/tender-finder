@@ -216,6 +216,8 @@ it('applies verified EIS filters when it builds an automatic RSS search', functi
 
     $this->postJson('/local/mvp/eis-rss-preview', [
         'query' => 'поддержка сайта',
+        'match_mode' => 'any',
+        'minus_keywords' => ['строительство'],
         'pages' => 1,
         'law_44' => true,
         'stage_application' => true,
@@ -231,7 +233,13 @@ it('applies verified EIS filters when it builds an automatic RSS search', functi
         'published_to' => '2026-08-27',
     ])
         ->assertOk()
-        ->assertJsonPath('preview.items_seen', 1);
+        ->assertJsonPath('preview.items_seen', 1)
+        ->assertJsonPath('tenders.0.match_reason.mode', 'any')
+        ->assertJsonPath('tenders.0.match_reason.matched_terms.0', 'поддержка')
+        ->assertJsonPath(
+            'tenders.0.match_reason.minus_keywords_checked.0',
+            'строительство',
+        );
 
     Http::assertSent(function ($request): bool {
         parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $parameters);
@@ -313,7 +321,9 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
     $this->postJson('/queries', [
         'name' => 'Разработка сайта',
         'keywords' => ['разработка', 'сайта'],
+        'minus_keywords' => ['строительство', 'бумажная продукция'],
         'filters' => [
+            'relevance' => ['match_mode' => 'exact'],
             'source' => [
                 'law_44' => true,
                 'law_223' => false,
@@ -332,6 +342,8 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
         ],
     ])
         ->assertCreated()
+        ->assertJsonPath('query.minus_keywords.0', 'строительство')
+        ->assertJsonPath('query.filters.relevance.match_mode', 'exact')
         ->assertJsonPath('query.filters.source.law_44', true)
         ->assertJsonPath('query.filters.source.stage_application', true)
         ->assertJsonPath('query.filters.source.stage_completed', false)
@@ -344,6 +356,8 @@ it('saves and returns EIS conditions with a local MVP saved search', function ()
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('savedSearches.0.name', 'Разработка сайта')
+            ->where('savedSearches.0.minus_keywords.1', 'бумажная продукция')
+            ->where('savedSearches.0.filters.relevance.match_mode', 'exact')
             ->where('savedSearches.0.filters.source.law_44', true)
             ->where('savedSearches.0.filters.source.stage_commission', true)
             ->where('savedSearches.0.filters.source.smp_sono', true)
@@ -369,7 +383,9 @@ it('runs a saved EIS search with all stored conditions and records its latest re
     $queryId = $this->postJson('/queries', [
         'name' => 'Сайты по 44-ФЗ',
         'keywords' => ['поддержка', 'сайта'],
+        'minus_keywords' => ['строительство'],
         'filters' => [
+            'relevance' => ['match_mode' => 'any'],
             'source' => [
                 'law_44' => true,
                 'stage_application' => true,
@@ -394,10 +410,14 @@ it('runs a saved EIS search with all stored conditions and records its latest re
         ->assertOk()
         ->assertJsonPath('query.name', 'Сайты по 44-ФЗ')
         ->assertJsonPath('query.phrase', 'поддержка сайта')
+        ->assertJsonPath('query.minus_keywords.0', 'строительство')
+        ->assertJsonPath('query.filters.relevance.match_mode', 'any')
         ->assertJsonPath('query.last_run.items_seen', 1)
         ->assertJsonPath('query.last_run.items_matched', 1)
         ->assertJsonPath('query.last_run.pages_loaded', 1)
         ->assertJsonPath('preview.items_matched', 1)
+        ->assertJsonPath('tenders.0.match_reason.mode', 'any')
+        ->assertJsonPath('tenders.0.match_reason.minus_keywords_checked.0', 'строительство')
         ->assertJsonCount(1, 'tenders');
 
     $this->assertDatabaseHas('local_mvp_search_snapshots', [
@@ -429,7 +449,10 @@ it('runs a saved EIS search with all stored conditions and records its latest re
         ->assertInertia(fn (Assert $page) => $page
             ->where('savedSearches.0.id', $queryId)
             ->where('savedSearches.0.last_run.items_matched', 1)
-            ->where('currentSearch.query', 'поддержка сайта'));
+            ->where('currentSearch.query', 'поддержка сайта')
+            ->where('currentSearch.matchMode', 'any')
+            ->where('currentSearch.minusKeywords.0', 'строительство')
+            ->where('currentTenders.0.match_reason.mode', 'any'));
 });
 
 it('does not let another super admin run someone elses saved search', function () {

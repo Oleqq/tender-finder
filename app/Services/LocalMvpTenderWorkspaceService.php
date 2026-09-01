@@ -18,10 +18,15 @@ class LocalMvpTenderWorkspaceService
 
     /** @return list<array<string, mixed>> */
     /** @param list<string> $externalIds
+     * @param  array<string, array{mode: string, matched_terms: list<string>, minus_keywords_checked: list<string>}>  $matchReasonsByExternalId
      * @return list<array<string, mixed>>
      */
-    public function tendersForSourceExternalIds(User $user, string $source, array $externalIds): array
-    {
+    public function tendersForSourceExternalIds(
+        User $user,
+        string $source,
+        array $externalIds,
+        array $matchReasonsByExternalId = [],
+    ): array {
         if (! in_array($source, self::LOCAL_MVP_SOURCES, true) || $externalIds === []) {
             return [];
         }
@@ -32,15 +37,22 @@ class LocalMvpTenderWorkspaceService
             ->orderByDesc('published_at')
             ->latest('id')
             ->get()
-            ->map(fn (Tender $tender): array => $this->tenderDto($tender))
+            ->map(fn (Tender $tender): array => $this->tenderDto(
+                $tender,
+                $matchReasonsByExternalId[$tender->external_id] ?? null,
+            ))
             ->all();
     }
 
     /** @param list<int> $tenderIds
+     * @param  array<int, array{mode: string, matched_terms: list<string>, minus_keywords_checked: list<string>}>  $matchReasonsByTenderId
      * @return list<array<string, mixed>>
      */
-    public function tendersForIds(User $user, array $tenderIds): array
-    {
+    public function tendersForIds(
+        User $user,
+        array $tenderIds,
+        array $matchReasonsByTenderId = [],
+    ): array {
         $tenderIds = array_values(array_unique(array_filter(
             $tenderIds,
             fn (int $id): bool => $id > 0,
@@ -65,15 +77,22 @@ class LocalMvpTenderWorkspaceService
             ->orderByDesc('published_at')
             ->latest('id')
             ->get()
-            ->map(fn (Tender $tender): array => $this->tenderDto($tender))
+            ->map(fn (Tender $tender): array => $this->tenderDto(
+                $tender,
+                $matchReasonsByTenderId[$tender->id] ?? null,
+            ))
             ->all();
     }
 
     /** @param list<int> $tenderIds
+     * @param  array<int, array{mode: string, matched_terms: list<string>, minus_keywords_checked: list<string>}>  $matchReasonsByTenderId
      * @return list<array<string, mixed>>
      */
-    public function historyTendersFor(User $user, array $tenderIds): array
-    {
+    public function historyTendersFor(
+        User $user,
+        array $tenderIds,
+        array $matchReasonsByTenderId = [],
+    ): array {
         $tenderIds = array_values(array_unique(array_filter(
             $tenderIds,
             fn (int $id): bool => $id > 0,
@@ -89,7 +108,10 @@ class LocalMvpTenderWorkspaceService
             ->latest('id')
             ->limit(60)
             ->get()
-            ->map(fn (Tender $tender): array => $this->tenderDto($tender))
+            ->map(fn (Tender $tender): array => $this->tenderDto(
+                $tender,
+                $matchReasonsByTenderId[$tender->id] ?? null,
+            ))
             ->all();
     }
 
@@ -128,12 +150,17 @@ class LocalMvpTenderWorkspaceService
             }
         });
 
+        $matchReasons = $this->snapshots->matchReasonsFor($this->snapshots->currentFor($user));
+
         return $this->tenderQueryFor($user)
             ->whereKey($tenderIds)
             ->orderByDesc('published_at')
             ->latest('id')
             ->get()
-            ->map(fn (Tender $tender): array => $this->tenderDto($tender))
+            ->map(fn (Tender $tender): array => $this->tenderDto(
+                $tender,
+                $matchReasons[$tender->id] ?? null,
+            ))
             ->values()
             ->all();
     }
@@ -177,8 +204,10 @@ class LocalMvpTenderWorkspaceService
         /** @var array<string, mixed> $metadata */
         $metadata = is_array($rawMetadata) ? $rawMetadata : [];
 
+        $matchReasons = $this->snapshots->matchReasonsFor($this->snapshots->currentFor($user));
+
         return [
-            ...$this->tenderDto($tender),
+            ...$this->tenderDto($tender, $matchReasons[$tender->id] ?? null),
             'reg_number' => $tender->reg_number,
             'customer' => $this->nullableMetadataText($metadata['customer'] ?? null),
             'category' => $this->nullableMetadataText($metadata['category'] ?? null),
@@ -202,7 +231,11 @@ class LocalMvpTenderWorkspaceService
     }
 
     /** @return array<string, mixed> */
-    private function tenderDto(Tender $tender): array
+    /**
+     * @param  array{mode: string, matched_terms: list<string>, minus_keywords_checked: list<string>}|null  $matchReason
+     * @return array<string, mixed>
+     */
+    private function tenderDto(Tender $tender, ?array $matchReason = null): array
     {
         $state = $tender->userStates->first();
         /** @var mixed $rawMetadata */
@@ -225,6 +258,7 @@ class LocalMvpTenderWorkspaceService
             'procurement_law' => $this->nullableMetadataText($metadata['procurement_law'] ?? null),
             'canonical_url' => $tender->canonical_url,
             'status' => $state?->status->value ?? TenderUserStatus::New->value,
+            'match_reason' => $matchReason,
         ];
     }
 

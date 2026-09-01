@@ -6,6 +6,7 @@ use App\Enums\QueryStatus;
 use App\Models\SearchQuery;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
+use App\Tenders\EisRssMatchMode;
 
 class TenderMatchingService
 {
@@ -13,9 +14,22 @@ class TenderMatchingService
     {
         $haystack = $this->lower($tender->title.' '.$tender->description);
         $keywords = array_filter($query->keywords ?? [], 'is_string');
-        $missingKeywords = array_values(array_filter($keywords, fn (string $keyword): bool => ! str_contains($haystack, $this->lower($keyword))));
+        $mode = $this->matchMode($query);
+        $matchedKeywords = array_values(array_filter(
+            $keywords,
+            fn (string $keyword): bool => str_contains($haystack, $this->lower($keyword)),
+        ));
+        $missingKeywords = array_values(array_diff($keywords, $matchedKeywords));
+        $matchesKeywords = match ($mode) {
+            EisRssMatchMode::All => $missingKeywords === [],
+            EisRssMatchMode::Any => $matchedKeywords !== [],
+            EisRssMatchMode::Exact => str_contains(
+                $haystack,
+                $this->lower(implode(' ', $keywords)),
+            ),
+        };
 
-        if ($missingKeywords !== []) {
+        if (! $matchesKeywords) {
             return new TenderMatchResult(false, ['excluded_by' => 'keyword', 'missing_keywords' => $missingKeywords]);
         }
 
@@ -26,7 +40,10 @@ class TenderMatchingService
             return new TenderMatchResult(false, ['excluded_by' => 'minus_keyword', 'matched_minus_keywords' => $matchedMinusKeywords]);
         }
 
-        $reasons = ['keywords' => array_values($keywords)];
+        $reasons = [
+            'keywords' => $mode === EisRssMatchMode::Any ? $matchedKeywords : array_values($keywords),
+            'match_mode' => $mode->value,
+        ];
 
         if ($query->region !== null) {
             if ($tender->region !== null && $this->lower($query->region) !== $this->lower($tender->region)) {
@@ -94,5 +111,16 @@ class TenderMatchingService
     private function lower(?string $value): string
     {
         return mb_strtolower($value ?? '');
+    }
+
+    private function matchMode(SearchQuery $query): EisRssMatchMode
+    {
+        $filters = is_array($query->filters) ? $query->filters : [];
+        $relevance = is_array($filters['relevance'] ?? null) ? $filters['relevance'] : [];
+        $value = is_string($relevance['match_mode'] ?? null)
+            ? $relevance['match_mode']
+            : '';
+
+        return EisRssMatchMode::tryFrom($value) ?? EisRssMatchMode::All;
     }
 }

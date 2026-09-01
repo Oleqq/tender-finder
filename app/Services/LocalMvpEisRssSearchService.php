@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SearchQuery;
 use App\Models\User;
+use App\Tenders\EisRssRelevanceCriteria;
 use App\Tenders\EisRssSearchCriteria;
 use App\Tenders\EisRssSearchUrlFactory;
 
@@ -18,7 +19,7 @@ final class LocalMvpEisRssSearchService
 
     public function run(
         User $user,
-        string $phrase,
+        EisRssRelevanceCriteria $relevance,
         ?string $rssUrl,
         int $pages,
         EisRssSearchCriteria $criteria,
@@ -26,20 +27,25 @@ final class LocalMvpEisRssSearchService
     ): LocalMvpEisRssSearchResult {
         $url = $rssUrl !== null && trim($rssUrl) !== ''
             ? trim($rssUrl)
-            : $this->searchUrls->forPhrase($phrase, $criteria);
+            : $this->searchUrls->forPhrase($relevance->phrase, $criteria);
 
-        $preview = $this->importer->import($url, $phrase, $pages);
+        $preview = $this->importer->import($url, $relevance, $pages);
         $tenders = $this->workspace->tendersForSourceExternalIds(
             $user,
             'eis_rss',
             $preview->externalIds,
+            $preview->matchReasonsByExternalId,
         );
 
         $this->snapshots->remember(
             $user,
-            $phrase,
+            $relevance->phrase,
             $preview,
-            array_map(fn (array $tender): int => $tender['id'], $tenders),
+            $tenders,
+            [
+                'match_mode' => $relevance->matchMode->value,
+                'minus_keywords' => $relevance->minusKeywords,
+            ],
             $savedQuery,
         );
 

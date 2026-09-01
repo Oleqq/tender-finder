@@ -15,6 +15,17 @@ import type { PageProps } from '../types';
 type TenderStatus = 'new' | 'favorite' | 'potential' | 'dismissed' | 'archived';
 type TenderView = 'inbox' | 'favorite' | 'potential' | 'dismissed' | 'archived';
 type TenderCollection = 'current' | 'history';
+type SearchMatchMode = 'all' | 'any' | 'exact';
+
+type SavedRelevanceFilters = {
+    match_mode?: SearchMatchMode;
+};
+
+type TenderMatchReason = {
+    mode: SearchMatchMode;
+    matched_terms: string[];
+    minus_keywords_checked: string[];
+};
 
 type SavedSourceFilters = {
     law_44?: boolean;
@@ -81,6 +92,7 @@ type TenderDto = {
     procurement_law: string | null;
     canonical_url: string;
     status: TenderStatus;
+    match_reason: TenderMatchReason | null;
 };
 
 type SavedSearchDto = {
@@ -88,7 +100,11 @@ type SavedSearchDto = {
     name: string;
     phrase: string;
     keywords: string[];
-    filters: { source?: SavedSourceFilters } | null;
+    minus_keywords: string[] | null;
+    filters: {
+        source?: SavedSourceFilters;
+        relevance?: SavedRelevanceFilters;
+    } | null;
     last_run_at: string | null;
     last_run: PreviewResponse['preview'] | null;
 };
@@ -124,6 +140,8 @@ type SearchContext = {
     pagesRequested: number;
     pagesLoaded: number;
     partiallyLoaded: boolean;
+    matchMode: SearchMatchMode;
+    minusKeywords: string[];
 };
 
 export default function MvpWorkspace() {
@@ -140,6 +158,8 @@ export default function MvpWorkspace() {
     const [savedSearches, setSavedSearches] =
         useState<SavedSearchDto[]>(initialSavedSearches);
     const [searchPhrase, setSearchPhrase] = useState('');
+    const [searchMatchMode, setSearchMatchMode] = useState<SearchMatchMode>('all');
+    const [searchMinusKeywords, setSearchMinusKeywords] = useState('');
     const [rssUrl, setRssUrl] = useState('');
     const [searchPages, setSearchPages] = useState('3');
     const [searchLaw44, setSearchLaw44] = useState(false);
@@ -240,6 +260,7 @@ export default function MvpWorkspace() {
     const acceptSearchResult = (
         response: PreviewResponse,
         query: string,
+        relevance: { matchMode: SearchMatchMode; minusKeywords: string[] },
         noticePrefix = '',
     ): void => {
         setCurrentTenders(response.tenders);
@@ -252,6 +273,8 @@ export default function MvpWorkspace() {
             pagesRequested: response.preview.pages_requested,
             pagesLoaded: response.preview.pages_loaded,
             partiallyLoaded: response.preview.partially_loaded,
+            matchMode: relevance.matchMode,
+            minusKeywords: relevance.minusKeywords,
         });
         setCollection('current');
         setView('inbox');
@@ -266,6 +289,7 @@ export default function MvpWorkspace() {
         event.preventDefault();
         const query = searchPhrase.trim();
         const url = rssUrl.trim();
+        const minusKeywords = parseMinusKeywords(searchMinusKeywords);
 
         if (query.length < 2) {
             setSearchError('Назовите поиск хотя бы двумя символами.');
@@ -274,6 +298,14 @@ export default function MvpWorkspace() {
 
         if (!url && !Object.values(searchStages).some(Boolean)) {
             setSearchError('Выберите хотя бы один этап закупки.');
+            return;
+        }
+
+        if (
+            minusKeywords.length > 20 ||
+            minusKeywords.some((keyword) => keyword.length > 100)
+        ) {
+            setSearchError('Укажите не более 20 исключений, каждое — до 100 символов.');
             return;
         }
 
@@ -287,6 +319,8 @@ export default function MvpWorkspace() {
                 '/local/mvp/eis-rss-preview',
                 {
                     query,
+                    match_mode: searchMatchMode,
+                    minus_keywords: minusKeywords,
                     url: url || undefined,
                     pages: Number(searchPages),
                     law_44: !url && searchLaw44 ? true : undefined,
@@ -316,7 +350,10 @@ export default function MvpWorkspace() {
                     published_to: !url ? searchPublishedTo || undefined : undefined,
                 },
             );
-            acceptSearchResult(response.data, query);
+            acceptSearchResult(response.data, query, {
+                matchMode: searchMatchMode,
+                minusKeywords,
+            });
         } catch (error) {
             setSearchError(
                 requestErrorMessage(
@@ -408,9 +445,18 @@ export default function MvpWorkspace() {
             .map((keyword) => keyword.trim())
             .filter(Boolean)
             .slice(0, 20);
+        const minusKeywords = parseMinusKeywords(searchMinusKeywords);
 
         if (keywords.length === 0) {
             setActionError('Сначала введите фразу, которую нужно сохранить.');
+            return;
+        }
+
+        if (
+            minusKeywords.length > 20 ||
+            minusKeywords.some((keyword) => keyword.length > 100)
+        ) {
+            setActionError('Укажите не более 20 исключений, каждое — до 100 символов.');
             return;
         }
 
@@ -421,13 +467,14 @@ export default function MvpWorkspace() {
             const response = await window.axios.post<SearchResponse>('/queries', {
                 name: savedSearchName.trim() || phrase,
                 keywords,
-                minus_keywords: [],
+                minus_keywords: minusKeywords,
                 region: null,
                 budget_min: null,
                 budget_max: null,
                 deadline_from: null,
                 deadline_to: null,
                 filters: {
+                    relevance: { match_mode: searchMatchMode },
                     source: savedSourceFilters({
                         law44: searchLaw44,
                         law223: searchLaw223,
@@ -444,9 +491,12 @@ export default function MvpWorkspace() {
             });
             setSavedSearches((current) => [response.data.query, ...current]);
             setSavedSearchName('');
-        } catch {
+        } catch (error) {
             setActionError(
-                'Не удалось сохранить поиск. Тендеры и их статусы не изменены.',
+                requestErrorMessage(
+                    error,
+                    'Не удалось сохранить поиск. Тендеры и их статусы не изменены.',
+                ),
             );
         } finally {
             setIsSavingSearch(false);
@@ -457,6 +507,8 @@ export default function MvpWorkspace() {
         const source = savedSearch.filters?.source;
 
         setSearchPhrase(savedSearch.phrase);
+        setSearchMatchMode(savedSearchMatchMode(savedSearch.filters?.relevance));
+        setSearchMinusKeywords((savedSearch.minus_keywords ?? []).join(', '));
         setSearchLaw44(Boolean(source?.law_44));
         setSearchLaw223(Boolean(source?.law_223));
         setSearchStages(savedSearchStages(source));
@@ -499,6 +551,12 @@ export default function MvpWorkspace() {
             acceptSearchResult(
                 response.data,
                 response.data.query.phrase,
+                {
+                    matchMode: savedSearchMatchMode(
+                        response.data.query.filters?.relevance,
+                    ),
+                    minusKeywords: response.data.query.minus_keywords ?? [],
+                },
                 `Запрос «${response.data.query.name}» выполнен. `,
             );
         } catch (error) {
@@ -578,6 +636,38 @@ export default function MvpWorkspace() {
                                 value={searchPhrase}
                             />
                         </label>
+                        <div className="mvp-workspace__relevance-grid">
+                            <label className="form-field">
+                                <span>Как сопоставлять фразу</span>
+                                <select
+                                    onChange={(event) =>
+                                        setSearchMatchMode(
+                                            event.target.value as SearchMatchMode,
+                                        )
+                                    }
+                                    value={searchMatchMode}
+                                >
+                                    <option value="all">Все слова</option>
+                                    <option value="any">Любое слово</option>
+                                    <option value="exact">Точная фраза</option>
+                                </select>
+                            </label>
+                            <label className="form-field">
+                                <span>Исключить слова или фразы</span>
+                                <input
+                                    maxLength={1000}
+                                    onChange={(event) =>
+                                        setSearchMinusKeywords(event.target.value)
+                                    }
+                                    placeholder="например, строительство, бумажная продукция"
+                                    value={searchMinusKeywords}
+                                />
+                                <small>
+                                    Разделяйте запятыми. Проверка выполняется по
+                                    предмету закупки после ответа ЕИС.
+                                </small>
+                            </label>
+                        </div>
                         <label className="form-field">
                             <span>Глубина поиска</span>
                             <select
@@ -1115,9 +1205,7 @@ export default function MvpWorkspace() {
                                         <strong>{savedSearch.name}</strong>
                                         <span>{savedSearch.phrase}</span>
                                         <span>
-                                            {savedSearchFilterLabel(
-                                                savedSearch.filters?.source,
-                                            )}
+                                            {savedSearchFilterLabel(savedSearch)}
                                         </span>
                                         <span>{savedSearchRunLabel(savedSearch)}</span>
                                     </div>
@@ -1226,6 +1314,18 @@ function TenderWorkspaceCard({
             ) : null}
             {tender.description ? (
                 <p className="mvp-tender-card__description">{tender.description}</p>
+            ) : null}
+            {tender.match_reason ? (
+                <div className="mvp-tender-card__match-reason">
+                    <strong>Почему в выдаче</strong>
+                    <span>{matchReasonLabel(tender.match_reason)}</span>
+                    {tender.match_reason.minus_keywords_checked.length > 0 ? (
+                        <span>
+                            Исключения не найдены:{' '}
+                            {tender.match_reason.minus_keywords_checked.join(', ')}
+                        </span>
+                    ) : null}
+                </div>
             ) : null}
             <div className="mvp-tender-card__meta">
                 <strong>{formatBudget(tender.budget_amount, tender.currency)}</strong>
@@ -1415,16 +1515,24 @@ function savedSearchStages(source?: SavedSourceFilters): SearchStages {
     };
 }
 
-function savedSearchFilterLabel(source?: SavedSourceFilters): string {
+function savedSearchFilterLabel(savedSearch: SavedSearchDto): string {
+    const source = savedSearch.filters?.source;
+    const mode = savedSearchMatchMode(savedSearch.filters?.relevance);
+    const parts: string[] = [matchModeLabel(mode)];
+
+    if ((savedSearch.minus_keywords ?? []).length > 0) {
+        parts.push(`Исключений: ${savedSearch.minus_keywords?.length ?? 0}`);
+    }
+
     if (!source) {
-        return 'Без сохранённых условий ЕИС';
+        return parts.join(' · ');
     }
 
     if (source.rss_url) {
-        return `Ручная RSS-ссылка ЕИС · до ${source.pages ?? 3} стр.`;
-    }
+        parts.push(`Ручная RSS-ссылка ЕИС · до ${source.pages ?? 3} стр.`);
 
-    const parts: string[] = [];
+        return parts.join(' · ');
+    }
 
     if (source.law_44) {
         parts.push('44-ФЗ');
@@ -1480,6 +1588,44 @@ function savedSearchFilterLabel(source?: SavedSourceFilters): string {
     return parts.join(' · ');
 }
 
+function savedSearchMatchMode(relevance?: SavedRelevanceFilters): SearchMatchMode {
+    return relevance?.match_mode === 'any' || relevance?.match_mode === 'exact'
+        ? relevance.match_mode
+        : 'all';
+}
+
+function matchModeLabel(mode: SearchMatchMode): string {
+    return {
+        all: 'Все слова',
+        any: 'Любое слово',
+        exact: 'Точная фраза',
+    }[mode];
+}
+
+function parseMinusKeywords(value: string): string[] {
+    const unique = new Map<string, string>();
+
+    value
+        .split(/[,;\n]+/)
+        .map((keyword) => keyword.trim())
+        .filter(Boolean)
+        .forEach((keyword) => {
+            unique.set(keyword.toLocaleLowerCase('ru-RU'), keyword);
+        });
+
+    return [...unique.values()];
+}
+
+function matchReasonLabel(reason: TenderMatchReason): string {
+    const terms = reason.matched_terms.join(', ');
+
+    return reason.mode === 'exact'
+        ? `Найдена точная фраза: «${terms}»`
+        : reason.mode === 'any'
+          ? `Совпало хотя бы одно слово: ${terms}`
+          : `Совпали все слова: ${terms}`;
+}
+
 function savedSearchRunLabel(savedSearch: SavedSearchDto): string {
     if (!savedSearch.last_run_at || !savedSearch.last_run) {
         return 'Ещё не запускался';
@@ -1521,7 +1667,7 @@ function getEmptyState({
                 searchContext.itemsSeen === 0
                     ? `На ${searchContext.pagesLoaded} RSS-страницах ЕИС пока нет карточек. Измените фильтры в расширенном поиске ЕИС или откройте историю прошлых проверок.`
                     : searchContext.itemsMatched === 0
-                      ? `ЕИС вернула ${searchContext.itemsSeen}, но ни одна карточка не содержит все слова запроса в предмете закупки.`
+                      ? noRelevantTenderDescription(searchContext)
                       : `ЕИС отобрала ${searchContext.itemsMatched}, но карточки не удалось показать. Повторите загрузку позже.`,
         };
     }
@@ -1575,6 +1721,21 @@ function rssImportNotice(preview: PreviewResponse['preview']): string {
     return `${pages} ЕИС вернула: ${preview.items_seen}. По предмету закупки подходят: ${preview.items_matched}. Новых карточек в локальной базе: ${preview.items_created}.${partial}`;
 }
 
+function noRelevantTenderDescription(searchContext: SearchContext): string {
+    const rule =
+        searchContext.matchMode === 'exact'
+            ? 'не содержит точной фразы'
+            : searchContext.matchMode === 'any'
+              ? 'не содержит ни одного слова запроса'
+              : 'не содержит всех слов запроса';
+    const exclusions =
+        searchContext.minusKeywords.length > 0
+            ? ' или содержит одно из заданных исключений'
+            : '';
+
+    return `ЕИС вернула ${searchContext.itemsSeen}, но каждая карточка ${rule}${exclusions} в предмете закупки.`;
+}
+
 function requestErrorMessage(error: unknown, fallback: string): string {
     const response = (
         error as {
@@ -1586,14 +1747,18 @@ function requestErrorMessage(error: unknown, fallback: string): string {
             };
         }
     ).response;
+    const errors = response?.data?.errors;
     const fieldMessage =
-        response?.data?.errors?.query?.[0] ??
-        response?.data?.errors?.url?.[0] ??
-        response?.data?.errors?.pages?.[0] ??
-        response?.data?.errors?.budget_from?.[0] ??
-        response?.data?.errors?.budget_to?.[0] ??
-        response?.data?.errors?.published_from?.[0] ??
-        response?.data?.errors?.published_to?.[0];
+        errors?.query?.[0] ??
+        errors?.match_mode?.[0] ??
+        errors?.minus_keywords?.[0] ??
+        errors?.url?.[0] ??
+        errors?.pages?.[0] ??
+        errors?.budget_from?.[0] ??
+        errors?.budget_to?.[0] ??
+        errors?.published_from?.[0] ??
+        errors?.published_to?.[0] ??
+        Object.values(errors ?? {}).flat()[0];
 
     if (typeof fieldMessage === 'string' && fieldMessage.trim() !== '') {
         return fieldMessage;

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\LocalMvpEisRssSearchService;
 use App\Services\LocalMvpOperatorService;
+use App\Tenders\EisRssMatchMode;
+use App\Tenders\EisRssRelevanceCriteria;
 use App\Tenders\EisRssSearchCriteria;
 use App\Tenders\RssSourceException;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +24,9 @@ class LocalMvpEisRssPreviewController extends Controller
 
         $attributes = $request->validate([
             'query' => ['required', 'string', 'min:2', 'max:120'],
+            'match_mode' => ['nullable', 'string', 'in:all,any,exact'],
+            'minus_keywords' => ['nullable', 'array', 'max:20'],
+            'minus_keywords.*' => ['required', 'string', 'max:100', 'distinct'],
             'url' => ['nullable', 'string', 'max:2000'],
             'pages' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('tender.rss.manual_search_max_pages', 3))],
             'law_44' => ['nullable', 'boolean'],
@@ -43,6 +48,12 @@ class LocalMvpEisRssPreviewController extends Controller
 
         $this->validateRanges($attributes);
         $this->validateStages($attributes);
+        $relevance = new EisRssRelevanceCriteria(
+            phrase: $attributes['query'],
+            matchMode: EisRssMatchMode::tryFrom($attributes['match_mode'] ?? '')
+                ?? EisRssMatchMode::All,
+            minusKeywords: $this->minusKeywords($attributes['minus_keywords'] ?? []),
+        );
         $criteria = new EisRssSearchCriteria(
             law44: (bool) ($attributes['law_44'] ?? false),
             law223: (bool) ($attributes['law_223'] ?? false),
@@ -67,7 +78,7 @@ class LocalMvpEisRssPreviewController extends Controller
         try {
             $result = $search->run(
                 $request->user(),
-                $attributes['query'],
+                $relevance,
                 $attributes['url'] ?? null,
                 $pages,
                 $criteria,
@@ -126,6 +137,19 @@ class LocalMvpEisRssPreviewController extends Controller
         }
 
         return (float) str_replace(',', '.', $value);
+    }
+
+    /** @return list<string> */
+    private function minusKeywords(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn (mixed $keyword): string => is_string($keyword) ? trim($keyword) : '',
+            $value,
+        )));
     }
 
     /** @param array<string, mixed> $attributes */

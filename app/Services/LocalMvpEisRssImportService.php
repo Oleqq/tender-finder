@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SourceFeed;
 use App\Tenders\EisRssQueryRelevanceFilter;
+use App\Tenders\EisRssRelevanceCriteria;
 use App\Tenders\EisRssSource;
 use App\Tenders\EisRssUrlValidator;
 use App\Tenders\RssSourceException;
@@ -18,8 +19,11 @@ final class LocalMvpEisRssImportService
         private readonly TenderSourceImportService $importer,
     ) {}
 
-    public function import(string $url, string $query, int $pages = 1): LocalMvpEisRssImportResult
-    {
+    public function import(
+        string $url,
+        EisRssRelevanceCriteria $criteria,
+        int $pages = 1,
+    ): LocalMvpEisRssImportResult {
         $canonicalUrl = $this->urls->canonicalFeedUrl($url);
         $pages = min(
             max(1, $pages),
@@ -31,6 +35,7 @@ final class LocalMvpEisRssImportService
         $pagesLoaded = 0;
         $partiallyLoaded = false;
         $externalIds = [];
+        $matchReasonsByExternalId = [];
         $seenExternalIds = [];
 
         foreach ($this->pageUrls($canonicalUrl, $pages) as $pageUrl) {
@@ -53,8 +58,9 @@ final class LocalMvpEisRssImportService
 
             $pagesLoaded++;
             $itemsSeen += count($result->items);
+            $relevance = $this->relevance->filter($result->items, $criteria);
             $matchingItems = array_values(array_filter(
-                $this->relevance->filter($result->items, $query),
+                $relevance->items,
                 function ($item) use (&$seenExternalIds): bool {
                     if (isset($seenExternalIds[$item->externalId])) {
                         return false;
@@ -77,6 +83,9 @@ final class LocalMvpEisRssImportService
                 ...$externalIds,
                 ...array_map(fn ($item): string => $item->externalId, $matchingItems),
             ];
+            foreach ($matchingItems as $item) {
+                $matchReasonsByExternalId[$item->externalId] = $relevance->reasonsByExternalId[$item->externalId];
+            }
 
             if ($result->items === []) {
                 break;
@@ -91,6 +100,7 @@ final class LocalMvpEisRssImportService
             pagesLoaded: $pagesLoaded,
             partiallyLoaded: $partiallyLoaded,
             externalIds: array_values(array_unique($externalIds)),
+            matchReasonsByExternalId: $matchReasonsByExternalId,
         );
     }
 

@@ -6,6 +6,7 @@ final readonly class LocalMvpEisRssImportResult
 {
     /**
      * @param  list<string>  $externalIds
+     * @param  array<string, array{mode: string, matched_terms: list<string>, minus_keywords_checked: list<string>}>  $matchReasonsByExternalId
      */
     public function __construct(
         public int $itemsSeen,
@@ -15,5 +16,6 @@ final readonly class LocalMvpEisRssImportResult
         public int $pagesLoaded,
         public bool $partiallyLoaded,
         public array $externalIds,
+        public array $matchReasonsByExternalId,
     ) {}
 }
