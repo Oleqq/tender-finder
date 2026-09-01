@@ -55,7 +55,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/mvp/workspace', [MvpWorkspaceController::class, 'show'])
         ->middleware('super_admin')
         ->name('mvp.workspace');
-    Route::get('/operations-demo', [OperationsDashboardController::class, 'show'])
+    Route::get('/operations', [OperationsDashboardController::class, 'show'])
+        ->middleware('super_admin')
+        ->name('operations.dashboard');
+    Route::redirect('/operations-demo', '/operations')
+        ->middleware('super_admin')
         ->name('operations.demo');
     Route::get('/queries', [SearchQueryController::class, 'index'])->name('queries.index');
     Route::post('/queries', [SearchQueryController::class, 'store'])->name('queries.store');

@@ -106,14 +106,14 @@ export default function Profile() {
                 </section>
                 <GlassCard className="profile-admin-demo" tone="quiet">
                     <span>
-                        <Icon name="shield" size={18} /> Shell для super_admin
+                        <Icon name="shield" size={18} /> Пространство владельца
                     </span>
                     <p>
-                        Read-only demo будущих Overview и Live Ops. Это не даёт
-                        административный доступ.
+                        Сводная аналитика аудитории, trial и доступа без персональных
+                        данных.
                     </p>
-                    <Link href="/operations-demo">
-                        Открыть demo-экран <Icon name="chevron-right" size={16} />
+                    <Link href="/operations">
+                        Открыть аналитику <Icon name="chevron-right" size={16} />
                     </Link>
                 </GlassCard>
                 <Button
