@@ -74,6 +74,11 @@ vendor/bin/pint --test
 vendor/bin/phpstan analyse --memory-limit=1G
 ```
 
+Laravel-тесты запускаются только через отдельный Compose-сервис `test` с
+SQLite `:memory:`. GitHub Actions использует отдельную PostgreSQL-базу
+`tender_finder_testing`. Встроенный fail-safe останавливает suite до миграций,
+если окружение не `testing` или PostgreSQL-база не имеет суффикса `_testing`.
+
 Перед работой со следующей функцией сначала обновляйте
 [CURRENT-STATE.md](CURRENT-STATE.md), а историческое
 [ТЗ](ТЗ%20бот%20тг%2Bподписка.md) не используйте как статус выполненных работ.

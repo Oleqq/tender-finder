@@ -42,6 +42,13 @@ if [ "$(id -u)" = "0" ]; then
         chown www-data:www-data "$owner_marker"
     fi
 
+    # A previously executed root-level test command may leave Pest's cache
+    # unwritable for the isolated test service. Repair only that disposable
+    # directory instead of traversing the whole vendor volume on every start.
+    if [ -d "vendor/pestphp/pest/.temp" ]; then
+        chown -R www-data:www-data vendor/pestphp/pest/.temp
+    fi
+
     exec su-exec www-data "$0" "$@"
 fi
 

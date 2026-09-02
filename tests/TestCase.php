@@ -16,13 +16,20 @@ abstract class TestCase extends BaseTestCase
         $sqliteDatabase = is_array($database)
             ? $database['connections']['sqlite']['database'] ?? null
             : null;
+        $postgresDatabase = is_array($database)
+            ? $database['connections']['pgsql']['database'] ?? null
+            : null;
+        $usesInMemorySqlite = $defaultConnection === 'sqlite'
+            && $sqliteDatabase === ':memory:';
+        $usesDedicatedTestingPostgres = $defaultConnection === 'pgsql'
+            && is_string($postgresDatabase)
+            && str_ends_with(strtolower($postgresDatabase), '_testing');
 
         if (! $application->environment('testing')
-            || $defaultConnection !== 'sqlite'
-            || $sqliteDatabase !== ':memory:'
+            || (! $usesInMemorySqlite && ! $usesDedicatedTestingPostgres)
         ) {
             throw new RuntimeException(
-                'Tests must run only with APP_ENV=testing and an in-memory SQLite database.',
+                'Tests require APP_ENV=testing and either SQLite :memory: or a dedicated PostgreSQL database ending in _testing.',
             );
         }
 

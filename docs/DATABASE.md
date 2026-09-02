@@ -128,8 +128,10 @@ Railway scheduler service, а не HTTP-процессом web-приложен�
 В JSONB PostgreSQL будут естественно храниться `keywords`/safe filters,
 `match_reasons` и небольшие metadata. Это не «свалка»: поиск, ownership,
 статусы, даты, денежные значения и связи остаются отдельными колонками для
-индексов и проверок. В SQLite-тестах те же поля представлены JSON, поэтому
-migrations проверяются локально; production contract — PostgreSQL 16.
+индексов и проверок. Локальный Compose-сервис тестов использует SQLite
+`:memory:`, а GitHub Actions проверяет migrations на выделенной PostgreSQL
+`tender_finder_testing`. Production contract — PostgreSQL 16; тестовый
+fail-safe не допускает запуск suite на постоянной dev-базе.
 
 ### Состояния
 

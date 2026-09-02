@@ -136,11 +136,15 @@ CAPTCHA, cookies и proxy-rotation запрещены.
 
 - PHP 8.3 + Laravel 12; React + TypeScript + Vite + Inertia.
 - Docker local: `web`, `queue`, `scheduler`, PostgreSQL, Redis и Vite.
-- `php artisan test`: сценарии фильтров ЕИС, дедупликации, ошибочных
-  диапазонов, обогащения, заметок/тегов, выгрузки, сохранения личной истории,
-  локального full-access режима и закрытой маркетинговой аналитики;
-- PHPStan, TypeScript typecheck, ESLint и production-сборка frontend прошли;
-  для добавленных PHP-файлов пройдена проверка форматирования.
+- `make test`: 86 тестов, 742 проверки на 2 сентября 2026 года; suite работает
+  локально в отдельном Compose-сервисе с SQLite `:memory:`, а в CI — на
+  выделенной PostgreSQL `tender_finder_testing`; fail-safe блокирует постоянную
+  dev-базу;
+  в нём есть сценарии фильтров ЕИС, дедупликации, ошибочных диапазонов,
+  обогащения, заметок/тегов, выгрузки, сохранения личной истории, локального
+  full-access режима и закрытой маркетинговой аналитики.
+- PHPStan, Pint, TypeScript typecheck, ESLint и production-сборка frontend
+  прошли.
 - ЕИС RSS успешно вызывался из Docker со строгой TLS-проверкой; данные живых
   закупок, URL с фильтрами и секреты в репозиторий не записываются.
 
