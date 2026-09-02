@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import {
     EisCatalogFilters,
@@ -19,6 +19,7 @@ import {
     FilterChip,
     GlassCard,
     InlineAlert,
+    SelectField,
 } from '../Components/ui';
 import { downloadTenderExport, type TenderExportFormat } from '../lib/tenderExport';
 import type { PageProps } from '../types';
@@ -26,6 +27,13 @@ import type { PageProps } from '../types';
 type TenderStatus = 'new' | 'favorite' | 'potential' | 'dismissed' | 'archived';
 type TenderView = 'inbox' | 'favorite' | 'potential' | 'dismissed' | 'archived';
 type TenderCollection = 'current' | 'history';
+type TenderSort =
+    | 'published_desc'
+    | 'deadline_asc'
+    | 'budget_desc'
+    | 'budget_asc'
+    | 'favorite_first'
+    | 'new_first';
 type SearchMatchMode = 'all' | 'any' | 'exact';
 
 type SavedRelevanceFilters = {
@@ -205,6 +213,7 @@ export default function MvpWorkspace() {
     const [budgetMin, setBudgetMin] = useState('');
     const [budgetMax, setBudgetMax] = useState('');
     const [tagFilter, setTagFilter] = useState('');
+    const [tenderSort, setTenderSort] = useState<TenderSort>(readTenderSort);
     const [collection, setCollection] = useState<TenderCollection>('current');
     const [view, setView] = useState<TenderView>('inbox');
     const [searchContext, setSearchContext] = useState<SearchContext | null>(
@@ -227,6 +236,10 @@ export default function MvpWorkspace() {
         null,
     );
 
+    useEffect(() => {
+        window.localStorage.setItem('tender-finder:workspace-sort', tenderSort);
+    }, [tenderSort]);
+
     const collectionTenders =
         collection === 'current' ? currentTenders : historyTenders;
     const hasActiveFilters = Boolean(
@@ -243,7 +256,7 @@ export default function MvpWorkspace() {
         const region = regionFilter.trim().toLocaleLowerCase('ru-RU');
         const tag = tagFilter.trim().toLocaleLowerCase('ru-RU');
 
-        return collectionTenders.filter((tender) => {
+        const filtered = collectionTenders.filter((tender) => {
             if (
                 view === 'inbox' &&
                 (tender.status === 'dismissed' || tender.status === 'archived')
@@ -285,7 +298,24 @@ export default function MvpWorkspace() {
 
             return true;
         });
-    }, [budgetMax, budgetMin, collectionTenders, regionFilter, tagFilter, view]);
+
+        return filtered
+            .map((tender, index) => ({ tender, index }))
+            .sort((left, right) => {
+                const compared = compareTenders(left.tender, right.tender, tenderSort);
+
+                return compared === 0 ? left.index - right.index : compared;
+            })
+            .map(({ tender }) => tender);
+    }, [
+        budgetMax,
+        budgetMin,
+        collectionTenders,
+        regionFilter,
+        tagFilter,
+        tenderSort,
+        view,
+    ]);
 
     const viewCounts = useMemo(
         () => ({
@@ -1323,6 +1353,39 @@ export default function MvpWorkspace() {
                                 />
                             </label>
                         </div>
+                        <SelectField
+                            label="Сортировка выдачи"
+                            onChange={(event) =>
+                                setTenderSort(event.target.value as TenderSort)
+                            }
+                            options={[
+                                {
+                                    value: 'published_desc',
+                                    label: 'Сначала опубликованные недавно',
+                                },
+                                {
+                                    value: 'deadline_asc',
+                                    label: 'Ближайший срок подачи',
+                                },
+                                {
+                                    value: 'budget_desc',
+                                    label: 'Сначала высокая НМЦК',
+                                },
+                                {
+                                    value: 'budget_asc',
+                                    label: 'Сначала низкая НМЦК',
+                                },
+                                {
+                                    value: 'favorite_first',
+                                    label: 'Сначала избранные',
+                                },
+                                {
+                                    value: 'new_first',
+                                    label: 'Сначала новые',
+                                },
+                            ]}
+                            value={tenderSort}
+                        />
                     </div>
 
                     {actionError ? (
@@ -1672,6 +1735,77 @@ function mergeTenders(incoming: TenderDto[], current: TenderDto[]): TenderDto[] 
     const incomingIds = new Set(incoming.map((tender) => tender.id));
 
     return [...incoming, ...current.filter((tender) => !incomingIds.has(tender.id))];
+}
+
+function compareTenders(left: TenderDto, right: TenderDto, sort: TenderSort): number {
+    switch (sort) {
+        case 'deadline_asc':
+            return compareNullableDates(left.deadline_at, right.deadline_at, 'asc');
+        case 'budget_desc':
+            return compareNullableNumbers(
+                left.budget_amount,
+                right.budget_amount,
+                'desc',
+            );
+        case 'budget_asc':
+            return compareNullableNumbers(
+                left.budget_amount,
+                right.budget_amount,
+                'asc',
+            );
+        case 'favorite_first':
+            return (
+                Number(right.status === 'favorite') - Number(left.status === 'favorite')
+            );
+        case 'new_first':
+            return Number(right.status === 'new') - Number(left.status === 'new');
+        default:
+            return compareNullableDates(left.published_at, right.published_at, 'desc');
+    }
+}
+
+function readTenderSort(): TenderSort {
+    if (typeof window === 'undefined') return 'published_desc';
+
+    const value = window.localStorage.getItem('tender-finder:workspace-sort');
+    const sorts: TenderSort[] = [
+        'published_desc',
+        'deadline_asc',
+        'budget_desc',
+        'budget_asc',
+        'favorite_first',
+        'new_first',
+    ];
+
+    return sorts.includes(value as TenderSort)
+        ? (value as TenderSort)
+        : 'published_desc';
+}
+
+function compareNullableDates(
+    left: string | null,
+    right: string | null,
+    direction: 'asc' | 'desc',
+): number {
+    if (left === null) return right === null ? 0 : 1;
+    if (right === null) return -1;
+
+    const compared = new Date(left).getTime() - new Date(right).getTime();
+
+    return direction === 'asc' ? compared : -compared;
+}
+
+function compareNullableNumbers(
+    left: string | null,
+    right: string | null,
+    direction: 'asc' | 'desc',
+): number {
+    if (left === null) return right === null ? 0 : 1;
+    if (right === null) return -1;
+
+    const compared = Number(left) - Number(right);
+
+    return direction === 'asc' ? compared : -compared;
 }
 
 function savedSourceFilters({

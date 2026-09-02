@@ -3,6 +3,7 @@
 use App\Models\SearchQuery;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
+use App\Models\TenderUserState;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -44,17 +45,80 @@ it('keeps each server-backed tender feed limited to the signed-in users matches'
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Tenders')
-            ->has('tenderMatches', 1)
-            ->where('tenderMatches.0.title', 'Поддержка корпоративного сайта')
-            ->where('tenderMatches.0.query_name', 'Поддержка сайтов')
-            ->where('tenderMatches.0.match_reasons', ['ключевые слова', 'регион']));
+            ->where('tenderMatches.total', 1)
+            ->has('tenderMatches.data', 1)
+            ->where('tenderMatches.data.0.title', 'Поддержка корпоративного сайта')
+            ->where('tenderMatches.data.0.query_name', 'Поддержка сайтов')
+            ->where('tenderMatches.data.0.status', 'new')
+            ->where('tenderMatches.data.0.match_reasons', ['ключевые слова', 'регион']));
+});
+
+it('filters sorts and paginates the signed-in users tender feed', function () {
+    $owner = User::factory()->create(['telegram_id' => '9201']);
+    $query = SearchQuery::query()->create([
+        'user_id' => $owner->id,
+        'name' => 'Сайты',
+        'keywords' => ['сайт'],
+        'status' => 'active',
+        'monitoring_started_at' => now(),
+    ]);
+
+    foreach (range(1, 13) as $index) {
+        $tender = tenderForFeed(
+            'page-'.$index,
+            $index === 13 ? 'Особый корпоративный портал' : 'Обычный сайт '.$index,
+            [
+                'budget_amount' => $index * 1000,
+                'metadata' => ['customer' => $index === 13 ? 'Customer Alpha' : 'Другой заказчик'],
+            ],
+        );
+        TenderQueryMatch::query()->create([
+            'tender_id' => $tender->id,
+            'search_query_id' => $query->id,
+            'match_reasons' => ['keywords' => ['сайт']],
+            'matched_at' => now()->subMinutes($index),
+        ]);
+
+        if ($index === 13) {
+            TenderUserState::query()->create([
+                'user_id' => $owner->id,
+                'tender_id' => $tender->id,
+                'status' => 'favorite',
+                'tags' => ['приоритет'],
+                'next_action_on' => now()->addDay(),
+            ]);
+        }
+    }
+
+    $this->actingAs($owner)
+        ->get('/tenders')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('tenderMatches.total', 13)
+            ->where('tenderMatches.last_page', 2)
+            ->has('tenderMatches.data', 12));
+
+    $this->actingAs($owner)
+        ->get('/tenders?q=alpha&status=favorite&tag=приоритет&query_id='.$query->id.'&sort=budget_desc')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.q', 'alpha')
+            ->where('filters.status', 'favorite')
+            ->where('filters.tag', 'приоритет')
+            ->where('filters.query_id', $query->id)
+            ->where('filters.sort', 'budget_desc')
+            ->where('tenderMatches.total', 1)
+            ->where('tenderMatches.data.0.title', 'Особый корпоративный портал')
+            ->where('tenderMatches.data.0.status', 'favorite')
+            ->where('tenderMatches.data.0.tags', ['приоритет']));
 });
 
 it('keeps the tender feed behind the authenticated user journey', function () {
     $this->get('/tenders')->assertRedirect('/onboarding');
 });
 
-function tenderForFeed(string $externalId, string $title): Tender
+/** @param array<string, mixed> $attributes */
+function tenderForFeed(string $externalId, string $title, array $attributes = []): Tender
 {
     return Tender::query()->create([
         'source' => 'fixture',
@@ -66,5 +130,6 @@ function tenderForFeed(string $externalId, string $title): Tender
         'region' => 'Москва',
         'budget_amount' => 250000,
         'deadline_at' => now()->addWeek(),
+        ...$attributes,
     ]);
 }

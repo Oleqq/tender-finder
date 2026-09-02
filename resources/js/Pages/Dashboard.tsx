@@ -5,8 +5,25 @@ import { Badge, GlassCard, InlineAlert } from '../Components/ui';
 import { presentAccess } from '../lib/accessPresentation';
 import type { PageProps } from '../types';
 
+type NextAction = {
+    tender_id: number;
+    title: string;
+    reg_number: string | null;
+    next_action_on: string;
+    status: string;
+    tags: string[];
+};
+
+type DashboardProps = {
+    nextActions: {
+        overdue_count: number;
+        today_count: number;
+        items: NextAction[];
+    };
+};
+
 export default function Dashboard() {
-    const { auth } = usePage<PageProps>().props;
+    const { auth, nextActions } = usePage<PageProps<DashboardProps>>().props;
     const access = presentAccess(auth.access);
     const isSuperAdmin = auth.user?.role === 'super_admin';
     const canUseMonitoring = ['trialing', 'active'].includes(auth.access?.state ?? '');
@@ -68,6 +85,68 @@ export default function Dashboard() {
                     </Link>
                 </GlassCard>
 
+                <section className="dashboard-section next-actions page-enter page-enter--later">
+                    <div className="section-heading">
+                        <div>
+                            <p>Личный план</p>
+                            <h2>Ближайшие действия</h2>
+                        </div>
+                        <Link href="/tenders?sort=deadline_asc">
+                            Вся лента <Icon name="chevron-right" size={16} />
+                        </Link>
+                    </div>
+                    <div className="next-actions__summary">
+                        <GlassCard
+                            tone={nextActions.overdue_count > 0 ? 'danger' : 'quiet'}
+                        >
+                            <span>Просрочено</span>
+                            <strong>{nextActions.overdue_count}</strong>
+                        </GlassCard>
+                        <GlassCard
+                            tone={nextActions.today_count > 0 ? 'accent' : 'quiet'}
+                        >
+                            <span>На сегодня</span>
+                            <strong>{nextActions.today_count}</strong>
+                        </GlassCard>
+                    </div>
+                    {nextActions.items.length > 0 ? (
+                        <div className="next-actions__list">
+                            {nextActions.items.map((action) => (
+                                <Link
+                                    className="next-action"
+                                    href={'/local/mvp/tenders/' + action.tender_id}
+                                    key={action.tender_id}
+                                >
+                                    <span className="next-action__date">
+                                        <Badge
+                                            tone={actionDateTone(action.next_action_on)}
+                                        >
+                                            {actionDateLabel(action.next_action_on)}
+                                        </Badge>
+                                    </span>
+                                    <span className="next-action__copy">
+                                        <strong>{action.title}</strong>
+                                        <small>
+                                            {action.reg_number
+                                                ? '№ ' + action.reg_number
+                                                : 'Номер ЕИС не указан'}
+                                            {action.tags.length > 0
+                                                ? ' · ' + action.tags.join(', ')
+                                                : ''}
+                                        </small>
+                                    </span>
+                                    <Icon name="chevron-right" size={17} />
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <InlineAlert title="Действия пока не назначены" tone="neutral">
+                            Откройте карточку тендера и укажите дату следующего действия
+                            — она появится здесь.
+                        </InlineAlert>
+                    )}
+                </section>
+
                 <section className="dashboard-section page-enter page-enter--later">
                     <div className="section-heading">
                         <div>
@@ -116,4 +195,35 @@ export default function Dashboard() {
             </AppShell>
         </>
     );
+}
+
+function actionDateLabel(value: string): string {
+    const today = localDateKey(new Date());
+
+    if (value < today) return 'Просрочено · ' + formatActionDate(value);
+    if (value === today) return 'Сегодня';
+    return formatActionDate(value);
+}
+
+function actionDateTone(value: string): 'neutral' | 'accent' | 'warning' | 'danger' {
+    const today = localDateKey(new Date());
+
+    if (value < today) return 'danger';
+    if (value === today) return 'warning';
+    return 'accent';
+}
+
+function formatActionDate(value: string): string {
+    return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: 'short',
+    }).format(new Date(value + 'T00:00:00'));
+}
+
+function localDateKey(value: Date): string {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+
+    return year + '-' + month + '-' + day;
 }

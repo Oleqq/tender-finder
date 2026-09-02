@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ConsentController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EisCatalogController;
 use App\Http\Controllers\LegalDocumentController;
 use App\Http\Controllers\LocalMvpEisRssPreviewController;
@@ -47,7 +48,7 @@ Route::post('/telegram/session', [TelegramSessionController::class, 'store'])
 
 Route::middleware('auth')->group(function () {
     Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
-    Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
     Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
     Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
