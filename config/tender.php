@@ -46,6 +46,13 @@ return [
         'enabled' => (bool) env('LOCAL_MVP_SUBSCRIBER_ENABLED', false),
     ],
 
+    'local_mvp_full_access' => [
+        // This temporary UI-acceptance switch is restricted to local/testing.
+        // Never enable it on Railway, VPS, or another public environment.
+        'enabled' => (bool) env('LOCAL_MVP_FULL_ACCESS_ENABLED', false),
+        'active_query_limit' => (int) env('LOCAL_MVP_FULL_ACCESS_QUERY_LIMIT', 20),
+    ],
+
     'rss' => [
         'live_polling_enabled' => (bool) env('RSS_LIVE_POLLING_ENABLED', false),
         // A person-triggered EIS search can inspect a bounded sequence of RSS

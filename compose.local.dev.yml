@@ -16,6 +16,8 @@ x-dev-application: &dev-application
   environment:
     LOCAL_MVP_OPERATOR_ENABLED: "true"
     LOCAL_MVP_SUBSCRIBER_ENABLED: "true"
+    LOCAL_MVP_FULL_ACCESS_ENABLED: "true"
+    LOCAL_MVP_FULL_ACCESS_QUERY_LIMIT: "20"
     # Only the local closed-beta contour uses versioned legal drafts.
     LEGAL_DOCUMENTS_PUBLISHED: "true"
     LEGAL_OFFER_URL: "http://127.0.0.1:8080/offer"

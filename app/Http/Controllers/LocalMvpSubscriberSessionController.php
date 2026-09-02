@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\LocalMvpFullAccessService;
 use App\Services\LocalMvpSubscriberService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -9,8 +10,11 @@ use Illuminate\Support\Facades\Auth;
 
 class LocalMvpSubscriberSessionController extends Controller
 {
-    public function store(Request $request, LocalMvpSubscriberService $subscriber): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        LocalMvpSubscriberService $subscriber,
+        LocalMvpFullAccessService $fullAccess,
+    ): RedirectResponse {
         abort_unless($subscriber->isEnabled(), 404);
 
         $user = $subscriber->provision();
@@ -20,6 +24,6 @@ class LocalMvpSubscriberSessionController extends Controller
             $request->session()->regenerate();
         }
 
-        return redirect()->route('onboarding');
+        return redirect()->route($fullAccess->isEnabled() ? 'dashboard' : 'onboarding');
     }
 }

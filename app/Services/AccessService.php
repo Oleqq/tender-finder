@@ -10,10 +10,22 @@ use App\Models\User;
 
 class AccessService
 {
-    public function __construct(private readonly LocalMvpOperatorService $localMvpOperator) {}
+    public function __construct(
+        private readonly LocalMvpOperatorService $localMvpOperator,
+        private readonly LocalMvpFullAccessService $localMvpFullAccess,
+    ) {}
 
     public function snapshotFor(User $user): AccessSnapshot
     {
+        if ($this->localMvpFullAccess->isEnabled()) {
+            return new AccessSnapshot(
+                AccessState::Active,
+                'local_mvp_full_access',
+                $this->localMvpFullAccess->activeQueryLimit(),
+                null,
+            );
+        }
+
         if ($this->localMvpOperator->isOperator($user)) {
             return new AccessSnapshot(
                 AccessState::Active,

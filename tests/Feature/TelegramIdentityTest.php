@@ -56,6 +56,19 @@ it('assigns super admin only to a configured verified owner id', function () {
     expect(User::query()->where('telegram_id', '991122')->firstOrFail()->role)->toBe(UserRole::SuperAdmin);
 });
 
+it('grants a verified Telegram user local full access only while the local flag is enabled', function () {
+    config()->set('tender.local_mvp_full_access.enabled', true);
+    config()->set('tender.local_mvp_full_access.active_query_limit', 20);
+
+    $this->postJson('/telegram/session', [
+        'init_data' => signedTelegramInitData(['id' => 654321, 'first_name' => 'Local user']),
+    ])->assertOk()
+        ->assertJsonPath('user.role', 'super_admin')
+        ->assertJsonPath('access.state', 'active')
+        ->assertJsonPath('access.plan_code', 'local_mvp_full_access')
+        ->assertJsonPath('access.active_query_limit', 20);
+});
+
 it('assigns and revokes super admin based on the configured verified Telegram ID list', function () {
     config()->set('tender.telegram.superadmin_ids', '112233, 445566;778899');
 
