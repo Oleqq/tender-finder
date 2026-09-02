@@ -598,6 +598,22 @@ input:focus-visible {
 .profile-admin p { margin: 0; color: var(--app-muted); font-size: 11px; line-height: 1.4; }
 .profile-admin > div { display: flex; flex-wrap: wrap; gap: 10px 16px; }
 .profile-admin a { display: inline-flex; min-height: 32px; align-items: center; gap: 2px; color: var(--tf-accent-deep); font-size: 11px; font-weight: 720; }
+.notification-settings { display: grid; gap: 14px; }
+.notification-settings__toggle { display: flex; min-height: 54px; align-items: center; justify-content: space-between; gap: 16px; }
+.notification-settings__toggle span { min-width: 0; }
+.notification-settings__toggle strong,
+.notification-settings__toggle small { display: block; }
+.notification-settings__toggle strong { font-size: 13px; }
+.notification-settings__toggle small { margin-top: 4px; color: var(--app-muted); font-size: 11px; }
+.notification-settings__toggle input { width: 22px; height: 22px; flex: 0 0 auto; accent-color: var(--tf-accent); }
+.notification-settings__schedule { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.notification-settings__message { margin: 0; color: var(--tf-accent-deep); font-size: 11px; line-height: 1.4; }
+.notification-preview { display: grid; gap: 10px; margin-top: 10px; }
+.notification-preview__heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--tf-faint); font-size: 10px; }
+.notification-preview__message { border-radius: 14px; padding: 12px; background: var(--tf-surface-strong); }
+.notification-preview__message strong { display: block; font-size: 12px; line-height: 1.4; }
+.notification-preview__message p { margin: 6px 0; color: var(--app-muted); font-size: 11px; line-height: 1.4; }
+.notification-preview__message span { color: var(--tf-faint); font-size: 10px; }
 
 /* Form primitives and data-shaped loading states */
 .metric-trend { display: inline-flex; width: fit-content; align-items: center; gap: 2px; margin-top: 7px; border-radius: var(--radius-pill); padding: 3px 6px; font-size: 9px; font-weight: 750; line-height: 1; }
@@ -635,6 +651,17 @@ input:focus-visible {
 .tender-feed-statuses .filter-chip { flex: 0 0 auto; }
 .tender-feed-selects { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .tender-feed-reset { justify-self: start; border: 0; padding: 0; color: var(--tf-accent-deep); background: none; font-size: 11px; font-weight: 700; }
+.tender-feed-views { display: grid; gap: 10px; border-top: 1px solid var(--tf-line); padding-top: 14px; }
+.tender-feed-views__heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tender-feed-views__heading strong,
+.tender-feed-views__heading small { display: block; }
+.tender-feed-views__heading strong { font-size: 12px; }
+.tender-feed-views__heading small { margin-top: 3px; color: var(--tf-muted); font-size: 10px; }
+.tender-feed-views__list { display: flex; max-width: 100%; flex-wrap: wrap; gap: 6px; }
+.tender-feed-views__list > span { display: inline-flex; overflow: hidden; border: 1px solid var(--tf-line); border-radius: var(--radius-pill); background: var(--tf-surface); }
+.tender-feed-views__list button { min-height: 36px; border: 0; padding: 0 10px; color: var(--tf-accent-deep); background: transparent; font-size: 10px; font-weight: 700; }
+.tender-feed-views__list button + button { min-width: 36px; border-left: 1px solid var(--tf-line); padding: 0; color: var(--tf-faint); }
+.tender-feed-views__form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
 .tender-feed-card { min-width: 0; }
 .tender-feed-card h3,
 .tender-feed-card p { overflow-wrap: anywhere; }
@@ -1093,6 +1120,9 @@ input:focus-visible {
     .tender-feed-search { grid-template-columns: 1fr; }
     .tender-feed-search .button { width: 100%; }
     .tender-feed-selects { grid-template-columns: 1fr; }
+    .tender-feed-views__form,
+    .notification-settings__schedule { grid-template-columns: 1fr; }
+    .tender-feed-views__form .button { width: 100%; }
     .tender-feed-card__editor { grid-template-columns: 1fr; }
     .tender-feed-card__editor > .form-field:nth-child(2) { grid-column: auto; }
     .mvp-workspace__bulk-details { grid-template-columns: 1fr; }

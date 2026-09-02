@@ -42,6 +42,12 @@ type FeedFilters = {
     sort: string;
 };
 
+type SavedFeedView = {
+    id: number;
+    name: string;
+    filters: Partial<FeedFilters>;
+};
+
 type PaginationLink = {
     url: string | null;
     label: string;
@@ -61,6 +67,7 @@ type TendersPageProps = PageProps<{
         queries: Array<{ id: number; name: string }>;
         tags: string[];
     };
+    savedViews: SavedFeedView[];
 }>;
 
 const statusOptions = [
@@ -73,8 +80,17 @@ const statusOptions = [
 ];
 
 export default function Tenders() {
-    const { tenderMatches, filters, filterOptions } = usePage<TendersPageProps>().props;
+    const {
+        tenderMatches,
+        filters,
+        filterOptions,
+        savedViews: initialViews,
+    } = usePage<TendersPageProps>().props;
     const [search, setSearch] = useState(filters.q);
+    const [savedViews, setSavedViews] = useState(initialViews);
+    const [viewName, setViewName] = useState('');
+    const [savingView, setSavingView] = useState(false);
+    const [viewError, setViewError] = useState('');
 
     const visit = (next: Partial<FeedFilters>): void => {
         const params = { ...filters, q: search, ...next };
@@ -89,6 +105,42 @@ export default function Tenders() {
     const submitSearch = (event: FormEvent): void => {
         event.preventDefault();
         visit({ q: search });
+    };
+
+    const saveView = async (event: FormEvent): Promise<void> => {
+        event.preventDefault();
+        if (!viewName.trim()) return;
+        setSavingView(true);
+        setViewError('');
+
+        try {
+            const response = await window.axios.post<{ view: SavedFeedView }>(
+                '/tender-feed-views',
+                {
+                    name: viewName.trim(),
+                    filters: cleanParams({ ...filters, q: search }),
+                },
+            );
+            setSavedViews((current) => [response.data.view, ...current]);
+            setViewName('');
+        } catch {
+            setViewError(
+                'Не удалось сохранить: проверьте название или лимит представлений.',
+            );
+        } finally {
+            setSavingView(false);
+        }
+    };
+
+    const applyView = (view: SavedFeedView): void => {
+        setSearch(view.filters.q ?? '');
+        router.get('/tenders', view.filters, { preserveScroll: true });
+    };
+
+    const deleteView = async (view: SavedFeedView): Promise<void> => {
+        if (!window.confirm(`Удалить представление «${view.name}»?`)) return;
+        await window.axios.delete('/tender-feed-views/' + view.id);
+        setSavedViews((current) => current.filter((item) => item.id !== view.id));
     };
 
     const hasFilters = Boolean(
@@ -207,6 +259,59 @@ export default function Tenders() {
                             Сбросить все фильтры
                         </button>
                     ) : null}
+
+                    <div className="tender-feed-views">
+                        <div className="tender-feed-views__heading">
+                            <div>
+                                <strong>Сохранённые представления</strong>
+                                <small>До 10 наборов фильтров и сортировки</small>
+                            </div>
+                            <Badge tone="neutral">{savedViews.length}/10</Badge>
+                        </div>
+                        {savedViews.length > 0 ? (
+                            <div className="tender-feed-views__list">
+                                {savedViews.map((view) => (
+                                    <span key={view.id}>
+                                        <button
+                                            onClick={() => applyView(view)}
+                                            type="button"
+                                        >
+                                            {view.name}
+                                        </button>
+                                        <button
+                                            aria-label={`Удалить ${view.name}`}
+                                            onClick={() => deleteView(view)}
+                                            type="button"
+                                        >
+                                            ×
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        ) : null}
+                        <form className="tender-feed-views__form" onSubmit={saveView}>
+                            <label className="form-field">
+                                <span>Название текущего набора</span>
+                                <input
+                                    maxLength={60}
+                                    onChange={(event) =>
+                                        setViewName(event.target.value)
+                                    }
+                                    placeholder="Например, срочные избранные"
+                                    value={viewName}
+                                />
+                            </label>
+                            <Button
+                                disabled={savingView || savedViews.length >= 10}
+                                size="sm"
+                                type="submit"
+                                variant="secondary"
+                            >
+                                {savingView ? 'Сохраняем…' : 'Сохранить вид'}
+                            </Button>
+                        </form>
+                        {viewError ? <p className="field-error">{viewError}</p> : null}
+                    </div>
                 </GlassCard>
 
                 {tenderMatches.data.length > 0 ? (

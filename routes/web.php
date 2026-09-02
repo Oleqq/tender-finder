@@ -13,7 +13,9 @@ use App\Http\Controllers\LocalMvpTenderEnrichmentController;
 use App\Http\Controllers\LocalMvpTenderGuruPreviewController;
 use App\Http\Controllers\LocalMvpTenderStateController;
 use App\Http\Controllers\MvpWorkspaceController;
+use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OperationsDashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
 use App\Http\Controllers\SavedSearchRunController;
 use App\Http\Controllers\SavedSearchRunHistoryController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderExportController;
 use App\Http\Controllers\TenderFeedController;
+use App\Http\Controllers\TenderFeedViewController;
 use App\Http\Controllers\TenderPersonalStateController;
 use App\Http\Controllers\TrialController;
 use App\Services\LocalMvpSubscriberService;
@@ -51,9 +54,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
+    Route::post('/tender-feed-views', [TenderFeedViewController::class, 'store'])
+        ->name('tender-feed-views.store');
+    Route::delete('/tender-feed-views/{view}', [TenderFeedViewController::class, 'destroy'])
+        ->name('tender-feed-views.destroy');
     Route::patch('/tenders/{tender}/state', TenderPersonalStateController::class)
         ->name('tenders.state');
-    Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
+    Route::get('/profile', ProfileController::class)->name('profile');
+    Route::put('/profile/notification-preferences', [NotificationPreferenceController::class, 'update'])
+        ->name('profile.notification-preferences.update');
     Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
     Route::get('/mvp/workspace', [MvpWorkspaceController::class, 'show'])
         ->middleware('super_admin')

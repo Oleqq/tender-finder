@@ -139,6 +139,9 @@ class TenderFeedController extends Controller
                     ->sort(SORT_NATURAL | SORT_FLAG_CASE)
                     ->values(),
             ],
+            'savedViews' => $user->tenderFeedViews()
+                ->latest()
+                ->get(['id', 'name', 'filters']),
         ]);
     }
 

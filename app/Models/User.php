@@ -86,4 +86,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(TenderUserState::class);
     }
+
+    /** @return HasMany<TenderFeedView, $this> */
+    public function tenderFeedViews(): HasMany
+    {
+        return $this->hasMany(TenderFeedView::class);
+    }
 }
