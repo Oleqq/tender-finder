@@ -18,17 +18,10 @@ use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderFeedController;
 use App\Http\Controllers\TrialController;
-use App\Services\LocalMvpOperatorService;
-use App\Services\LocalMvpSubscriberService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'localMvpOperatorAvailable' => app(LocalMvpOperatorService::class)->isLocalEnabled(),
-        'localMvpSubscriberAvailable' => app(LocalMvpSubscriberService::class)->isEnabled(),
-    ]);
-})->name('welcome');
+Route::get('/', fn () => Inertia::render('Welcome'))->name('welcome');
 
 Route::get('/local/mvp-operator', [LocalMvpOperatorSessionController::class, 'store'])
     ->name('local.mvp-operator.session');
@@ -40,10 +33,6 @@ Route::get('/local/mvp-subscriber', [LocalMvpSubscriberSessionController::class,
 
 Route::get('/onboarding', fn () => Inertia::render('Onboarding'))->name('onboarding');
 Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
-Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
-Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
-Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
-Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
 Route::get('/offer', [LegalDocumentController::class, 'offer'])->name('legal.offer');
 Route::get('/privacy', [LegalDocumentController::class, 'privacy'])->name('legal.privacy');
 
@@ -52,6 +41,10 @@ Route::post('/telegram/session', [TelegramSessionController::class, 'store'])
     ->name('telegram.session.store');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
+    Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
+    Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
     Route::get('/mvp/workspace', [MvpWorkspaceController::class, 'show'])
         ->middleware('super_admin')
         ->name('mvp.workspace');

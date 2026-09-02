@@ -14,14 +14,10 @@ class TenderFeedController extends Controller
         $user = $request->user();
 
         if ($user === null) {
-            return Inertia::render('Tenders', [
-                'mode' => 'demo',
-                'tenderMatches' => [],
-            ]);
+            abort(401);
         }
 
         return Inertia::render('Tenders', [
-            'mode' => 'live',
             'tenderMatches' => TenderQueryMatch::query()
                 ->whereHas('searchQuery', fn ($query) => $query->where('user_id', $user->id))
                 ->with(['searchQuery:id,name', 'tender'])

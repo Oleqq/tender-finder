@@ -35,7 +35,7 @@ export function TelegramSetup() {
                 }
             })
             .catch(() => {
-                // Browser preview and old Telegram clients remain anonymous.
+                // Regular browser sessions and old Telegram clients remain anonymous.
                 // The server has already recorded no trust in client-side fields.
             });
     }, []);

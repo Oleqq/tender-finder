@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
@@ -11,6 +11,7 @@ import {
     GlassCard,
     InlineAlert,
 } from '../Components/ui';
+import { presentAccess } from '../lib/accessPresentation';
 import type { PageProps } from '../types';
 
 type QueryStatus = 'active' | 'paused' | 'frozen';
@@ -206,9 +207,13 @@ export default function MyQueries() {
         }
     };
 
+    const access = presentAccess(auth.access);
     const accessText = auth.access?.active_query_limit
         ? `${queries.filter((query) => query.status === 'active').length} из ${auth.access.active_query_limit} активных`
-        : 'Нужен server-side trial или Basic-доступ';
+        : 'Лимит появится после активации доступа';
+    const canCreate =
+        ['trialing', 'active'].includes(auth.access?.state ?? '') &&
+        auth.access?.active_query_limit !== null;
 
     return (
         <>
@@ -224,36 +229,44 @@ export default function MyQueries() {
                         <Icon name="layers" size={19} />
                     </span>
                     <div>
-                        <p>Лимит Basic / trial</p>
+                        <p>Лимит мониторингов</p>
                         <strong>{accessText}</strong>
                     </div>
-                    <Badge tone={auth.access ? 'accent' : 'neutral'}>
-                        {auth.access?.state ?? 'preview'}
-                    </Badge>
+                    <Badge tone={access.tone}>{access.badge}</Badge>
                 </GlassCard>
 
-                <GlassCard className="query-create page-enter page-enter--delay">
-                    <div className="section-heading">
-                        <div>
-                            <p>Новый мониторинг</p>
-                            <h2>Что искать?</h2>
+                {canCreate ? (
+                    <GlassCard className="query-create page-enter page-enter--delay">
+                        <div className="section-heading">
+                            <div>
+                                <p>Новый мониторинг</p>
+                                <h2>Что искать?</h2>
+                            </div>
                         </div>
-                    </div>
-                    <form onSubmit={createQuery}>
-                        <QueryFields
-                            form={createForm}
-                            onChange={updateForm(setCreateForm)}
-                        />
-                        <p className="query-create__hint">
-                            Запятая разделяет слова. Keywords обязательны, минус-слова
-                            исключают совпадение; неизвестные RSS-поля не угадываются.
-                        </p>
-                        {createError ? <FieldError>{createError}</FieldError> : null}
-                        <Button disabled={isCreating} icon="check" type="submit">
-                            {isCreating ? 'Создаём…' : 'Включить мониторинг'}
-                        </Button>
-                    </form>
-                </GlassCard>
+                        <form onSubmit={createQuery}>
+                            <QueryFields
+                                form={createForm}
+                                onChange={updateForm(setCreateForm)}
+                            />
+                            <p className="query-create__hint">
+                                Запятая разделяет слова. Keywords обязательны,
+                                минус-слова исключают совпадение; неизвестные RSS-поля
+                                не угадываются.
+                            </p>
+                            {createError ? (
+                                <FieldError>{createError}</FieldError>
+                            ) : null}
+                            <Button disabled={isCreating} icon="check" type="submit">
+                                {isCreating ? 'Создаём…' : 'Включить мониторинг'}
+                            </Button>
+                        </form>
+                    </GlassCard>
+                ) : (
+                    <InlineAlert title="Мониторинги пока недоступны" tone="neutral">
+                        Доступ ещё не активирован.{' '}
+                        <Link href="/plans">Подробнее о текущем статусе</Link>
+                    </InlineAlert>
+                )}
 
                 {actionError ? (
                     <InlineAlert title="Можно повторить" tone="warning">

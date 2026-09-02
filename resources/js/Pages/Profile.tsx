@@ -1,44 +1,34 @@
-import { Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
-import {
-    Badge,
-    Button,
-    GlassCard,
-    SegmentedControl,
-    Toast,
-    Toggle,
-} from '../Components/ui';
-import {
-    demoAccessStateOptions,
-    demoAccessStates,
-    type DemoAccessState,
-} from '../lib/demoAccess';
+import { Badge, GlassCard } from '../Components/ui';
+import { presentAccess } from '../lib/accessPresentation';
+import type { PageProps } from '../types';
 
 export default function Profile() {
-    const [alertsEnabled, setAlertsEnabled] = useState(true);
-    const [toastVisible, setToastVisible] = useState(false);
-    const [accessState, setAccessState] = useState<DemoAccessState>('preview');
-    const access = demoAccessStates[accessState];
+    const { auth } = usePage<PageProps>().props;
+    const access = presentAccess(auth.access);
+    const isSuperAdmin = auth.user?.role === 'super_admin';
+    const initials = (auth.user?.name ?? 'Tender Finder')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part.charAt(0))
+        .join('')
+        .toUpperCase();
 
     return (
         <>
             <Head title="Профиль" />
             <AppShell activeNav="/profile" eyebrow="Аккаунт" title="Профиль">
                 <section className="profile-hero page-enter">
-                    <span className="profile-avatar">TF</span>
+                    <span className="profile-avatar">{initials}</span>
                     <div>
-                        <Badge tone="accent">Демо-профиль</Badge>
-                        <h2>
-                            Ваш рабочий
-                            <br />
-                            контур.
-                        </h2>
-                        <p>
-                            Telegram-профиль будет подключён после серверной проверки
-                            initData.
-                        </p>
+                        <Badge tone={isSuperAdmin ? 'success' : 'accent'}>
+                            {isSuperAdmin ? 'Расширенный доступ' : 'Аккаунт'}
+                        </Badge>
+                        <h2>{auth.user?.name ?? 'Ваш профиль'}</h2>
+                        <p>Роль и доступ подтверждаются серверной сессией.</p>
                     </div>
                 </section>
 
@@ -50,91 +40,68 @@ export default function Profile() {
                         <span>
                             <Icon name="spark" size={19} /> Статус доступа
                         </span>
-                        <Badge tone={access.tone}>{access.label}</Badge>
+                        <Badge tone={access.tone}>{access.badge}</Badge>
                     </div>
                     <h3>{access.title}</h3>
                     <p>{access.description}</p>
                     <div className="profile-plan__line">
-                        <span>Доступ</span>
+                        <span>Период</span>
                         <strong>{access.detail}</strong>
                     </div>
-                    <SegmentedControl
-                        label="Demo-состояние доступа в профиле"
-                        onChange={(value) => setAccessState(value as DemoAccessState)}
-                        options={demoAccessStateOptions}
-                        value={accessState}
-                    />
                 </GlassCard>
 
                 <section className="profile-section page-enter page-enter--later">
                     <div className="section-heading">
                         <div>
-                            <p>Настройки</p>
-                            <h2>Ваши сигналы</h2>
+                            <p>Аккаунт</p>
+                            <h2>Данные и доступ</h2>
                         </div>
                     </div>
                     <GlassCard className="settings-list">
-                        <Toggle
-                            checked={alertsEnabled}
-                            description="Новые совпадения и важные сроки"
-                            label="Уведомления в Telegram"
-                            onChange={setAlertsEnabled}
-                        />
-                        <div className="settings-divider" />
-                        <button
-                            className="settings-row"
-                            onClick={() => setToastVisible(true)}
-                            type="button"
-                        >
+                        <div className="settings-row">
                             <span>
-                                <strong>Часовой пояс</strong>
-                                <small>Определим по Telegram</small>
+                                <strong>Безопасность сессии</strong>
+                                <small>
+                                    Telegram ID и технические данные не показываются в
+                                    интерфейсе.
+                                </small>
                             </span>
-                            <span>
-                                <Icon name="chevron-right" size={19} />
-                            </span>
-                        </button>
+                            <Icon name="shield" size={19} />
+                        </div>
                     </GlassCard>
                 </section>
 
                 <section className="profile-help page-enter page-enter--later">
                     <Icon name="shield" size={18} />
                     <p>
-                        Клиентские данные Telegram не используются как подтверждение
-                        личности.
+                        Доступ рассчитывается на сервере. Этот экран не изменяет его
+                        локальными настройками.
                     </p>
                 </section>
-                <GlassCard className="profile-admin-demo" tone="quiet">
-                    <span>
-                        <Icon name="shield" size={18} /> Пространство владельца
-                    </span>
-                    <p>
-                        Сводная аналитика аудитории, trial и доступа без персональных
-                        данных.
-                    </p>
-                    <Link href="/operations">
-                        Открыть аналитику <Icon name="chevron-right" size={16} />
-                    </Link>
-                </GlassCard>
-                <Button
-                    className="profile-demo-action"
-                    icon="check"
-                    onClick={() => setToastVisible(true)}
-                    variant="secondary"
-                >
-                    Сохранить демо-настройки
-                </Button>
+
+                {isSuperAdmin ? (
+                    <GlassCard className="profile-admin" tone="quiet">
+                        <span>
+                            <Icon name="shield" size={18} /> Инструменты владельца
+                        </span>
+                        <p>
+                            Поиск ЕИС и агрегированная аналитика продукта без
+                            персональных данных.
+                        </p>
+                        <div>
+                            <Link href="/mvp/workspace">
+                                Поиск ЕИС <Icon name="chevron-right" size={16} />
+                            </Link>
+                            <Link href="/operations">
+                                Открыть аналитику{' '}
+                                <Icon name="chevron-right" size={16} />
+                            </Link>
+                        </div>
+                    </GlassCard>
+                ) : null}
                 <Link className="profile-plans-link" href="/plans">
-                    Посмотреть планы и доступ <Icon name="chevron-right" size={17} />
+                    Подробнее о доступе <Icon name="chevron-right" size={17} />
                 </Link>
-                <Toast
-                    message={
-                        alertsEnabled
-                            ? 'Уведомления включены в демо-сессии'
-                            : 'Уведомления приостановлены в демо-сессии'
-                    }
-                    visible={toastVisible}
-                />
             </AppShell>
         </>
     );

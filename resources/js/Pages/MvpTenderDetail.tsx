@@ -73,7 +73,7 @@ export default function MvpTenderDetail() {
             <AppShell
                 backHref="/local/mvp-operator"
                 className="mvp-tender-detail"
-                eyebrow="Локальный MVP · карточка тендера"
+                eyebrow="ЕИС · карточка тендера"
                 navigationVisible={false}
                 role="super_admin"
                 title="Тендер"
@@ -268,10 +268,7 @@ export default function MvpTenderDetail() {
                                     {statusShortLabel(tender.status)}
                                 </Badge>
                             </div>
-                            <p>
-                                Эта отметка видна только в вашем локальном рабочем
-                                пространстве и не меняет данные ЕИС.
-                            </p>
+                            <p>Эта отметка видна только вам и не меняет данные ЕИС.</p>
                             {tender.status === 'archived' ? (
                                 <Button
                                     disabled={isUpdating}

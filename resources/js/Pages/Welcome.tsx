@@ -5,38 +5,30 @@ import { Badge, GlassCard } from '../Components/ui';
 import type { PageProps } from '../types';
 
 export default function Welcome() {
-    const { auth, localMvpOperatorAvailable, localMvpSubscriberAvailable } = usePage<
-        PageProps<{
-            localMvpOperatorAvailable: boolean;
-            localMvpSubscriberAvailable: boolean;
-        }>
-    >().props;
+    const { auth } = usePage<PageProps>().props;
+    const isSuperAdmin = auth.user?.role === 'super_admin';
 
     return (
         <>
             <Head title="Tender Finder" />
-            <AppShell
-                navigationVisible={false}
-                title="Tender Finder"
-                eyebrow="Ваш радар закупок"
-            >
+            <AppShell navigationVisible={Boolean(auth.user)} title="Tender Finder">
                 <section className="welcome-hero page-enter">
-                    <div aria-hidden="true" className="welcome-hero__signal">
+                    <div className="welcome-hero__signal" aria-hidden="true">
                         <span className="signal-ring signal-ring--one" />
                         <span className="signal-ring signal-ring--two" />
                         <span className="signal-core">
-                            <Icon name="wave" size={35} />
+                            <Icon name="wave" size={28} />
                         </span>
                     </div>
-                    <Badge tone="accent">Mini App · beta</Badge>
+                    <Badge tone="accent">Рабочий поиск закупок</Badge>
                     <h2>
-                        Находите тендеры,
+                        Тендеры,
                         <br />
-                        <em>а не шум.</em>
+                        которые <em>важны.</em>
                     </h2>
                     <p>
-                        Соберём важные закупки в один спокойный поток — с понятными
-                        сигналами, сроками и контекстом.
+                        Сохраняйте свои условия и разбирайте совпадения с понятной
+                        причиной попадания в поток.
                     </p>
                 </section>
 
@@ -48,62 +40,57 @@ export default function Welcome() {
                         <Icon name="spark" size={20} />
                     </div>
                     <div>
-                        <p>Сфокусированный поиск</p>
-                        <strong>Релевантность — прежде количества</strong>
+                        <p>Сфокусированный поток</p>
+                        <strong>
+                            Только серверные совпадения по вашим мониторингам
+                        </strong>
                     </div>
                 </GlassCard>
 
                 <div className="welcome-actions page-enter page-enter--later">
-                    {auth.user?.role === 'super_admin' ? (
+                    {auth.user ? (
                         <>
-                            <Badge tone="success">Вы вошли как super_admin</Badge>
+                            <Badge tone={isSuperAdmin ? 'success' : 'accent'}>
+                                {isSuperAdmin
+                                    ? 'Расширенный доступ'
+                                    : 'Ваше рабочее пространство'}
+                            </Badge>
                             <Link
                                 className="button button--primary button--lg"
-                                href="/mvp/workspace"
+                                href="/dashboard"
                             >
-                                <span>Открыть ЕИС-рабочее место</span>
+                                <span>Открыть рабочее пространство</span>
                                 <Icon name="arrow-right" size={20} />
                             </Link>
-                        </>
-                    ) : localMvpOperatorAvailable ? (
-                        <>
-                            <Link
-                                className="button button--primary button--lg"
-                                href="/local/mvp-operator"
-                            >
-                                <span>Войти как оператор</span>
-                                <Icon name="arrow-right" size={20} />
-                            </Link>
-                            {localMvpSubscriberAvailable ? (
-                                <Link
-                                    className="text-link"
-                                    href="/local/mvp-subscriber"
-                                >
-                                    Проверить вход subscriber{' '}
-                                    <Icon name="chevron-right" size={17} />
-                                </Link>
+                            {isSuperAdmin ? (
+                                <div className="welcome-admin-links">
+                                    <Link href="/mvp/workspace">
+                                        Поиск ЕИС{' '}
+                                        <Icon name="chevron-right" size={17} />
+                                    </Link>
+                                    <Link href="/operations">
+                                        Аналитика{' '}
+                                        <Icon name="chevron-right" size={17} />
+                                    </Link>
+                                </div>
                             ) : null}
                         </>
                     ) : (
-                        <Link
-                            className="button button--primary button--lg"
-                            href="/onboarding"
-                        >
-                            <span>Начать знакомство</span>
-                            <Icon name="arrow-right" size={20} />
-                        </Link>
-                    )}
-                    {auth.user?.role === 'super_admin' ? null : (
-                        <Link className="text-link" href="/dashboard">
-                            Открыть демо-обзор <Icon name="chevron-right" size={17} />
-                        </Link>
+                        <>
+                            <Link
+                                className="button button--primary button--lg"
+                                href="/onboarding"
+                            >
+                                <span>Как это работает</span>
+                                <Icon name="arrow-right" size={20} />
+                            </Link>
+                            <p className="welcome-footnote">
+                                Вход в рабочее пространство подтверждается Telegram Mini
+                                App на сервере.
+                            </p>
+                        </>
                     )}
                 </div>
-                <p className="welcome-footnote">
-                    {localMvpOperatorAvailable
-                        ? 'Local MVP: роли доступны только в Docker-контуре и не принимают Telegram ID из браузера.'
-                        : 'Работает в Telegram и в обычном браузере.'}
-                </p>
             </AppShell>
         </>
     );
