@@ -33,6 +33,7 @@ type AppShellProps = {
     navigationVisible?: boolean;
     className?: string;
     role?: AppRole;
+    wide?: boolean;
 };
 
 export function AppShell({
@@ -45,6 +46,7 @@ export function AppShell({
     navigationVisible = true,
     className,
     role,
+    wide = false,
 }: AppShellProps) {
     const authenticatedRole = usePage<PageProps>().props.auth.user?.role;
     const resolvedRole = role ?? authenticatedRole ?? 'subscriber';
@@ -53,7 +55,7 @@ export function AppShell({
         <main className="mini-app">
             <div className="ambient ambient--one" />
             <div className="ambient ambient--two" />
-            <div className="app-shell">
+            <div className={`app-shell ${wide ? 'app-shell--wide' : ''}`}>
                 <header className="top-bar">
                     <div className="top-bar__side">
                         {backHref ? (
@@ -78,14 +80,26 @@ export function AppShell({
                 </header>
                 <div className={`page-content ${className ?? ''}`}>{children}</div>
                 {navigationVisible ? (
-                    <BottomNavigation activeNav={activeNav} role={resolvedRole} />
+                    <BottomNavigation
+                        activeNav={activeNav}
+                        role={resolvedRole}
+                        wide={wide}
+                    />
                 ) : null}
             </div>
         </main>
     );
 }
 
-function BottomNavigation({ activeNav, role }: { activeNav?: string; role: AppRole }) {
+function BottomNavigation({
+    activeNav,
+    role,
+    wide,
+}: {
+    activeNav?: string;
+    role: AppRole;
+    wide: boolean;
+}) {
     const navigation =
         role === 'super_admin'
             ? [...subscriberNavigation, adminNavigation]
@@ -94,7 +108,7 @@ function BottomNavigation({ activeNav, role }: { activeNav?: string; role: AppRo
     return (
         <nav
             aria-label="Основная навигация"
-            className={`bottom-navigation bottom-navigation--${navigation.length}`}
+            className={`bottom-navigation bottom-navigation--${navigation.length} ${wide ? 'bottom-navigation--wide' : ''}`}
         >
             {navigation.map((item) => (
                 <Link
