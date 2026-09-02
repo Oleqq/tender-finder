@@ -15,10 +15,10 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 | Область | Готово сейчас | Не считать готовым |
 |---|---|---|
 | ЕИС | Ручной RSS-поиск по фразе; режимы релевантности и минус-слова; 44/223‑ФЗ, НМЦК, дата, этапы, дополнительная информация, до 5 регионов КЛАДР и до 5 ОКПД2; до 10 страниц; сохранение полного набора условий и повторный запуск | Полный каталог ЕИС, monitoring |
-| Карточки | Понятные поля, detail, дедупликация, сравнение 2–5 карточек, личные статусы и bulk actions | Выдуманные поля, HTML-скрапинг, обогащение без публичного контракта источника |
-| Данные | Последняя выдача, последние 20 запусков сохранённого запроса, «только новые» и статусы привязаны к пользователю и переживают refresh/restart | Общая история всех пользователей или удаление Docker volume |
-| Identity | Подписанный Telegram `initData`; IDs из `TELEGRAM_SUPERADMIN_IDS` → `super_admin` с ЕИС-workspace/«Аналитикой», остальные → `subscriber` | Login Widget вместо Mini App, доверие к Telegram ID из браузера или `/start` как авторизации |
-| Access | `preview`, `trialing`, `paid`, `granted`, `expired`; one-time 72h trial после consent | Роль `subscriber_trial`, рабочая оплата Stars |
+| Карточки | Понятные поля, decision-detail, дедупликация, сравнение 2–5 карточек, личные статусы и bulk actions; явное обогащение только из разрешённой публичной карточки ЕИС | Выдуманные поля, HTML-скрапинг, обогащение без публичного контракта источника |
+| Данные | Последняя выдача, последние 20 запусков сохранённого запроса, «только новые», личные статусы, заметки, теги, дата действия и CSV/XLSX привязаны к пользователю и переживают refresh/restart | Общая история всех пользователей или удаление Docker volume |
+| Identity | Подписанный Telegram `initData`; IDs из `TELEGRAM_SUPERADMIN_IDS` → `super_admin` с ЕИС-workspace/«Аналитикой», остальные → `subscriber`; только local/test флаг временно делает любой локальный вход full-access | Login Widget вместо Mini App, доверие к Telegram ID из браузера или `/start` как авторизации |
+| Access | `preview`, `trialing`, `paid`, `granted`, `expired`; one-time 72h trial после consent; local full-access без создания подписки | Роль `subscriber_trial`, рабочая оплата Stars, включение full-access на Railway/VPS |
 | Админка | Закрытая маркетинговая аналитика `super_admin`: аудитория, trial и доступы без персональных данных | Полноценные Users/Commerce/Campaigns, технический мониторинг или реальная выручка |
 | Бот | Webhook, дедупликация обновлений, `/start`, `/help`, очередь отправки | Публично включённый webhook, рассылки и Stars |
 
@@ -26,7 +26,9 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 
 - `app/Tenders/` — контракт и разбор RSS ЕИС.
 - `app/Services/LocalMvp*` — ручной поиск, запуск сохранённых запросов, снимки
-  выдачи и личные статусы.
+  выдачи, личные статусы, аннотации и локальный full-access режим.
+- `EisTenderEnrichmentService`, `TenderExportService` — публичное обогащение
+  одной карточки и выгрузка уже сохранённых данных.
 - `app/Telegram/`, `TelegramIdentityService`, `TelegramBotClient` — проверка
   Mini App и Bot API.
 - `app/Services/TrialService`, `AccessService` — consent, trial и права.
@@ -40,13 +42,14 @@ Vite и Docker Compose. Telegram-код написан на Laravel; Telegraph �
 docker compose -f compose.local.yml -f compose.local.dev.yml build
 docker compose -f compose.local.yml -f compose.local.dev.yml --profile ops run --rm migrate
 docker compose -f compose.local.yml -f compose.local.dev.yml up -d web queue scheduler vite
-docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web php artisan test
+docker compose -f compose.local.yml -f compose.local.dev.yml run --rm test
 ```
 
 Локальный оператор: `http://127.0.0.1:8080/local/mvp-operator`.
 Технический subscriber: `http://127.0.0.1:8080/local/mvp-subscriber`.
 Подробности: [LOCAL-RUNTIME.md](LOCAL-RUNTIME.md) и
-[LOCAL-TELEGRAM-BOT.md](LOCAL-TELEGRAM-BOT.md).
+[LOCAL-TELEGRAM-BOT.md](LOCAL-TELEGRAM-BOT.md). Состав принятых веток:
+[INTEGRATION-STATUS.md](INTEGRATION-STATUS.md).
 
 ## Неподвижные правила
 
@@ -59,6 +62,8 @@ docker compose -f compose.local.yml -f compose.local.dev.yml exec -T web php art
   локальной базы: эта команда удаляет PostgreSQL volume.
 - Trial нельзя запускать до публикации юридических документов; это намеренный
   fail-closed gate.
+- `LOCAL_MVP_FULL_ACCESS_ENABLED` — только для local/test приёмки. Перед
+  Railway/VPS он должен быть выключен или отсутствовать.
 
 ## Как проверять изменения
 

@@ -47,7 +47,7 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Actions | button, icon button, toast, bottom sheet/modal | confirmation dialog, undo, destructive action pattern |
 | Inputs | input/search, chips, segmented control, switch, select/combobox, multi-select, date range, money range, validation | slider, stepper, saved-filter persistence |
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
-| Tender UI | local MVP ЕИС: поиск, все/любое/точная фраза, минус-слова, видимые причины совпадения, текущая выдача/история, карточка detail, именованные сохранённые запросы со всеми условиями, история запусков и «только новые», 44/223‑ФЗ, НМЦК, даты, регион/ОКПД2 через справочники ЕИС, этапы закупки, дополнительная информация, сравнение 2–5 карточек, personal states и bulk actions | обогащение карточки |
+| Tender UI | local MVP ЕИС: поиск, все/любое/точная фраза, минус-слова, видимые причины совпадения, текущая выдача/история, decision-detail, именованные сохранённые запросы, «только новые», 44/223‑ФЗ, НМЦК, даты, регион/ОКПД2, этапы, сравнение 2–5 карточек, personal states/bulk actions, заметки, теги, дата действия, CSV/XLSX и явное публичное обогащение одной карточки | сортировка выдачи и обзор ближайших действий |
 | Access | server-calculated access status, access explanation and entry points to the available workspace | Stars invoice state and subscription management after the commercial flow is approved |
 | Admin | role-aware shell variant, server-guarded read-only агрегаты, period switcher, funnel, growth chart и access distribution | user drawer, campaigns, audit и технический Live Ops остаются вне MVP |
 
@@ -73,7 +73,10 @@ Detail — не дубль выдачи и не презентационная �
 4. Личная отметка («избранное», «потенциальный», «скрыть», «убрать») сохраняется
    существующим серверным API и не меняет закупку в источнике. У действия есть
    понятная ошибка, а активное состояние не кодируется одним цветом.
-5. Ссылка на первоисточник всегда остаётся заметной: финальные сроки, документы
+5. Публичное обогащение — отдельное явное действие. Оно не обещает заполнить
+   карточку: новые поля появляются только после разрешённого ответа ЕИС; заметки,
+   теги и дата следующего действия остаются личными данными пользователя.
+6. Ссылка на первоисточник всегда остаётся заметной: финальные сроки, документы
    и условия проверяются там.
 
 На desktop detail использует широкую рабочую сетку: основной материал слева и
