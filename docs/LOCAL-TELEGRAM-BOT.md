@@ -91,11 +91,14 @@ Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликац
 
 1. В локальном браузере можно безопасно открыть технические входы:
    `/local/mvp-operator` и `/local/mvp-subscriber`. Второй создаёт только
-   local-dev пользователя и не подделывает Telegram ID.
+   local-dev пользователя и не подделывает Telegram ID. В текущем Docker
+   `LOCAL_MVP_FULL_ACCESS_ENABLED=true`, поэтому он сразу получает роль
+   `super_admin` и активный доступ; это не меняет поведение Railway/VPS.
 2. В настоящем Telegram Mini App фронтенд отправляет подписанный `initData` в
    `POST /telegram/session`. Сервер создаёт или находит пользователя и
    обновляет страницу после смены session ID, чтобы получить актуальный CSRF
-   token.
+   token. Пока включён local full-access flag, такой пользователь локально
+   тоже получает полный доступ; перед beta флаг нужно выключить.
 3. После consent вызываются `POST /consents` и `POST /trial/start`. Локальный
    compose включает только версионированные черновики документов, поэтому путь
    можно проверить без обхода legal gate. Это не включает его на Railway/VPS:

@@ -19,8 +19,16 @@ docker compose -f compose.local.yml -f compose.local.dev.yml ps
 
 Приложение: `http://127.0.0.1:8080`.
 Рабочее место MVP: `http://127.0.0.1:8080/local/mvp-operator`.
-Тестовый вход subscriber: `http://127.0.0.1:8080/local/mvp-subscriber`.
+Локальный full-access вход: `http://127.0.0.1:8080/local/mvp-subscriber`.
 Vite HMR: `http://127.0.0.1:5173`.
+
+В dev-overlay включён `LOCAL_MVP_FULL_ACCESS_ENABLED=true`: local-вход и
+подтверждённый Telegram-вход в `local/testing` получают роль `super_admin` и
+активный доступ без consent, trial и ожидания активации. Лимит локального
+доступа задаёт `LOCAL_MVP_FULL_ACCESS_QUERY_LIMIT` (по умолчанию 20). Это
+режим быстрой UI-приёмки, а не подписка, не платёж и не production-модель.
+На Railway/VPS флаг не включать: там роли, consent и доступ должны вернуться к
+обычному серверному сценарию.
 
 ## Ручной поиск ЕИС
 
