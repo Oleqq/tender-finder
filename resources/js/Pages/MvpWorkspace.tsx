@@ -12,7 +12,6 @@ import {
     type SavedSearchRunResult,
 } from '../Components/SavedSearchRunHistory';
 import { TenderComparison } from '../Components/TenderComparison';
-import { downloadTenderExport, type TenderExportFormat } from '../lib/tenderExport';
 import {
     Badge,
     Button,
@@ -21,6 +20,7 @@ import {
     GlassCard,
     InlineAlert,
 } from '../Components/ui';
+import { downloadTenderExport, type TenderExportFormat } from '../lib/tenderExport';
 import type { PageProps } from '../types';
 
 type TenderStatus = 'new' | 'favorite' | 'potential' | 'dismissed' | 'archived';
@@ -734,9 +734,9 @@ export default function MvpWorkspace() {
         <>
             <Head title="Поиск ЕИС" />
             <AppShell
+                activeNav="/mvp/workspace"
                 className="mvp-workspace"
                 eyebrow="ЕИС · расширенный поиск"
-                navigationVisible={false}
                 role="super_admin"
                 title="Поиск тендеров"
             >

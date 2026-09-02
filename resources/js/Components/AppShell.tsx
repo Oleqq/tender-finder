@@ -17,11 +17,13 @@ const subscriberNavigation: NavigationItem[] = [
     { href: '/profile', label: 'Профиль', icon: 'user' },
 ];
 
-const adminNavigation: NavigationItem = {
-    href: '/operations',
-    label: 'Аналитика',
-    icon: 'shield',
-};
+const superAdminNavigation: NavigationItem[] = [
+    { href: '/dashboard', label: 'Обзор', icon: 'home' },
+    { href: '/tenders', label: 'Тендеры', icon: 'tenders' },
+    { href: '/mvp/workspace', label: 'Поиск ЕИС', icon: 'search' },
+    { href: '/operations', label: 'Аналитика', icon: 'shield' },
+    { href: '/profile', label: 'Профиль', icon: 'user' },
+];
 
 type AppShellProps = {
     children: ReactNode;
@@ -101,9 +103,7 @@ function BottomNavigation({
     wide: boolean;
 }) {
     const navigation =
-        role === 'super_admin'
-            ? [...subscriberNavigation, adminNavigation]
-            : subscriberNavigation;
+        role === 'super_admin' ? superAdminNavigation : subscriberNavigation;
 
     return (
         <nav

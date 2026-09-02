@@ -42,12 +42,12 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 
 | Группа | Готово | Ближайший backlog |
 |---|---|---|
-| Shell | AppShell, top bar, bottom navigation, Telegram setup, role-aware nav variant | server-authorized admin entry point, pull-to-refresh |
+| Shell | AppShell, top bar, bottom navigation, Telegram setup, role-aware nav variant с защищёнными пунктами поиска ЕИС и аналитики | pull-to-refresh |
 | Surfaces | glass card, status/badge, metric card, dense data row, inline alert, progress | divider, tooltip, contextual helper |
 | Actions | button, icon button, toast, bottom sheet/modal | confirmation dialog, undo, destructive action pattern |
 | Inputs | input/search, chips, segmented control, switch, select/combobox, multi-select, date range, money range, validation | slider, stepper, saved-filter persistence |
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
-| Tender UI | local MVP ЕИС: поиск, все/любое/точная фраза, минус-слова, видимые причины совпадения, текущая выдача/история, decision-detail, именованные сохранённые запросы, «только новые», 44/223‑ФЗ, НМЦК, даты, регион/ОКПД2, этапы, сравнение 2–5 карточек, personal states/bulk actions, заметки, теги, дата действия, CSV/XLSX и явное публичное обогащение одной карточки | сортировка выдачи и обзор ближайших действий |
+| Tender UI | local MVP ЕИС: поиск, все/любое/точная фраза, минус-слова, видимые причины совпадения, текущая выдача/история, decision-detail, полноценные карточки мониторингов с ручным запуском, итогами и историей, именованные сохранённые запросы, «только новые», 44/223‑ФЗ, НМЦК, даты, регион/ОКПД2, этапы, сравнение 2–5 карточек, personal states/bulk actions, заметки, теги, дата действия, CSV/XLSX и явное публичное обогащение одной карточки | сортировка выдачи и обзор ближайших действий |
 | Access | server-calculated access status, access explanation and entry points to the available workspace | Stars invoice state and subscription management after the commercial flow is approved |
 | Admin | role-aware shell variant, server-guarded read-only агрегаты, period switcher, funnel, growth chart и access distribution | user drawer, campaigns, audit и технический Live Ops остаются вне MVP |
 

@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
 import {
+    SavedSearchRunHistory,
+    type SavedSearchRunResult,
+} from '../Components/SavedSearchRunHistory';
+import {
     Badge,
     BottomSheet,
     Button,
@@ -28,6 +32,43 @@ type QueryDto = {
     deadline_to: string | null;
     status: QueryStatus;
     monitoring_started_at: string | null;
+    last_run_at: string | null;
+    last_run: QueryRunSummary | null;
+};
+
+type QueryRunSummary = {
+    items_seen: number;
+    items_matched: number;
+    items_created: number;
+    pages_requested: number;
+    pages_loaded: number;
+    partially_loaded: boolean;
+};
+
+type TenderDto = {
+    id: number;
+    title: string;
+    customer: string | null;
+    region: string | null;
+    budget_amount: string | null;
+    currency: string;
+    published_at: string | null;
+    deadline_at: string | null;
+    canonical_url: string;
+};
+
+type QueryRunResponse = {
+    preview: QueryRunSummary;
+    tenders: TenderDto[];
+    query: QueryDto;
+};
+
+type QueryRunView = {
+    queryName: string;
+    caption: string;
+    onlyNew: boolean;
+    summary: QueryRunSummary & { new_count?: number };
+    tenders: TenderDto[];
 };
 
 type QueryFormValues = {
@@ -81,6 +122,9 @@ export default function MyQueries() {
     const [isCreating, setIsCreating] = useState(false);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [runningQueryId, setRunningQueryId] = useState<number | null>(null);
+    const [historyQueryId, setHistoryQueryId] = useState<number | null>(null);
+    const [runView, setRunView] = useState<QueryRunView | null>(null);
 
     const replaceQuery = (updatedQuery: QueryDto): void => {
         setQueries((current) =>
@@ -184,6 +228,49 @@ export default function MyQueries() {
         }
     };
 
+    const runQuery = async (query: QueryDto): Promise<void> => {
+        setActionError('');
+        setRunningQueryId(query.id);
+
+        try {
+            const response = await window.axios.post<QueryRunResponse>(
+                `/queries/${query.id}/run`,
+            );
+            replaceQuery(response.data.query);
+            setRunView({
+                queryName: response.data.query.name,
+                caption: 'Только что выполненный запуск',
+                onlyNew: false,
+                summary: response.data.preview,
+                tenders: response.data.tenders,
+            });
+        } catch (error) {
+            setActionError(
+                requestErrorMessage(
+                    error,
+                    'Не удалось запустить мониторинг. Попробуйте позже.',
+                ),
+            );
+        } finally {
+            setRunningQueryId(null);
+        }
+    };
+
+    const openHistoricalRun = (
+        query: QueryDto,
+        result: SavedSearchRunResult<TenderDto>,
+    ): void => {
+        setRunView({
+            queryName: query.name,
+            caption: result.only_new
+                ? 'Новые относительно предыдущего запуска'
+                : `Сохранённый запуск от ${formatDateTime(result.run.created_at)}`,
+            onlyNew: result.only_new,
+            summary: result.run,
+            tenders: result.tenders,
+        });
+    };
+
     const deleteQuery = async (): Promise<void> => {
         if (!deleteCandidate) {
             return;
@@ -214,12 +301,14 @@ export default function MyQueries() {
     const canCreate =
         ['trialing', 'active'].includes(auth.access?.state ?? '') &&
         auth.access?.active_query_limit !== null;
+    const canRunManually = auth.user?.role === 'super_admin';
 
     return (
         <>
             <Head title="Мои мониторинги" />
             <AppShell
                 activeNav="/tenders"
+                className="queries-page"
                 eyebrow="Защищённый раздел"
                 role={auth.user?.role ?? 'subscriber'}
                 title="Мониторинги"
@@ -282,7 +371,7 @@ export default function MyQueries() {
                         </div>
                     </div>
                     {queries.length === 0 ? (
-                        <GlassCard tone="quiet">
+                        <GlassCard className="query-empty" tone="quiet">
                             <p>
                                 Пока нет сохранённых мониторингов. Создайте первый,
                                 когда доступ станет активным.
@@ -298,7 +387,7 @@ export default function MyQueries() {
                                     className="query-card"
                                     key={query.id}
                                 >
-                                    <div>
+                                    <div className="query-card__copy">
                                         <Badge
                                             tone={
                                                 query.status === 'active'
@@ -312,7 +401,36 @@ export default function MyQueries() {
                                         <p>{query.keywords.join(' · ')}</p>
                                         {details ? <p>{details}</p> : null}
                                     </div>
+                                    <QueryRunSummaryCard query={query} />
                                     <div className="query-card__actions">
+                                        {canRunManually ? (
+                                            <>
+                                                <Button
+                                                    disabled={runningQueryId !== null}
+                                                    onClick={() => runQuery(query)}
+                                                    size="sm"
+                                                >
+                                                    {runningQueryId === query.id
+                                                        ? 'Запускаем…'
+                                                        : 'Запустить сейчас'}
+                                                </Button>
+                                                <Button
+                                                    onClick={() =>
+                                                        setHistoryQueryId((current) =>
+                                                            current === query.id
+                                                                ? null
+                                                                : query.id,
+                                                        )
+                                                    }
+                                                    size="sm"
+                                                    variant="secondary"
+                                                >
+                                                    {historyQueryId === query.id
+                                                        ? 'Скрыть историю'
+                                                        : 'История запусков'}
+                                                </Button>
+                                            </>
+                                        ) : null}
                                         {query.status === 'active' ? (
                                             <Button
                                                 onClick={() =>
@@ -363,6 +481,15 @@ export default function MyQueries() {
                                             Удалить
                                         </Button>
                                     </div>
+                                    {historyQueryId === query.id ? (
+                                        <SavedSearchRunHistory<TenderDto>
+                                            key={`${query.id}-${query.last_run_at ?? 'empty'}`}
+                                            onOpenRun={(result) =>
+                                                openHistoricalRun(query, result)
+                                            }
+                                            queryId={query.id}
+                                        />
+                                    ) : null}
                                 </GlassCard>
                             );
                         })
@@ -424,7 +551,146 @@ export default function MyQueries() {
                     Отмена
                 </Button>
             </BottomSheet>
+
+            <BottomSheet
+                onClose={() => setRunView(null)}
+                open={runView !== null}
+                title={runView?.queryName ?? 'Результаты запуска'}
+            >
+                {runView ? (
+                    <QueryRunResults onClose={() => setRunView(null)} run={runView} />
+                ) : null}
+            </BottomSheet>
         </>
+    );
+}
+
+function QueryRunSummaryCard({ query }: { query: QueryDto }) {
+    if (!query.last_run_at || !query.last_run) {
+        return (
+            <div className="query-card__run query-card__run--empty">
+                <Icon name="search" size={18} />
+                <p>Данные появятся здесь после первого запуска.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="query-card__run">
+            <div className="query-card__run-heading">
+                <span>Последний запуск</span>
+                <time dateTime={query.last_run_at}>
+                    {formatDateTime(query.last_run_at)}
+                </time>
+            </div>
+            <dl className="query-card__run-stats">
+                <div>
+                    <dt>Проверено</dt>
+                    <dd>{query.last_run.items_seen}</dd>
+                </div>
+                <div>
+                    <dt>Найдено</dt>
+                    <dd>{query.last_run.items_matched}</dd>
+                </div>
+                <div>
+                    <dt>Добавлено</dt>
+                    <dd>{query.last_run.items_created}</dd>
+                </div>
+                <div>
+                    <dt>Страницы</dt>
+                    <dd>
+                        {query.last_run.pages_loaded}/{query.last_run.pages_requested}
+                    </dd>
+                </div>
+            </dl>
+            {query.last_run.partially_loaded ? (
+                <p className="query-card__run-warning">
+                    ЕИС отдала не все запрошенные страницы.
+                </p>
+            ) : null}
+        </div>
+    );
+}
+
+function QueryRunResults({ run, onClose }: { run: QueryRunView; onClose: () => void }) {
+    return (
+        <div className="query-run-results">
+            <div className="query-run-results__summary">
+                <div>
+                    <span>{run.caption}</span>
+                    <strong>
+                        {run.onlyNew
+                            ? (run.summary.new_count ?? 0)
+                            : run.summary.items_matched}{' '}
+                        совпадений
+                    </strong>
+                </div>
+                <Badge tone={run.summary.partially_loaded ? 'warning' : 'success'}>
+                    {run.summary.pages_loaded}/{run.summary.pages_requested} страниц
+                </Badge>
+            </div>
+            {run.summary.new_count !== undefined ? (
+                <p className="query-run-results__note">
+                    Новых относительно предыдущего запуска: {run.summary.new_count}.
+                </p>
+            ) : null}
+            {run.tenders.length === 0 ? (
+                <div className="query-run-results__empty">
+                    <Icon name="search" size={22} />
+                    <strong>Подходящих карточек нет</strong>
+                    <p>Условия сохранены — следующий запуск можно повторить позже.</p>
+                </div>
+            ) : (
+                <div className="query-run-results__list">
+                    {run.tenders.map((tender) => (
+                        <article className="query-run-result" key={tender.id}>
+                            <div className="query-run-result__heading">
+                                <Badge tone="accent">
+                                    {tender.budget_amount
+                                        ? formatTenderMoney(
+                                              tender.budget_amount,
+                                              tender.currency,
+                                          )
+                                        : 'Цена не указана'}
+                                </Badge>
+                                {tender.deadline_at ? (
+                                    <span>до {formatDate(tender.deadline_at)}</span>
+                                ) : null}
+                            </div>
+                            <h3>
+                                <Link href={`/local/mvp/tenders/${tender.id}`}>
+                                    {tender.title}
+                                </Link>
+                            </h3>
+                            {tender.customer ? <p>{tender.customer}</p> : null}
+                            <div className="query-run-result__meta">
+                                {tender.region ? <span>{tender.region}</span> : null}
+                                {tender.published_at ? (
+                                    <span>
+                                        опубликован {formatDate(tender.published_at)}
+                                    </span>
+                                ) : null}
+                            </div>
+                            <div className="query-run-result__links">
+                                <Link href={`/local/mvp/tenders/${tender.id}`}>
+                                    Открыть карточку
+                                </Link>
+                                <a
+                                    href={tender.canonical_url}
+                                    rel="noreferrer"
+                                    target="_blank"
+                                >
+                                    Первоисточник
+                                </a>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            )}
+            <Button className="sheet-action" onClick={onClose} variant="secondary">
+                Закрыть
+            </Button>
+        </div>
     );
 }
 
@@ -601,6 +867,55 @@ function formatMoney(value: string): string {
     return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(
         Number(value),
     );
+}
+
+function formatTenderMoney(value: string, currency: string): string {
+    return `${formatMoney(value)} ${currency === 'RUB' ? '₽' : currency}`;
+}
+
+function formatDate(value: string): string {
+    return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).format(new Date(value));
+}
+
+function formatDateTime(value: string): string {
+    return new Intl.DateTimeFormat('ru-RU', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+    }).format(new Date(value));
+}
+
+function requestErrorMessage(error: unknown, fallback: string): string {
+    const response = (
+        error as {
+            response?: {
+                data?: {
+                    message?: unknown;
+                    errors?: Record<string, unknown>;
+                };
+            };
+        }
+    ).response;
+    const errors = response?.data?.errors;
+
+    if (errors) {
+        for (const value of Object.values(errors)) {
+            if (typeof value === 'string') {
+                return value;
+            }
+
+            if (Array.isArray(value) && typeof value[0] === 'string') {
+                return value[0];
+            }
+        }
+    }
+
+    return typeof response?.data?.message === 'string'
+        ? response.data.message
+        : fallback;
 }
 
 function statusLabel(status: QueryStatus): string {

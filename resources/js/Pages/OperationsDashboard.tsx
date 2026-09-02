@@ -143,8 +143,8 @@ export default function OperationsDashboard() {
                             <em>догадок.</em>
                         </h2>
                         <p>
-                            Аудитория, trial и доступы — только по данным, которые
-                            продукт уже хранит.
+                            Аудитория, пробный период и доступы — только по данным,
+                            которые продукт уже хранит.
                         </p>
                     </div>
                     <div className="analytics-hero__meta">
@@ -203,9 +203,9 @@ export default function OperationsDashboard() {
                         value={formatNumber(dashboard.audience.miniAppActive)}
                     />
                     <MetricCard
-                        detail={`всего trial: ${formatNumber(dashboard.activation.trialsTotal)}`}
+                        detail={`всего пробных периодов: ${formatNumber(dashboard.activation.trialsTotal)}`}
                         icon="spark"
-                        label="Начали trial"
+                        label="Начали пробный период"
                         trend={{
                             direction: 'neutral',
                             label: 'Старты за выбранный период',
@@ -267,7 +267,7 @@ function Funnel({
             detail: 'за всё время',
         },
         {
-            label: 'Начинали trial',
+            label: 'Начинали пробный период',
             value: dashboard.funnel.trialed,
             share: dashboard.funnel.trialRate,
             detail: `${dashboard.funnel.trialRate}% от аудитории`,
@@ -276,7 +276,7 @@ function Funnel({
             label: 'Оплачивают сейчас',
             value: dashboard.funnel.paid,
             share: paidFromAudience,
-            detail: `${dashboard.funnel.paidRate}% среди начинавших trial`,
+            detail: `${dashboard.funnel.paidRate}% среди начинавших пробный период`,
         },
     ];
 
@@ -337,7 +337,7 @@ function AccessDistribution({ access }: { access: GrowthDashboard['access'] }) {
                 <DataRow
                     detail="пробный доступ активен"
                     icon="spark"
-                    label="На trial"
+                    label="На пробный период"
                     value={formatNumber(access.trialing)}
                 />
                 <DataRow
@@ -353,7 +353,7 @@ function AccessDistribution({ access }: { access: GrowthDashboard['access'] }) {
                     value={formatNumber(access.granted)}
                 />
                 <DataRow
-                    detail="trial или доступ закончился"
+                    detail="Пробный период или доступ закончился"
                     icon="calendar"
                     label="Доступ завершён"
                     value={formatNumber(access.expired)}
@@ -395,7 +395,7 @@ function GrowthChart({ dashboard }: { dashboard: GrowthDashboard }) {
                     </span>
                     <span>
                         <i className="is-trial" />
-                        Trial
+                        Пробный период
                     </span>
                     <span>
                         <i className="is-stars" />
@@ -404,7 +404,7 @@ function GrowthChart({ dashboard }: { dashboard: GrowthDashboard }) {
                 </div>
             </div>
             <div
-                aria-label="Дневная динамика регистраций, trial и запусков Stars"
+                aria-label="Дневная динамика регистраций, пробных периодов и запусков Stars"
                 className="analytics-chart__plot"
                 role="img"
             >
@@ -417,7 +417,7 @@ function GrowthChart({ dashboard }: { dashboard: GrowthDashboard }) {
                                 style={{ height: barHeight(day.registrations, peak) }}
                             />
                             <span
-                                aria-label={`Trial ${day.label}: ${day.trials}`}
+                                aria-label={`Пробный период ${day.label}: ${day.trials}`}
                                 className="is-trial"
                                 style={{ height: barHeight(day.trials, peak) }}
                             />
