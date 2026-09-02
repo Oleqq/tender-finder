@@ -770,6 +770,15 @@ it('renders a local tender detail with only source-provided data and attachments
         'query' => 'Разработка сайта учреждения',
         'source' => 'tenderguru_preview',
         'tender_ids' => [$tender->id],
+        'relevance' => [
+            'match_reasons' => [
+                (string) $tender->id => [
+                    'mode' => 'exact',
+                    'matched_terms' => ['Разработка сайта учреждения'],
+                    'minus_keywords_checked' => ['строительство'],
+                ],
+            ],
+        ],
     ]);
 
     $this->get("/local/mvp/tenders/{$tender->id}")
@@ -778,6 +787,10 @@ it('renders a local tender detail with only source-provided data and attachments
             ->component('MvpTenderDetail')
             ->where('tender.id', $tender->id)
             ->where('tender.customer', 'Учреждение-заказчик')
+            ->where('tender.status', 'new')
+            ->where('tender.match_reason.mode', 'exact')
+            ->where('tender.match_reason.matched_terms.0', 'Разработка сайта учреждения')
+            ->where('tender.match_reason.minus_keywords_checked.0', 'строительство')
             ->where('tender.attachments.0.label', 'Техническое задание.pdf')
             ->where('tender.attachments.0.url', 'https://example.test/files/specification.pdf'));
 });

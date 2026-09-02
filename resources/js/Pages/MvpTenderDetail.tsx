@@ -1,6 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
-import { Badge, GlassCard } from '../Components/ui';
+import { Badge, Button, GlassCard, InlineAlert } from '../Components/ui';
 import type { PageProps } from '../types';
 
 type AttachmentDto = {
@@ -8,6 +9,15 @@ type AttachmentDto = {
     url: string;
     mime_type: string | null;
     size_bytes: number | null;
+};
+
+type TenderStatus = 'new' | 'favorite' | 'potential' | 'dismissed' | 'archived';
+type SearchMatchMode = 'all' | 'any' | 'exact';
+
+type TenderMatchReason = {
+    mode: SearchMatchMode;
+    matched_terms: string[];
+    minus_keywords_checked: string[];
 };
 
 type TenderDetailDto = {
@@ -26,16 +36,40 @@ type TenderDetailDto = {
     canonical_url: string;
     source_label: string;
     attachments: AttachmentDto[];
+    status: TenderStatus;
+    match_reason: TenderMatchReason | null;
 };
 
 type MvpTenderDetailProps = { tender: TenderDetailDto };
 
 export default function MvpTenderDetail() {
-    const { tender } = usePage<PageProps<MvpTenderDetailProps>>().props;
+    const { tender: initialTender } = usePage<PageProps<MvpTenderDetailProps>>().props;
+    const [tender, setTender] = useState(initialTender);
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [actionError, setActionError] = useState('');
+
+    const updateStatus = async (status: TenderStatus): Promise<void> => {
+        setActionError('');
+        setIsUpdating(true);
+
+        try {
+            const response = await window.axios.post<{
+                tender: Pick<TenderDetailDto, 'id' | 'status' | 'match_reason'>;
+            }>(`/local/mvp/tenders/${tender.id}/status`, { status });
+
+            setTender((current) => ({ ...current, ...response.data.tender }));
+        } catch {
+            setActionError(
+                'Не удалось сохранить отметку. Данные тендера и прежний статус не изменены.',
+            );
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     return (
         <>
-            <Head title={`${tender.title} — Tender Finder`} />
+            <Head title={tender.title} />
             <AppShell
                 backHref="/local/mvp-operator"
                 className="mvp-tender-detail"
@@ -43,104 +77,322 @@ export default function MvpTenderDetail() {
                 navigationVisible={false}
                 role="super_admin"
                 title="Тендер"
+                wide
             >
-                <GlassCard className="mvp-tender-detail__hero" tone="accent">
-                    <Badge tone="accent">ЕИС · госзакупки</Badge>
-                    <h2>{tender.title}</h2>
-                    <p>
-                        Внутри приложения показаны только сведения, которые передал
-                        источник. Ничего не дополнено догадками.
-                    </p>
-                </GlassCard>
+                <div className="mvp-tender-detail__layout">
+                    <div className="mvp-tender-detail__primary">
+                        <GlassCard className="mvp-tender-detail__hero" tone="accent">
+                            <div className="mvp-tender-detail__eyebrow-row">
+                                <Badge tone={statusTone(tender.status)}>
+                                    {statusLabel(tender.status)}
+                                </Badge>
+                                <span>ЕИС · госзакупки</span>
+                            </div>
+                            <h2>{tender.title}</h2>
+                            <div
+                                aria-label="Тип закупки"
+                                className="mvp-tender-detail__facts"
+                            >
+                                {tender.category ? (
+                                    <span>{tender.category}</span>
+                                ) : null}
+                                {tender.procurement_law ? (
+                                    <span>{tender.procurement_law}-ФЗ</span>
+                                ) : null}
+                                {tender.region ? <span>{tender.region}</span> : null}
+                            </div>
+                            <p>
+                                Данные и ссылки — только из источника. Проверьте
+                                исходную карточку перед решением об участии.
+                            </p>
+                        </GlassCard>
 
-                <section className="mvp-tender-detail__section">
-                    <h2>Основная информация</h2>
-                    <dl className="mvp-tender-detail__grid">
-                        <DetailRow label="Заказчик" value={tender.customer} />
-                        <DetailRow
-                            label="Цена"
-                            value={formatBudget(tender.budget_amount, tender.currency)}
-                        />
-                        <DetailRow label="Регион" value={tender.region} />
-                        <DetailRow
-                            label="Опубликован"
-                            value={formatDate(tender.published_at)}
-                        />
-                        <DetailRow
-                            label="Срок подачи"
-                            value={formatDate(tender.deadline_at)}
-                        />
-                        <DetailRow label="Номер закупки" value={tender.reg_number} />
-                        <DetailRow
-                            label="Категория источника"
-                            value={tender.category}
-                        />
-                        <DetailRow
-                            label="Закон"
-                            value={
-                                tender.procurement_law
-                                    ? `${tender.procurement_law}-ФЗ`
-                                    : null
-                            }
-                        />
-                    </dl>
-                </section>
+                        <section
+                            aria-labelledby="tender-decision-title"
+                            className="mvp-tender-detail__decision"
+                        >
+                            <div className="mvp-tender-detail__section-heading">
+                                <div>
+                                    <p>Быстрая оценка</p>
+                                    <h2 id="tender-decision-title">
+                                        Главное для решения
+                                    </h2>
+                                </div>
+                                <span>Сверьте с первоисточником</span>
+                            </div>
+                            <dl className="mvp-tender-detail__highlights">
+                                <DetailRow
+                                    emphasis
+                                    label="НМЦК"
+                                    value={formatBudget(
+                                        tender.budget_amount,
+                                        tender.currency,
+                                    )}
+                                />
+                                <DetailRow
+                                    emphasis
+                                    label="Срок подачи"
+                                    missingLabel="Нет в данных ЕИС"
+                                    tone={tender.deadline_at ? 'default' : 'warning'}
+                                    value={formatDate(tender.deadline_at)}
+                                />
+                                <DetailRow
+                                    label="Опубликован"
+                                    value={formatDate(tender.published_at)}
+                                />
+                                <DetailRow
+                                    label="Номер закупки"
+                                    value={tender.reg_number}
+                                />
+                            </dl>
+                            {!tender.deadline_at ? (
+                                <InlineAlert
+                                    title="Срок подачи не указан"
+                                    tone="warning"
+                                >
+                                    Не считайте дату отсутствующей: откройте карточку
+                                    ЕИС и проверьте актуальный срок вручную.
+                                </InlineAlert>
+                            ) : null}
+                        </section>
 
-                <section className="mvp-tender-detail__section">
-                    <h2>Описание</h2>
-                    {tender.description ? (
-                        <p className="mvp-tender-detail__description">
-                            {tender.description}
-                        </p>
-                    ) : (
-                        <p className="mvp-tender-detail__missing">
-                            Источник не передал описание для этой карточки.
-                        </p>
-                    )}
-                </section>
+                        {tender.match_reason ? (
+                            <section
+                                aria-labelledby="tender-match-title"
+                                className="mvp-tender-detail__match"
+                            >
+                                <div>
+                                    <p>Проверяемая причина</p>
+                                    <h2 id="tender-match-title">
+                                        Почему показан этот тендер
+                                    </h2>
+                                </div>
+                                <p>{matchReasonLabel(tender.match_reason)}</p>
+                                <div className="mvp-tender-detail__terms">
+                                    {tender.match_reason.matched_terms.map((term) => (
+                                        <span key={term}>{term}</span>
+                                    ))}
+                                </div>
+                                {tender.match_reason.minus_keywords_checked.length >
+                                0 ? (
+                                    <p className="mvp-tender-detail__exclusions">
+                                        Исключения не найдены:{' '}
+                                        {tender.match_reason.minus_keywords_checked.join(
+                                            ', ',
+                                        )}
+                                    </p>
+                                ) : null}
+                            </section>
+                        ) : null}
 
-                <section className="mvp-tender-detail__section">
-                    <h2>ТЗ и вложения</h2>
-                    {tender.attachments.length > 0 ? (
-                        <ul className="mvp-tender-detail__attachments">
-                            {tender.attachments.map((attachment) => (
-                                <li key={attachment.url}>
-                                    <a
-                                        href={attachment.url}
-                                        rel="noreferrer"
-                                        target="_blank"
+                        <section
+                            aria-labelledby="tender-info-title"
+                            className="mvp-tender-detail__section"
+                        >
+                            <h2 id="tender-info-title">Данные закупки</h2>
+                            <dl className="mvp-tender-detail__grid">
+                                <DetailRow label="Заказчик" value={tender.customer} />
+                                <DetailRow label="Регион" value={tender.region} />
+                                <DetailRow
+                                    label="Категория источника"
+                                    value={tender.category}
+                                />
+                                <DetailRow
+                                    label="Закон"
+                                    value={
+                                        tender.procurement_law
+                                            ? `${tender.procurement_law}-ФЗ`
+                                            : null
+                                    }
+                                />
+                            </dl>
+                        </section>
+
+                        <section
+                            aria-labelledby="tender-description-title"
+                            className="mvp-tender-detail__section"
+                        >
+                            <h2 id="tender-description-title">Описание</h2>
+                            {tender.description ? (
+                                <p className="mvp-tender-detail__description">
+                                    {tender.description}
+                                </p>
+                            ) : (
+                                <p className="mvp-tender-detail__missing">
+                                    Источник не передал описание для этой карточки.
+                                </p>
+                            )}
+                        </section>
+
+                        <section
+                            aria-labelledby="tender-attachments-title"
+                            className="mvp-tender-detail__section"
+                        >
+                            <h2 id="tender-attachments-title">ТЗ и вложения</h2>
+                            {tender.attachments.length > 0 ? (
+                                <ul className="mvp-tender-detail__attachments">
+                                    {tender.attachments.map((attachment) => (
+                                        <li key={attachment.url}>
+                                            <a
+                                                href={attachment.url}
+                                                rel="noreferrer"
+                                                target="_blank"
+                                            >
+                                                {attachment.label}
+                                            </a>
+                                            <span>{attachmentMeta(attachment)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="mvp-tender-detail__missing">
+                                    RSS ЕИС не передала ссылки на ТЗ или вложения. Мы не
+                                    создаём фальшивые PDF и не извлекаем защищённые
+                                    документы.
+                                </p>
+                            )}
+                        </section>
+                    </div>
+
+                    <aside
+                        aria-label="Действия с тендером"
+                        className="mvp-tender-detail__aside"
+                    >
+                        <section className="mvp-tender-detail__status-card">
+                            <div className="mvp-tender-detail__status-heading">
+                                <div>
+                                    <p>Моя отметка</p>
+                                    <h2>{statusLabel(tender.status)}</h2>
+                                </div>
+                                <Badge tone={statusTone(tender.status)}>
+                                    {statusShortLabel(tender.status)}
+                                </Badge>
+                            </div>
+                            <p>
+                                Эта отметка видна только в вашем локальном рабочем
+                                пространстве и не меняет данные ЕИС.
+                            </p>
+                            {tender.status === 'archived' ? (
+                                <Button
+                                    disabled={isUpdating}
+                                    onClick={() => updateStatus('new')}
+                                    variant="secondary"
+                                >
+                                    Вернуть в список
+                                </Button>
+                            ) : (
+                                <div className="mvp-tender-detail__status-actions">
+                                    <Button
+                                        aria-pressed={tender.status === 'favorite'}
+                                        disabled={isUpdating}
+                                        onClick={() =>
+                                            updateStatus(
+                                                tender.status === 'favorite'
+                                                    ? 'new'
+                                                    : 'favorite',
+                                            )
+                                        }
+                                        variant={
+                                            tender.status === 'favorite'
+                                                ? 'primary'
+                                                : 'secondary'
+                                        }
                                     >
-                                        {attachment.label}
-                                    </a>
-                                    <span>{attachmentMeta(attachment)}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="mvp-tender-detail__missing">
-                            RSS ЕИС не передала ссылки на ТЗ или вложения. Мы не создаём
-                            фальшивые PDF и не извлекаем защищённые документы.
-                        </p>
-                    )}
-                </section>
+                                        {tender.status === 'favorite'
+                                            ? 'В избранном'
+                                            : 'В избранное'}
+                                    </Button>
+                                    <Button
+                                        aria-pressed={tender.status === 'potential'}
+                                        disabled={isUpdating}
+                                        onClick={() =>
+                                            updateStatus(
+                                                tender.status === 'potential'
+                                                    ? 'new'
+                                                    : 'potential',
+                                            )
+                                        }
+                                        variant="ghost"
+                                    >
+                                        {tender.status === 'potential'
+                                            ? 'Потенциальный'
+                                            : 'Отметить потенциальным'}
+                                    </Button>
+                                    <Button
+                                        aria-pressed={tender.status === 'dismissed'}
+                                        disabled={isUpdating}
+                                        onClick={() =>
+                                            updateStatus(
+                                                tender.status === 'dismissed'
+                                                    ? 'new'
+                                                    : 'dismissed',
+                                            )
+                                        }
+                                        variant="ghost"
+                                    >
+                                        {tender.status === 'dismissed'
+                                            ? 'Вернуть в новые'
+                                            : 'Скрыть'}
+                                    </Button>
+                                    <Button
+                                        disabled={isUpdating}
+                                        onClick={() => updateStatus('archived')}
+                                        variant="ghost"
+                                    >
+                                        Убрать из списка
+                                    </Button>
+                                </div>
+                            )}
+                            {actionError ? (
+                                <p
+                                    aria-live="polite"
+                                    className="mvp-tender-detail__action-error"
+                                >
+                                    {actionError}
+                                </p>
+                            ) : null}
+                        </section>
 
-                <GlassCard className="mvp-tender-detail__source" tone="quiet">
-                    <p>Источник</p>
-                    <strong>{tender.source_label}</strong>
-                    <a href={tender.canonical_url} rel="noreferrer" target="_blank">
-                        Открыть исходную карточку
-                    </a>
-                </GlassCard>
+                        <GlassCard className="mvp-tender-detail__source" tone="quiet">
+                            <p>Первоисточник</p>
+                            <strong>{tender.source_label}</strong>
+                            <a
+                                href={tender.canonical_url}
+                                rel="noreferrer"
+                                target="_blank"
+                            >
+                                Открыть карточку источника →
+                            </a>
+                            <span>
+                                Там проверяются сроки, документы и финальные условия.
+                            </span>
+                        </GlassCard>
+                    </aside>
+                </div>
             </AppShell>
         </>
     );
 }
 
-function DetailRow({ label, value }: { label: string; value: string | null }) {
+function DetailRow({
+    label,
+    value,
+    emphasis = false,
+    missingLabel = 'Не передано источником',
+    tone = 'default',
+}: {
+    label: string;
+    value: string | null;
+    emphasis?: boolean;
+    missingLabel?: string;
+    tone?: 'default' | 'warning';
+}) {
     return (
-        <div>
+        <div
+            className={`mvp-tender-detail__data-row ${emphasis ? 'is-emphasis' : ''} ${tone === 'warning' ? 'is-warning' : ''}`}
+        >
             <dt>{label}</dt>
-            <dd>{value ?? 'Не передано источником'}</dd>
+            <dd>{value ?? missingLabel}</dd>
         </div>
     );
 }
@@ -183,4 +435,48 @@ function formatSize(sizeBytes: number): string {
     }
 
     return `${(sizeBytes / (1024 * 1024)).toFixed(1)} МБ`;
+}
+
+function matchReasonLabel(reason: TenderMatchReason): string {
+    const terms = reason.matched_terms.join(', ');
+
+    return reason.mode === 'exact'
+        ? `Найдена точная фраза: «${terms}»`
+        : reason.mode === 'any'
+          ? 'Совпало хотя бы одно слово из запроса.'
+          : 'Совпали все слова из запроса.';
+}
+
+function statusLabel(status: TenderStatus): string {
+    return {
+        new: 'Новый тендер',
+        favorite: 'В избранном',
+        potential: 'Потенциальный',
+        dismissed: 'Скрыт',
+        archived: 'Убран из списка',
+    }[status];
+}
+
+function statusShortLabel(status: TenderStatus): string {
+    return {
+        new: 'Новый',
+        favorite: 'Избранное',
+        potential: 'Потенциальный',
+        dismissed: 'Скрыт',
+        archived: 'Убран',
+    }[status];
+}
+
+function statusTone(
+    status: TenderStatus,
+): 'accent' | 'success' | 'neutral' | 'warning' {
+    const tones: Record<TenderStatus, 'accent' | 'success' | 'neutral' | 'warning'> = {
+        new: 'accent',
+        favorite: 'success',
+        potential: 'warning',
+        dismissed: 'neutral',
+        archived: 'neutral',
+    };
+
+    return tones[status];
 }
