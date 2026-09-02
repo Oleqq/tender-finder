@@ -213,6 +213,56 @@ class LocalMvpTenderWorkspaceService
         return $this->tenderDto($updated, $matchReasons[$updated->id] ?? null);
     }
 
+    /**
+     * @param  list<int>  $tenderIds
+     * @param  list<string>  $tags
+     * @return list<array<string, mixed>>
+     */
+    public function updateAnnotations(
+        User $user,
+        array $tenderIds,
+        array $tags,
+        ?string $nextActionOn,
+    ): array {
+        $tenderIds = array_values(array_unique($tenderIds));
+
+        DB::transaction(function () use ($user, $tenderIds, $tags, $nextActionOn): void {
+            foreach ($tenderIds as $tenderId) {
+                $state = TenderUserState::query()->firstOrNew([
+                    'user_id' => $user->id,
+                    'tender_id' => $tenderId,
+                ]);
+                $state->status ??= TenderUserStatus::New;
+                $state->forceFill([
+                    'tags' => $tags === [] ? null : $tags,
+                    'next_action_on' => $nextActionOn,
+                ]);
+
+                if ($state->status === TenderUserStatus::New && ! $this->hasAnnotation($state)) {
+                    if ($state->exists) {
+                        $state->delete();
+                    }
+                } else {
+                    $state->save();
+                }
+            }
+        });
+
+        $matchReasons = $this->snapshots->matchReasonsFor($this->snapshots->currentFor($user));
+
+        return $this->tenderQueryFor($user)
+            ->whereKey($tenderIds)
+            ->orderByDesc('published_at')
+            ->latest('id')
+            ->get()
+            ->map(fn (Tender $tender): array => $this->tenderDto(
+                $tender,
+                $matchReasons[$tender->id] ?? null,
+            ))
+            ->values()
+            ->all();
+    }
+
     public function canAccessTender(User $user, Tender $tender): bool
     {
         return in_array($tender->source, self::LOCAL_MVP_SOURCES, true)

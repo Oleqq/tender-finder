@@ -117,6 +117,52 @@ it('keeps the tender feed behind the authenticated user journey', function () {
     $this->get('/tenders')->assertRedirect('/onboarding');
 });
 
+it('updates personal tender fields inline only for the matching user', function () {
+    $owner = User::factory()->create(['telegram_id' => '9401']);
+    $other = User::factory()->create(['telegram_id' => '9402']);
+    $query = SearchQuery::query()->create([
+        'user_id' => $owner->id,
+        'name' => 'Inline',
+        'keywords' => ['сайт'],
+        'status' => 'active',
+    ]);
+    $tender = tenderForFeed('inline-state', 'Inline-карточка');
+    TenderQueryMatch::query()->create([
+        'tender_id' => $tender->id,
+        'search_query_id' => $query->id,
+        'match_reasons' => ['keywords' => ['сайт']],
+        'matched_at' => now(),
+    ]);
+
+    $this->actingAs($owner)
+        ->patchJson('/tenders/'.$tender->id.'/state', [
+            'status' => 'favorite',
+            'tags' => [' Срочно ', 'проверить', 'СРОЧНО'],
+            'next_action_on' => '2026-09-09',
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.status', 'favorite')
+        ->assertJsonPath('state.tags.0', 'СРОЧНО')
+        ->assertJsonPath('state.tags.1', 'проверить')
+        ->assertJsonPath('state.next_action_on', '2026-09-09');
+
+    $this->actingAs($other)
+        ->patchJson('/tenders/'.$tender->id.'/state', [
+            'status' => 'dismissed',
+        ])
+        ->assertNotFound();
+
+    $this->assertDatabaseHas('tender_user_states', [
+        'user_id' => $owner->id,
+        'tender_id' => $tender->id,
+        'status' => 'favorite',
+    ]);
+    $this->assertDatabaseMissing('tender_user_states', [
+        'user_id' => $other->id,
+        'tender_id' => $tender->id,
+    ]);
+});
+
 /** @param array<string, mixed> $attributes */
 function tenderForFeed(string $externalId, string $title, array $attributes = []): Tender
 {

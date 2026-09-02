@@ -48,6 +48,44 @@ it('stores personal notes tags and next actions without exposing them to another
         ->assertNotFound();
 });
 
+it('assigns status tags and next action to accessible tenders in bulk', function () {
+    [$operator, $first] = productivityTender($this, 'Первая массовая карточка');
+    $second = Tender::query()->create([
+        'source' => 'eis_rss',
+        'external_id' => 'productivity-bulk-second',
+        'canonical_url' => 'https://zakupki.gov.ru/epz/order/notice/ea20/view/common-info.html?regNumber=11234567890123456789',
+        'canonical_url_hash' => hash('sha256', 'productivity-bulk-second'),
+        'title' => 'Вторая массовая карточка',
+        'currency' => 'RUB',
+    ]);
+    LocalMvpSearchSnapshot::query()->create([
+        'user_id' => $operator->id,
+        'query' => 'массовое действие',
+        'source' => 'eis_rss',
+        'tender_ids' => [$first->id, $second->id],
+    ]);
+
+    $this->postJson('/local/mvp/tenders/status', [
+        'tender_ids' => [$first->id, $second->id],
+        'status' => 'potential',
+        'tags' => [' Приоритет ', 'проверить', 'ПРИОРИТЕТ'],
+        'next_action_on' => '2026-09-08',
+    ])
+        ->assertOk()
+        ->assertJsonCount(2, 'tenders');
+
+    foreach ([$first, $second] as $tender) {
+        $state = TenderUserState::query()
+            ->where('user_id', $operator->id)
+            ->where('tender_id', $tender->id)
+            ->firstOrFail();
+
+        expect($state->status)->toBe(TenderUserStatus::Potential)
+            ->and($state->tags)->toBe(['ПРИОРИТЕТ', 'проверить'])
+            ->and($state->next_action_on?->format('Y-m-d'))->toBe('2026-09-08');
+    }
+});
+
 it('exports accessible cards to safe CSV and a valid XLSX workbook', function () {
     [$operator, $tender] = productivityTender($this, '=HYPERLINK("https://evil.test")');
     TenderUserState::query()->create([

@@ -34,6 +34,7 @@ type QueryDto = {
     monitoring_started_at: string | null;
     last_run_at: string | null;
     last_run: QueryRunSummary | null;
+    filters: Record<string, unknown> | null;
 };
 
 type QueryRunSummary = {
@@ -91,6 +92,7 @@ type QueryPayload = {
     budget_max: string | null;
     deadline_from: string | null;
     deadline_to: string | null;
+    filters?: Record<string, unknown> | null;
 };
 
 type MyQueriesProps = {
@@ -114,6 +116,7 @@ export default function MyQueries() {
     const [queries, setQueries] = useState<QueryDto[]>(initialQueries);
     const [createForm, setCreateForm] = useState<QueryFormValues>(emptyQueryForm);
     const [editingQuery, setEditingQuery] = useState<QueryDto | null>(null);
+    const [duplicatingQuery, setDuplicatingQuery] = useState<QueryDto | null>(null);
     const [editForm, setEditForm] = useState<QueryFormValues>(emptyQueryForm);
     const [deleteCandidate, setDeleteCandidate] = useState<QueryDto | null>(null);
     const [createError, setCreateError] = useState('');
@@ -121,6 +124,7 @@ export default function MyQueries() {
     const [actionError, setActionError] = useState('');
     const [isCreating, setIsCreating] = useState(false);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [isDuplicating, setIsDuplicating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [runningQueryId, setRunningQueryId] = useState<number | null>(null);
     const [historyQueryId, setHistoryQueryId] = useState<number | null>(null);
@@ -174,6 +178,56 @@ export default function MyQueries() {
         if (!isSavingEdit) {
             setEditingQuery(null);
             setEditError('');
+        }
+    };
+
+    const openDuplicate = (query: QueryDto): void => {
+        setActionError('');
+        setEditError('');
+        setDuplicatingQuery(query);
+        setEditForm({
+            ...queryToForm(query),
+            name: query.name + ' — копия',
+        });
+    };
+
+    const closeDuplicate = (): void => {
+        if (!isDuplicating) {
+            setDuplicatingQuery(null);
+            setEditError('');
+        }
+    };
+
+    const duplicateQuery = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+        event.preventDefault();
+
+        if (!duplicatingQuery) return;
+
+        const payload = toQueryPayload(editForm);
+        if (!payload) {
+            setEditError('Укажите хотя бы одно ключевое слово через запятую.');
+            return;
+        }
+
+        setEditError('');
+        setIsDuplicating(true);
+
+        try {
+            const response = await window.axios.post<{ query: QueryDto }>('/queries', {
+                ...payload,
+                filters: duplicatingQuery.filters,
+            });
+            setQueries((current) => [response.data.query, ...current]);
+            setDuplicatingQuery(null);
+        } catch (error) {
+            setEditError(
+                requestErrorMessage(
+                    error,
+                    'Не удалось создать копию. Проверьте лимит активных мониторингов.',
+                ),
+            );
+        } finally {
+            setIsDuplicating(false);
         }
     };
 
@@ -459,6 +513,14 @@ export default function MyQueries() {
                                         >
                                             Изменить
                                         </Button>
+                                        <Button
+                                            disabled={!canCreate}
+                                            onClick={() => openDuplicate(query)}
+                                            size="sm"
+                                            variant="secondary"
+                                        >
+                                            Создать копию
+                                        </Button>
                                         {query.status !== 'frozen' ? (
                                             <Button
                                                 onClick={() =>
@@ -517,6 +579,37 @@ export default function MyQueries() {
                         className="sheet-action"
                         disabled={isSavingEdit}
                         onClick={closeEdit}
+                        variant="secondary"
+                    >
+                        Отмена
+                    </Button>
+                </form>
+            </BottomSheet>
+
+            <BottomSheet
+                onClose={closeDuplicate}
+                open={duplicatingQuery !== null}
+                title="Новый мониторинг из копии"
+            >
+                <form className="query-edit-form" onSubmit={duplicateQuery}>
+                    <p className="sheet-description">
+                        Все условия источника скопированы. Измените название и основные
+                        ограничения перед сохранением.
+                    </p>
+                    <QueryFields form={editForm} onChange={updateForm(setEditForm)} />
+                    {editError ? <FieldError>{editError}</FieldError> : null}
+                    <Button
+                        className="sheet-action"
+                        disabled={isDuplicating}
+                        icon="check"
+                        type="submit"
+                    >
+                        {isDuplicating ? 'Создаём копию…' : 'Создать мониторинг'}
+                    </Button>
+                    <Button
+                        className="sheet-action"
+                        disabled={isDuplicating}
+                        onClick={closeDuplicate}
                         variant="secondary"
                     >
                         Отмена

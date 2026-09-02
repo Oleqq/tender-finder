@@ -116,6 +116,7 @@ export function SavedSearchRunHistory<TTender>({
             </div>
             {loading ? <p>Загружаем историю…</p> : null}
             {!loading && runs.length === 0 ? <p>Запусков пока нет.</p> : null}
+            {runs.length > 0 ? <RunStatistics runs={runs} /> : null}
             {runs.map((run) => (
                 <div className="saved-run-history__row" key={run.id}>
                     <div>
@@ -161,6 +162,72 @@ export function SavedSearchRunHistory<TTender>({
             {error ? <FieldError>{error}</FieldError> : null}
         </div>
     );
+}
+
+function RunStatistics({ runs }: { runs: SavedSearchRun[] }) {
+    const chronological = [...runs].reverse();
+    const totalMatched = runs.reduce((sum, run) => sum + run.items_matched, 0);
+    const totalNew = runs.reduce((sum, run) => sum + run.new_count, 0);
+    const partialRuns = runs.filter((run) => run.partially_loaded).length;
+    const peak = Math.max(
+        1,
+        ...chronological.flatMap((run) => [run.items_matched, run.new_count]),
+    );
+
+    return (
+        <section className="run-statistics" aria-label="Статистика мониторинга">
+            <dl className="run-statistics__metrics">
+                <div>
+                    <dt>Запусков</dt>
+                    <dd>{runs.length}</dd>
+                </div>
+                <div>
+                    <dt>Среднее</dt>
+                    <dd>{Math.round(totalMatched / runs.length)}</dd>
+                </div>
+                <div>
+                    <dt>Новых всего</dt>
+                    <dd>{totalNew}</dd>
+                </div>
+                <div>
+                    <dt>Неполных</dt>
+                    <dd>{partialRuns}</dd>
+                </div>
+            </dl>
+            <div
+                aria-label="Динамика совпадений и новых карточек"
+                className="run-statistics__chart"
+                role="img"
+            >
+                {chronological.map((run) => (
+                    <div className="run-statistics__day" key={run.id}>
+                        <span
+                            aria-label={'Найдено: ' + run.items_matched}
+                            className="is-matched"
+                            style={{ height: barHeight(run.items_matched, peak) }}
+                        />
+                        <span
+                            aria-label={'Новых: ' + run.new_count}
+                            className="is-new"
+                            style={{ height: barHeight(run.new_count, peak) }}
+                        />
+                    </div>
+                ))}
+            </div>
+            <p className="run-statistics__legend">
+                <span>
+                    <i className="is-matched" /> Найдено
+                </span>
+                <span>
+                    <i className="is-new" /> Новые
+                </span>
+            </p>
+        </section>
+    );
+}
+
+function barHeight(value: number, peak: number): string {
+    return value === 0 ? '2px' : Math.max(8, (value / peak) * 64) + 'px';
 }
 
 function formatDate(value: string): string {

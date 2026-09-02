@@ -230,6 +230,9 @@ export default function MvpWorkspace() {
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedTenderIds, setSelectedTenderIds] = useState<number[]>([]);
     const [bulkStatus, setBulkStatus] = useState<TenderStatus | null>(null);
+    const [bulkTags, setBulkTags] = useState('');
+    const [bulkNextActionOn, setBulkNextActionOn] = useState('');
+    const [savingBulkDetails, setSavingBulkDetails] = useState(false);
     const [comparisonOpen, setComparisonOpen] = useState(false);
     const [historySearchId, setHistorySearchId] = useState<number | null>(null);
     const [exportingFormat, setExportingFormat] = useState<TenderExportFormat | null>(
@@ -485,6 +488,17 @@ export default function MvpWorkspace() {
             return;
         }
 
+        if (
+            ['dismissed', 'archived'].includes(status) &&
+            !window.confirm(
+                status === 'archived'
+                    ? `Убрать выбранные карточки (${selectedTenderIds.length}) из личного списка?`
+                    : `Скрыть выбранные карточки (${selectedTenderIds.length}) из основной выдачи?`,
+            )
+        ) {
+            return;
+        }
+
         setActionError('');
         setBulkStatus(status);
 
@@ -502,6 +516,33 @@ export default function MvpWorkspace() {
             );
         } finally {
             setBulkStatus(null);
+        }
+    };
+
+    const updateSelectedDetails = async (): Promise<void> => {
+        if (selectedTenderIds.length === 0) return;
+
+        setActionError('');
+        setSavingBulkDetails(true);
+
+        try {
+            const response = await window.axios.post<BulkResponse>(
+                '/local/mvp/tenders/status',
+                {
+                    tender_ids: selectedTenderIds,
+                    tags: splitCommaValues(bulkTags).slice(0, 10),
+                    next_action_on: bulkNextActionOn || null,
+                },
+            );
+            applyTenderUpdates(response.data.tenders);
+            setBulkTags('');
+            setBulkNextActionOn('');
+            setSelectedTenderIds([]);
+            setSelectionMode(false);
+        } catch {
+            setActionError('Не удалось назначить теги или дату выбранным карточкам.');
+        } finally {
+            setSavingBulkDetails(false);
         }
     };
 
@@ -1297,6 +1338,41 @@ export default function MvpWorkspace() {
                                         : 'Убрать из моего списка'}
                                 </Button>
                             </div>
+                            <div className="mvp-workspace__bulk-details">
+                                <label className="form-field">
+                                    <span>Общие теги через запятую</span>
+                                    <input
+                                        onChange={(event) =>
+                                            setBulkTags(event.target.value)
+                                        }
+                                        placeholder="приоритет, проверить"
+                                        value={bulkTags}
+                                    />
+                                </label>
+                                <label className="form-field">
+                                    <span>Общая дата действия</span>
+                                    <input
+                                        onChange={(event) =>
+                                            setBulkNextActionOn(event.target.value)
+                                        }
+                                        type="date"
+                                        value={bulkNextActionOn}
+                                    />
+                                </label>
+                                <Button
+                                    disabled={
+                                        selectedTenderIds.length === 0 ||
+                                        savingBulkDetails
+                                    }
+                                    onClick={updateSelectedDetails}
+                                    size="sm"
+                                    variant="secondary"
+                                >
+                                    {savingBulkDetails
+                                        ? 'Сохраняем…'
+                                        : 'Назначить выбранным'}
+                                </Button>
+                            </div>
                         </GlassCard>
                     ) : null}
                     {selectionMode && selectedTenderIds.length > 5 ? (
@@ -1806,6 +1882,17 @@ function compareNullableNumbers(
     const compared = Number(left) - Number(right);
 
     return direction === 'asc' ? compared : -compared;
+}
+
+function splitCommaValues(value: string): string[] {
+    return [
+        ...new Set(
+            value
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean),
+        ),
+    ];
 }
 
 function savedSourceFilters({

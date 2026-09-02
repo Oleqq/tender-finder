@@ -21,6 +21,7 @@ use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderExportController;
 use App\Http\Controllers\TenderFeedController;
+use App\Http\Controllers\TenderPersonalStateController;
 use App\Http\Controllers\TrialController;
 use App\Services\LocalMvpSubscriberService;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +51,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
+    Route::patch('/tenders/{tender}/state', TenderPersonalStateController::class)
+        ->name('tenders.state');
     Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
     Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
     Route::get('/mvp/workspace', [MvpWorkspaceController::class, 'show'])

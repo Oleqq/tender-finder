@@ -282,12 +282,58 @@ export default function Tenders() {
 }
 
 function FeedTenderCard({ match }: { match: TenderMatch }) {
+    const [editing, setEditing] = useState(false);
+    const [status, setStatus] = useState<TenderStatus>(match.status);
+    const [persistedStatus, setPersistedStatus] = useState<TenderStatus>(match.status);
+    const [tags, setTags] = useState(match.tags.join(', '));
+    const [nextActionOn, setNextActionOn] = useState(match.next_action_on ?? '');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const save = async (): Promise<void> => {
+        if (
+            ['dismissed', 'archived'].includes(status) &&
+            status !== persistedStatus &&
+            !window.confirm(
+                status === 'archived'
+                    ? 'Убрать карточку из личного списка?'
+                    : 'Скрыть карточку из основной ленты?',
+            )
+        ) {
+            return;
+        }
+
+        setSaving(true);
+        setError('');
+
+        try {
+            const response = await window.axios.patch<{
+                state: {
+                    status: TenderStatus;
+                    tags: string[];
+                    next_action_on: string | null;
+                };
+            }>('/tenders/' + match.tender_id + '/state', {
+                status,
+                tags: splitTags(tags),
+                next_action_on: nextActionOn || null,
+            });
+            setStatus(response.data.state.status);
+            setPersistedStatus(response.data.state.status);
+            setTags(response.data.state.tags.join(', '));
+            setNextActionOn(response.data.state.next_action_on ?? '');
+            setEditing(false);
+        } catch {
+            setError('Не удалось сохранить личные поля карточки.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <GlassCard as="article" className="tender-card tender-feed-card">
             <div className="tender-card__meta">
-                <Badge tone={statusTone(match.status)}>
-                    {statusLabel(match.status)}
-                </Badge>
+                <Badge tone={statusTone(status)}>{statusLabel(status)}</Badge>
                 <span>
                     <Icon name="spark" size={14} /> {match.match_reasons.join(', ')}
                 </span>
@@ -297,9 +343,9 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
             {match.description ? (
                 <p className="tender-card__description">{match.description}</p>
             ) : null}
-            {match.tags.length > 0 ? (
+            {!editing && tags ? (
                 <div className="tender-feed-card__tags">
-                    {match.tags.map((tag) => (
+                    {splitTags(tags).map((tag) => (
                         <span key={tag}>{tag}</span>
                     ))}
                 </div>
@@ -308,12 +354,63 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                 <strong>{formatBudget(match.budget_amount, match.currency)}</strong>
                 <span>{formatDeadline(match.deadline_at)}</span>
             </div>
-            {match.next_action_on ? (
+            {!editing && nextActionOn ? (
                 <p className="tender-feed-card__action">
-                    Следующее действие: {formatDate(match.next_action_on)}
+                    Следующее действие: {formatDate(nextActionOn)}
                 </p>
             ) : null}
+            {editing ? (
+                <div className="tender-feed-card__editor">
+                    <SelectField
+                        label="Личный статус"
+                        onChange={(event) =>
+                            setStatus(event.target.value as TenderStatus)
+                        }
+                        options={statusOptions
+                            .filter((option) => option.value !== 'all')
+                            .map((option) => ({
+                                value: option.value,
+                                label: option.label,
+                            }))}
+                        value={status}
+                    />
+                    <label className="form-field">
+                        <span>Теги через запятую</span>
+                        <input
+                            maxLength={420}
+                            onChange={(event) => setTags(event.target.value)}
+                            placeholder="приоритет, позвонить"
+                            value={tags}
+                        />
+                    </label>
+                    <label className="form-field">
+                        <span>Следующее действие</span>
+                        <input
+                            onChange={(event) => setNextActionOn(event.target.value)}
+                            type="date"
+                            value={nextActionOn}
+                        />
+                    </label>
+                    {error ? <p className="field-error">{error}</p> : null}
+                    <div className="tender-feed-card__editor-actions">
+                        <Button disabled={saving} onClick={save} size="sm">
+                            {saving ? 'Сохраняем…' : 'Сохранить'}
+                        </Button>
+                        <Button
+                            disabled={saving}
+                            onClick={() => setEditing(false)}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            Отмена
+                        </Button>
+                    </div>
+                </div>
+            ) : null}
             <div className="tender-feed-card__links">
+                <button onClick={() => setEditing((value) => !value)} type="button">
+                    {editing ? 'Закрыть редактор' : 'Изменить отметку'}
+                </button>
                 <Link href={'/local/mvp/tenders/' + match.tender_id}>
                     Открыть карточку
                 </Link>
@@ -323,6 +420,17 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
             </div>
         </GlassCard>
     );
+}
+
+function splitTags(value: string): string[] {
+    return [
+        ...new Set(
+            value
+                .split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean),
+        ),
+    ].slice(0, 10);
 }
 
 function FeedPagination({
