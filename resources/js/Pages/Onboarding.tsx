@@ -4,6 +4,10 @@ import { Icon } from '../Components/Icon';
 import { GlassCard, InlineAlert } from '../Components/ui';
 import type { PageProps } from '../types';
 
+type OnboardingProps = {
+    localSubscriberEntryEnabled: boolean;
+};
+
 const values = [
     {
         icon: 'compass' as const,
@@ -22,7 +26,7 @@ const values = [
     },
 ];
 
-export default function Onboarding() {
+export default function Onboarding({ localSubscriberEntryEnabled }: OnboardingProps) {
     const { auth } = usePage<PageProps>().props;
 
     return (
@@ -70,6 +74,14 @@ export default function Onboarding() {
                             href="/consents"
                         >
                             <span>Продолжить</span>
+                            <Icon name="arrow-right" size={20} />
+                        </Link>
+                    ) : localSubscriberEntryEnabled ? (
+                        <Link
+                            className="button button--primary button--lg"
+                            href="/local/mvp-subscriber"
+                        >
+                            <span>Продолжить локально</span>
                             <Icon name="arrow-right" size={20} />
                         </Link>
                     ) : (

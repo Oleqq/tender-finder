@@ -18,6 +18,7 @@ use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderFeedController;
 use App\Http\Controllers\TrialController;
+use App\Services\LocalMvpSubscriberService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -31,7 +32,9 @@ Route::get('/mvp/operator/access', [RemoteMvpOperatorSessionController::class, '
 Route::get('/local/mvp-subscriber', [LocalMvpSubscriberSessionController::class, 'store'])
     ->name('local.mvp-subscriber.session');
 
-Route::get('/onboarding', fn () => Inertia::render('Onboarding'))->name('onboarding');
+Route::get('/onboarding', fn (LocalMvpSubscriberService $subscriber) => Inertia::render('Onboarding', [
+    'localSubscriberEntryEnabled' => $subscriber->isEnabled(),
+]))->name('onboarding');
 Route::get('/offer', [LegalDocumentController::class, 'offer'])->name('legal.offer');
 Route::get('/privacy', [LegalDocumentController::class, 'privacy'])->name('legal.privacy');
 

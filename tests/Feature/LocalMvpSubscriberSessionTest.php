@@ -10,6 +10,12 @@ beforeEach(function (): void {
 });
 
 it('provides a local-only subscriber identity without accepting a browser Telegram id', function () {
+    $this->get('/onboarding')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Onboarding')
+            ->where('localSubscriberEntryEnabled', true));
+
     $this->get('/local/mvp-subscriber')
         ->assertRedirect(route('onboarding'));
 
@@ -26,6 +32,12 @@ it('provides a local-only subscriber identity without accepting a browser Telegr
 
 it('does not expose the local subscriber entry outside its explicit flag', function () {
     config()->set('tender.local_mvp_subscriber.enabled', false);
+
+    $this->get('/onboarding')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Onboarding')
+            ->where('localSubscriberEntryEnabled', false));
 
     $this->get('/local/mvp-subscriber')->assertNotFound();
 });
