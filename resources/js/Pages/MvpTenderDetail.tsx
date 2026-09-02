@@ -59,7 +59,9 @@ export default function MvpTenderDetail() {
     const [tender, setTender] = useState(initialTender);
     const [note, setNote] = useState(initialTender.note ?? '');
     const [tags, setTags] = useState(initialTender.tags.join(', '));
-    const [nextActionOn, setNextActionOn] = useState(initialTender.next_action_on ?? '');
+    const [nextActionOn, setNextActionOn] = useState(
+        initialTender.next_action_on ?? '',
+    );
     const [isUpdating, setIsUpdating] = useState(false);
     const [saving, setSaving] = useState(false);
     const [enriching, setEnriching] = useState(false);
@@ -85,7 +87,9 @@ export default function MvpTenderDetail() {
             setTags(response.data.tender.tags.join(', '));
             setNotice('Личная заметка сохранена.');
         } catch (requestError) {
-            setError(requestErrorMessage(requestError, 'Не удалось сохранить заметку.'));
+            setError(
+                requestErrorMessage(requestError, 'Не удалось сохранить заметку.'),
+            );
         } finally {
             setSaving(false);
         }
@@ -186,7 +190,8 @@ export default function MvpTenderDetail() {
                             ) : null}
                             {tender.enriched_at ? (
                                 <small>
-                                    Последнее обогащение: {formatDateTime(tender.enriched_at)}
+                                    Последнее обогащение:{' '}
+                                    {formatDateTime(tender.enriched_at)}
                                 </small>
                             ) : null}
                         </GlassCard>
@@ -321,7 +326,10 @@ export default function MvpTenderDetail() {
                                     label="Контактное лицо"
                                     value={tender.contact_name}
                                 />
-                                <DetailRow label="Телефон" value={tender.contact_phone} />
+                                <DetailRow
+                                    label="Телефон"
+                                    value={tender.contact_phone}
+                                />
                                 <DetailRow label="Email" value={tender.contact_email} />
                                 <DetailRow
                                     label="Почтовый адрес"
@@ -474,7 +482,10 @@ export default function MvpTenderDetail() {
 
                         <section className="mvp-tender-detail__annotation">
                             <h2>Моя работа с закупкой</h2>
-                            <p>Заметка, теги и дата следующего действия видны только вам.</p>
+                            <p>
+                                Заметка, теги и дата следующего действия видны только
+                                вам.
+                            </p>
                             <label className="form-field">
                                 <span>Заметка</span>
                                 <textarea
@@ -496,7 +507,9 @@ export default function MvpTenderDetail() {
                             <label className="form-field">
                                 <span>Следующее действие</span>
                                 <input
-                                    onChange={(event) => setNextActionOn(event.target.value)}
+                                    onChange={(event) =>
+                                        setNextActionOn(event.target.value)
+                                    }
                                     type="date"
                                     value={nextActionOn}
                                 />
