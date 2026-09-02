@@ -732,13 +732,13 @@ export default function MvpWorkspace() {
 
     return (
         <>
-            <Head title="Tender Finder — local MVP" />
+            <Head title="Поиск ЕИС" />
             <AppShell
                 className="mvp-workspace"
-                eyebrow="Локальный MVP · ЕИС · super_admin"
+                eyebrow="ЕИС · расширенный поиск"
                 navigationVisible={false}
                 role="super_admin"
-                title="Tender Finder"
+                title="Поиск тендеров"
             >
                 <GlassCard className="mvp-workspace__search" tone="accent">
                     <div className="section-heading">

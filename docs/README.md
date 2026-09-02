@@ -5,7 +5,7 @@
 
 | Документ | Назначение |
 |---|---|
-| [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус local MVP и ближайшие этапы. |
+| [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус MVP, пользовательский путь и ближайшие этапы. |
 | [NEW-DEVELOPER](NEW-DEVELOPER.md) | Быстрое введение нового разработчика: границы, код и команды. |
 | [LOCAL-RUNTIME](LOCAL-RUNTIME.md) | Запуск Docker и проверка ручного поиска ЕИС. |
 | [LOCAL-TELEGRAM-BOT](LOCAL-TELEGRAM-BOT.md) | Локальная проверка Laravel Telegram webhook, очереди и Mini App. |
@@ -13,6 +13,7 @@
 | [DATABASE](DATABASE.md) | Схема данных и правила хранения. |
 | [DEPLOYMENT](DEPLOYMENT.md) | Чек-лист будущего VPS cutover. |
 | [DESIGN-SYSTEM](DESIGN-SYSTEM.md) | Компоненты и правила UI. |
+| [ADMIN-DASHBOARD](ADMIN-DASHBOARD.md) | Границы, формулы и проверка закрытой маркетинговой админки. |
 | [LEGAL-DRAFTS](LEGAL-DRAFTS.md) | Материал для юридической проверки, не публичные документы. |
 | [ТЗ бот тг+подписка](ТЗ%20бот%20тг%2Bподписка.md) | Исходные требования; не текущий статус разработки. |
 

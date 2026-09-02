@@ -9,12 +9,12 @@ class LegalDocumentController extends Controller
 {
     public function offer(): Response
     {
-        return $this->show('offer', 'Черновик оферты Tender Finder');
+        return $this->show('offer', 'Публичная оферта — черновик');
     }
 
     public function privacy(): Response
     {
-        return $this->show('privacy', 'Черновик политики конфиденциальности Tender Finder');
+        return $this->show('privacy', 'Политика обработки данных — черновик');
     }
 
     private function show(string $type, string $title): Response
@@ -25,6 +25,7 @@ class LegalDocumentController extends Controller
             'document' => [
                 'type' => $type,
                 'title' => $title,
+                'version' => config("tender.legal.{$type}_version"),
             ],
         ]);
     }

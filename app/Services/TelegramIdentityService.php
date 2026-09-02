@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\DB;
 
 class TelegramIdentityService
 {
+    public function __construct(private readonly LocalMvpFullAccessService $fullAccess) {}
+
     public function findOrCreate(VerifiedTelegramUser $identity): User
     {
         return DB::transaction(function () use ($identity): User {
-            $role = $this->isSuperAdmin($identity->id)
+            $role = $this->fullAccess->isEnabled() || $this->isSuperAdmin($identity->id)
                 ? UserRole::SuperAdmin
                 : UserRole::Subscriber;
 

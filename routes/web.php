@@ -21,17 +21,11 @@ use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderExportController;
 use App\Http\Controllers\TenderFeedController;
 use App\Http\Controllers\TrialController;
-use App\Services\LocalMvpOperatorService;
 use App\Services\LocalMvpSubscriberService;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'localMvpOperatorAvailable' => app(LocalMvpOperatorService::class)->isLocalEnabled(),
-        'localMvpSubscriberAvailable' => app(LocalMvpSubscriberService::class)->isEnabled(),
-    ]);
-})->name('welcome');
+Route::get('/', fn () => Inertia::render('Welcome'))->name('welcome');
 
 Route::get('/local/mvp-operator', [LocalMvpOperatorSessionController::class, 'store'])
     ->name('local.mvp-operator.session');
@@ -41,12 +35,9 @@ Route::get('/mvp/operator/access', [RemoteMvpOperatorSessionController::class, '
 Route::get('/local/mvp-subscriber', [LocalMvpSubscriberSessionController::class, 'store'])
     ->name('local.mvp-subscriber.session');
 
-Route::get('/onboarding', fn () => Inertia::render('Onboarding'))->name('onboarding');
-Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
-Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
-Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
-Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
-Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
+Route::get('/onboarding', fn (LocalMvpSubscriberService $subscriber) => Inertia::render('Onboarding', [
+    'localSubscriberEntryEnabled' => $subscriber->isEnabled(),
+]))->name('onboarding');
 Route::get('/offer', [LegalDocumentController::class, 'offer'])->name('legal.offer');
 Route::get('/privacy', [LegalDocumentController::class, 'privacy'])->name('legal.privacy');
 
@@ -55,10 +46,19 @@ Route::post('/telegram/session', [TelegramSessionController::class, 'store'])
     ->name('telegram.session.store');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
+    Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
+    Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
+    Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
     Route::get('/mvp/workspace', [MvpWorkspaceController::class, 'show'])
         ->middleware('super_admin')
         ->name('mvp.workspace');
-    Route::get('/operations-demo', [OperationsDashboardController::class, 'show'])
+    Route::get('/operations', [OperationsDashboardController::class, 'show'])
+        ->middleware('super_admin')
+        ->name('operations.dashboard');
+    Route::redirect('/operations-demo', '/operations')
+        ->middleware('super_admin')
         ->name('operations.demo');
     Route::get('/queries', [SearchQueryController::class, 'index'])->name('queries.index');
     Route::post('/queries', [SearchQueryController::class, 'store'])->name('queries.store');

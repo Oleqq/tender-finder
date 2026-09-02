@@ -133,7 +133,7 @@ migrations проверяются локально; production contract — Post
 | subscription/entitlement | `active`, `expired`, `cancelled` | Trial/будущий billing domain |
 | query | `active`, `paused`, `frozen`, `deleted` | authenticated query service |
 | local MVP tender state | `new`, `favorite`, `potential`, `dismissed`, `archived` | только local technical `super_admin` для карточек ЕИС |
-| admin access analytics | `registered`, `preview`, `trialing`, `paid`, `granted`, `expired` | read-only aggregate только для `super_admin`; без Telegram ID и иных персональных данных |
+| marketing admin analytics | подтверждённая аудитория, регистрации/входы/trial/Stars за 7/30/90 дней, `preview`, `trialing`, `paid`, `granted`, `expired` | read-only aggregate только для `super_admin`; строится из существующих дат и актуального entitlement, без Telegram ID, иных персональных данных или новых таблиц событий |
 | notification | `queued`, `sent`, `failed`, `skipped` | queue transport |
 | source run | `running`, `succeeded`, `failed` | RSS importer |
 

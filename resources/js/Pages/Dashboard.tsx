@@ -1,191 +1,118 @@
-import { Head, Link } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
-import { MetricCard } from '../Components/MetricCard';
-import { TenderCard } from '../Components/TenderCard';
-import {
-    Badge,
-    BottomSheet,
-    Button,
-    GlassCard,
-    SegmentedControl,
-    Toast,
-    Toggle,
-} from '../Components/ui';
+import { Badge, GlassCard, InlineAlert } from '../Components/ui';
+import { presentAccess } from '../lib/accessPresentation';
+import type { PageProps } from '../types';
 
 export default function Dashboard() {
-    const [period, setPeriod] = useState('week');
-    const [monitoringEnabled, setMonitoringEnabled] = useState(true);
-    const [sheetOpen, setSheetOpen] = useState(false);
-    const [toastVisible, setToastVisible] = useState(false);
-
-    useEffect(() => {
-        if (!toastVisible) {
-            return;
-        }
-
-        const timeout = window.setTimeout(() => setToastVisible(false), 2600);
-        return () => window.clearTimeout(timeout);
-    }, [toastVisible]);
+    const { auth } = usePage<PageProps>().props;
+    const access = presentAccess(auth.access);
+    const isSuperAdmin = auth.user?.role === 'super_admin';
+    const canUseMonitoring = ['trialing', 'active'].includes(auth.access?.state ?? '');
 
     return (
         <>
             <Head title="Обзор" />
             <AppShell
-                action={
-                    <button
-                        aria-label="Настройки мониторинга"
-                        className="icon-button"
-                        onClick={() => setSheetOpen(true)}
-                        type="button"
-                    >
-                        <Icon name="settings" size={20} />
-                    </button>
-                }
                 activeNav="/dashboard"
                 eyebrow="Tender Finder"
-                title="Добрый вечер"
+                title="Рабочее пространство"
             >
                 <section className="dashboard-hero page-enter">
                     <div>
-                        <Badge tone={monitoringEnabled ? 'success' : 'neutral'}>
-                            <span className="status-dot" />{' '}
-                            {monitoringEnabled
-                                ? 'Мониторинг активен'
-                                : 'Мониторинг на паузе'}
-                        </Badge>
+                        <Badge tone={access.tone}>{access.badge}</Badge>
                         <h2>
-                            Ваша воронка
+                            Тендеры
                             <br />
-                            <em>спокойна.</em>
+                            <em>в фокусе.</em>
                         </h2>
                         <p>
-                            {monitoringEnabled
-                                ? 'Новые сигналы появятся здесь, как только найдём подходящие закупки.'
-                                : 'Включите мониторинг, чтобы не пропустить новые возможности.'}
+                            {canUseMonitoring
+                                ? 'Создавайте мониторинги и разбирайте только те закупки, которые совпали с вашими условиями.'
+                                : 'Профиль готов. Мониторинги и новые совпадения станут доступны после активации доступа.'}
                         </p>
                     </div>
                     <span aria-hidden="true" className="dashboard-signal">
                         <Icon name="wave" size={18} />
-                        <span>demo</span>
+                        <span>поток</span>
                     </span>
                 </section>
 
-                <SegmentedControl
-                    label="Период демо-метрик"
-                    onChange={setPeriod}
-                    options={[
-                        { value: 'week', label: '7 дней' },
-                        { value: 'month', label: '30 дней' },
-                    ]}
-                    value={period}
-                />
-                <section
-                    aria-label="Метрики"
-                    className="metric-grid page-enter page-enter--delay"
-                >
-                    <MetricCard
-                        accent
-                        detail={period === 'week' ? '+3 за неделю' : '+11 за месяц'}
-                        icon="tenders"
-                        label="Найдено"
-                        value={period === 'week' ? '12' : '38'}
-                    />
-                    <MetricCard
-                        detail="ожидают настройки"
-                        icon="spark"
-                        label="В фокусе"
-                        value="0"
-                    />
-                    <MetricCard
-                        detail="по вашим темам"
-                        icon="chart"
-                        label="Совпадение"
-                        value="—"
-                    />
-                </section>
-
                 <GlassCard
-                    className="monitor-card page-enter page-enter--later"
-                    tone={monitoringEnabled ? 'accent' : 'quiet'}
+                    className="workspace-card page-enter page-enter--delay"
+                    tone="accent"
                 >
-                    <div className="monitor-card__icon">
-                        <Icon name={monitoringEnabled ? 'wave' : 'bell'} size={21} />
+                    <div className="workspace-card__icon">
+                        <Icon name="tenders" size={21} />
                     </div>
                     <div>
-                        <p>Статус радара</p>
-                        <h3>
-                            {monitoringEnabled
-                                ? 'Ищем подходящие закупки'
-                                : 'Радар ожидает запуска'}
-                        </h3>
+                        <p>Ваш поток</p>
+                        <h3>Совпадения по мониторингам</h3>
                         <span>
-                            {monitoringEnabled
-                                ? 'Демо: обновление каждые 10 минут'
-                                : 'Включите, когда будете готовы'}
+                            {canUseMonitoring
+                                ? 'Когда сервер найдёт подходящую закупку, карточка появится в ленте с причиной совпадения.'
+                                : 'Здесь появится ваша лента после активации доступа и первого мониторинга.'}
                         </span>
                     </div>
-                    <button
-                        aria-label="Открыть настройки радара"
+                    <Link
+                        aria-label={
+                            canUseMonitoring
+                                ? 'Открыть мои тендеры'
+                                : 'Открыть информацию о доступе'
+                        }
                         className="icon-button icon-button--soft"
-                        onClick={() => setSheetOpen(true)}
-                        type="button"
+                        href={canUseMonitoring ? '/tenders' : '/plans'}
                     >
                         <Icon name="chevron-right" size={20} />
-                    </button>
+                    </Link>
                 </GlassCard>
 
                 <section className="dashboard-section page-enter page-enter--later">
                     <div className="section-heading">
                         <div>
-                            <p>Пример карточки</p>
-                            <h2>Как выглядит сигнал</h2>
+                            <p>Следующий шаг</p>
+                            <h2>
+                                {canUseMonitoring
+                                    ? 'Настройте мониторинг'
+                                    : 'Активируйте доступ'}
+                            </h2>
                         </div>
-                        <Link href="/tenders">
-                            Все тендеры <Icon name="chevron-right" size={16} />
+                        <Link href={canUseMonitoring ? '/queries' : '/plans'}>
+                            {canUseMonitoring ? 'Мониторинги' : 'Подробнее'}{' '}
+                            <Icon name="chevron-right" size={16} />
                         </Link>
                     </div>
-                    <TenderCard
-                        customer="Городская инфраструктура"
-                        deadline="До 18 сентября"
-                        match="91% совпадение"
-                        price="4,8 млн ₽"
-                        status="Новый"
-                        title="Разработка цифрового сервиса для жителей"
-                    />
+                    <InlineAlert title="Как работает поток" tone="neutral">
+                        {canUseMonitoring
+                            ? 'Мониторинг хранит ваши условия. В ленту попадают только серверные совпадения, а не рекомендации или примерные карточки.'
+                            : 'Доступ рассчитывается на сервере. Мы не показываем форму мониторинга, пока его нет, и не создаём тестовые данные.'}
+                    </InlineAlert>
                 </section>
 
-                <BottomSheet
-                    onClose={() => setSheetOpen(false)}
-                    open={sheetOpen}
-                    title="Настроить радар"
-                >
-                    <p className="sheet-description">
-                        Это интерактивный demo-каркас. Постоянные настройки будут
-                        сохранены после подключения серверной части.
-                    </p>
-                    <Toggle
-                        checked={monitoringEnabled}
-                        description="Показывать состояние мониторинга"
-                        label="Мониторинг тендеров"
-                        onChange={setMonitoringEnabled}
-                    />
-                    <Button
-                        className="sheet-action"
-                        icon="check"
-                        onClick={() => {
-                            setSheetOpen(false);
-                            setToastVisible(true);
-                        }}
+                {isSuperAdmin ? (
+                    <GlassCard
+                        className="workspace-admin page-enter page-enter--later"
+                        tone="quiet"
                     >
-                        Сохранить демо-настройку
-                    </Button>
-                </BottomSheet>
-                <Toast
-                    message="Настройка применена в демо-сессии"
-                    visible={toastVisible}
-                />
+                        <div>
+                            <p>Дополнительные инструменты</p>
+                            <h3>Поиск ЕИС и аналитика продукта</h3>
+                            <span>
+                                Они доступны только в роли владельца и не меняют ваш
+                                пользовательский поток.
+                            </span>
+                        </div>
+                        <div className="workspace-admin__actions">
+                            <Link href="/mvp/workspace">
+                                Поиск ЕИС <Icon name="chevron-right" size={16} />
+                            </Link>
+                            <Link href="/operations">
+                                Аналитика <Icon name="chevron-right" size={16} />
+                            </Link>
+                        </div>
+                    </GlassCard>
+                ) : null}
             </AppShell>
         </>
     );

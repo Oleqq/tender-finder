@@ -44,20 +44,14 @@ it('keeps each server-backed tender feed limited to the signed-in users matches'
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Tenders')
-            ->where('mode', 'live')
             ->has('tenderMatches', 1)
             ->where('tenderMatches.0.title', 'Поддержка корпоративного сайта')
             ->where('tenderMatches.0.query_name', 'Поддержка сайтов')
             ->where('tenderMatches.0.match_reasons', ['ключевые слова', 'регион']));
 });
 
-it('keeps the anonymous tender page in clearly marked demo mode', function () {
-    $this->get('/tenders')
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('Tenders')
-            ->where('mode', 'demo')
-            ->where('tenderMatches', []));
+it('keeps the tender feed behind the authenticated user journey', function () {
+    $this->get('/tenders')->assertRedirect('/onboarding');
 });
 
 function tenderForFeed(string $externalId, string $title): Tender

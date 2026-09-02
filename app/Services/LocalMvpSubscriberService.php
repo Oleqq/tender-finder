@@ -10,6 +10,8 @@ final class LocalMvpSubscriberService
 {
     private const EMAIL = 'local-mvp-subscriber@tenderfinder.invalid';
 
+    public function __construct(private readonly LocalMvpFullAccessService $fullAccess) {}
+
     public function isEnabled(): bool
     {
         return app()->environment('local', 'testing')
@@ -23,8 +25,12 @@ final class LocalMvpSubscriberService
             $user = User::query()->updateOrCreate(
                 ['email' => self::EMAIL],
                 [
-                    'name' => 'Local MVP subscriber',
-                    'role' => UserRole::Subscriber,
+                    'name' => $this->fullAccess->isEnabled()
+                        ? 'Local MVP full-access user'
+                        : 'Local MVP subscriber',
+                    'role' => $this->fullAccess->isEnabled()
+                        ? UserRole::SuperAdmin
+                        : UserRole::Subscriber,
                     'telegram_id' => null,
                     'telegram_username' => null,
                     'telegram_first_name' => null,

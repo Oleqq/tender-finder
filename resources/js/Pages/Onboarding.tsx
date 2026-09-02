@@ -1,7 +1,12 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
-import { GlassCard } from '../Components/ui';
+import { GlassCard, InlineAlert } from '../Components/ui';
+import type { PageProps } from '../types';
+
+type OnboardingProps = {
+    localSubscriberEntryEnabled: boolean;
+};
 
 const values = [
     {
@@ -21,7 +26,9 @@ const values = [
     },
 ];
 
-export default function Onboarding() {
+export default function Onboarding({ localSubscriberEntryEnabled }: OnboardingProps) {
+    const { auth } = usePage<PageProps>().props;
+
     return (
         <>
             <Head title="Как это работает" />
@@ -61,13 +68,32 @@ export default function Onboarding() {
                     ))}
                 </div>
                 <div className="onboarding-actions page-enter page-enter--later">
-                    <Link
-                        className="button button--primary button--lg"
-                        href="/consents"
-                    >
-                        <span>Продолжить</span>
-                        <Icon name="arrow-right" size={20} />
-                    </Link>
+                    {auth.user ? (
+                        <Link
+                            className="button button--primary button--lg"
+                            href="/consents"
+                        >
+                            <span>Продолжить</span>
+                            <Icon name="arrow-right" size={20} />
+                        </Link>
+                    ) : localSubscriberEntryEnabled ? (
+                        <Link
+                            className="button button--primary button--lg"
+                            href="/local/mvp-subscriber"
+                        >
+                            <span>Продолжить локально</span>
+                            <Icon name="arrow-right" size={20} />
+                        </Link>
+                    ) : (
+                        <InlineAlert
+                            title="Откройте приложение из Telegram"
+                            tone="neutral"
+                        >
+                            Перед стартом сервер должен подтвердить вашу
+                            Telegram-сессию. После этого кнопка продолжения появится
+                            автоматически.
+                        </InlineAlert>
+                    )}
                     <div aria-label="Шаг 1 из 2" className="step-dots">
                         <span className="is-active" />
                         <span />

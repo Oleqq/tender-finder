@@ -49,7 +49,7 @@ it('revokes an existing technical MVP session when remote access is disabled', f
     $this->get($url)->assertOk();
     config()->set('tender.remote_mvp_operator.enabled', false);
 
-    $this->get('/operations-demo')->assertForbidden();
+    $this->get('/operations')->assertForbidden();
 });
 
 it('creates a remote test link only when remote MVP access is enabled', function () {

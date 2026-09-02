@@ -5,12 +5,17 @@ import { Icon } from '../Components/Icon';
 import { GlassCard } from '../Components/ui';
 
 export default function Consents() {
-    const [termsAccepted, setTermsAccepted] = useState(false);
-    const [notificationsAccepted, setNotificationsAccepted] = useState(false);
+    const [offerAccepted, setOfferAccepted] = useState(false);
+    const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const canStartTrial = offerAccepted && privacyAccepted;
 
     const acceptAndStartTrial = async (): Promise<void> => {
+        if (!canStartTrial || isSubmitting) {
+            return;
+        }
+
         setError('');
         setIsSubmitting(true);
 
@@ -32,6 +37,12 @@ export default function Consents() {
                 // opening. Reloading obtains a fresh server-rendered CSRF token;
                 // no consent or trial request was accepted on a 419 response.
                 window.location.assign('/consents');
+
+                return;
+            }
+
+            if (response?.status === 401) {
+                router.visit('/onboarding');
 
                 return;
             }
@@ -66,36 +77,32 @@ export default function Consents() {
                         <br />и под контролем.
                     </h2>
                     <p>
-                        После принятия оферты и политики сервер запишет согласия и
-                        начнёт ваш единственный пробный период. Уведомления можно
-                        изменить позже.
+                        Сервер отдельно запишет принятие оферты и согласие на обработку
+                        персональных данных, а затем начнёт ваш единственный пробный
+                        период.
                     </p>
                 </section>
                 <GlassCard className="consent-card page-enter page-enter--delay">
-                    <ConsentRow checked={termsAccepted} onChange={setTermsAccepted}>
+                    <ConsentRow checked={offerAccepted} onChange={setOfferAccepted}>
                         Принимаю условия{' '}
                         <Link className="future-link" href="/offer">
                             оферты
-                        </Link>{' '}
-                        и{' '}
-                        <Link className="future-link" href="/privacy">
-                            политики конфиденциальности
                         </Link>
                     </ConsentRow>
                     <div className="consent-divider" />
-                    <ConsentRow
-                        checked={notificationsAccepted}
-                        onChange={setNotificationsAccepted}
-                        optional
-                    >
-                        Разрешаю получать уведомления о новых тендерах
+                    <ConsentRow checked={privacyAccepted} onChange={setPrivacyAccepted}>
+                        Даю согласие на обработку персональных данных на условиях{' '}
+                        <Link className="future-link" href="/privacy">
+                            политики обработки данных
+                        </Link>
                     </ConsentRow>
                 </GlassCard>
                 <p className="consent-note">
-                    Ссылки на документы появятся здесь до публичного запуска.
+                    Согласия независимы: оферта задаёт условия доступа, политика —
+                    обработку персональных данных. Их версии сохраняются на сервере.
                 </p>
                 <div className="consent-actions page-enter page-enter--later">
-                    {termsAccepted ? (
+                    {canStartTrial ? (
                         <button
                             className="button button--primary button--lg"
                             disabled={isSubmitting}
@@ -115,15 +122,11 @@ export default function Consents() {
                             disabled
                             type="button"
                         >
-                            <span>Примите условия</span>
+                            <span>Примите оба условия</span>
                             <Icon name="arrow-right" size={20} />
                         </button>
                     )}
-                    <p>
-                        {notificationsAccepted
-                            ? 'Согласие на уведомления будет доступно в профиле'
-                            : 'Уведомления можно включить позже'}
-                    </p>
+                    <p>Уведомления не включаются этим действием.</p>
                 </div>
                 {error ? <p className="consent-note">{error}</p> : null}
             </AppShell>
@@ -135,12 +138,10 @@ function ConsentRow({
     checked,
     onChange,
     children,
-    optional = false,
 }: {
     checked: boolean;
     onChange: (checked: boolean) => void;
     children: ReactNode;
-    optional?: boolean;
 }) {
     return (
         <label className="consent-row">
@@ -152,10 +153,7 @@ function ConsentRow({
             <span aria-hidden="true" className="consent-row__box">
                 <Icon name="check" size={15} />
             </span>
-            <span>
-                {children}
-                {optional ? <small>Необязательно</small> : null}
-            </span>
+            <span>{children}</span>
         </label>
     );
 }
