@@ -136,7 +136,7 @@ CAPTCHA, cookies и proxy-rotation запрещены.
 
 - PHP 8.3 + Laravel 12; React + TypeScript + Vite + Inertia.
 - Docker local: `web`, `queue`, `scheduler`, PostgreSQL, Redis и Vite.
-- `make test`: 86 тестов, 742 проверки на 2 сентября 2026 года; suite работает
+- `make test`: 87 тестов, 872 проверки на 2 сентября 2026 года; suite работает
   локально в отдельном Compose-сервисе с SQLite `:memory:`, а в CI — на
   выделенной PostgreSQL `tender_finder_testing`; fail-safe блокирует постоянную
   dev-базу;
