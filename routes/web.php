@@ -32,7 +32,6 @@ Route::get('/local/mvp-subscriber', [LocalMvpSubscriberSessionController::class,
     ->name('local.mvp-subscriber.session');
 
 Route::get('/onboarding', fn () => Inertia::render('Onboarding'))->name('onboarding');
-Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
 Route::get('/offer', [LegalDocumentController::class, 'offer'])->name('legal.offer');
 Route::get('/privacy', [LegalDocumentController::class, 'privacy'])->name('legal.privacy');
 
@@ -41,6 +40,7 @@ Route::post('/telegram/session', [TelegramSessionController::class, 'store'])
     ->name('telegram.session.store');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
     Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
     Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');

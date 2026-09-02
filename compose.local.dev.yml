@@ -16,6 +16,12 @@ x-dev-application: &dev-application
   environment:
     LOCAL_MVP_OPERATOR_ENABLED: "true"
     LOCAL_MVP_SUBSCRIBER_ENABLED: "true"
+    # Only the local closed-beta contour uses versioned legal drafts.
+    LEGAL_DOCUMENTS_PUBLISHED: "true"
+    LEGAL_OFFER_URL: "http://127.0.0.1:8080/offer"
+    LEGAL_OFFER_VERSION: "2026-09-02-draft-1"
+    LEGAL_PRIVACY_URL: "http://127.0.0.1:8080/privacy"
+    LEGAL_PRIVACY_VERSION: "2026-09-02-draft-1"
   depends_on:
     postgres:
       condition: service_healthy
@@ -68,6 +74,11 @@ services:
       QUEUE_CONNECTION: sync
       SESSION_DRIVER: array
       TELESCOPE_ENABLED: "false"
+      LEGAL_DOCUMENTS_PUBLISHED: "true"
+      LEGAL_OFFER_URL: "https://example.test/offer"
+      LEGAL_OFFER_VERSION: "test-draft-1"
+      LEGAL_PRIVACY_URL: "https://example.test/privacy"
+      LEGAL_PRIVACY_VERSION: "test-draft-1"
     command: ["php", "artisan", "test"]
 
   cli:
