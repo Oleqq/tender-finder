@@ -5,7 +5,7 @@
 
 | Документ | Назначение |
 |---|---|
-| [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус local MVP и ближайшие этапы. |
+| [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус MVP, пользовательский путь и ближайшие этапы. |
 | [NEW-DEVELOPER](NEW-DEVELOPER.md) | Быстрое введение нового разработчика: границы, код и команды. |
 | [LOCAL-RUNTIME](LOCAL-RUNTIME.md) | Запуск Docker и проверка ручного поиска ЕИС. |
 | [LOCAL-TELEGRAM-BOT](LOCAL-TELEGRAM-BOT.md) | Локальная проверка Laravel Telegram webhook, очереди и Mini App. |

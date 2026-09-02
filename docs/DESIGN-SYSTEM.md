@@ -48,7 +48,7 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Inputs | input/search, chips, segmented control, switch, select/combobox, multi-select, date range, money range, validation | slider, stepper, saved-filter persistence |
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
 | Tender UI | local MVP ЕИС: поиск, все/любое/точная фраза, минус-слова, видимые причины совпадения, текущая выдача/история, карточка detail, именованные сохранённые запросы со всеми условиями, история запусков и «только новые», 44/223‑ФЗ, НМЦК, даты, регион/ОКПД2 через справочники ЕИС, этапы закупки, дополнительная информация, сравнение 2–5 карточек, personal states и bulk actions | обогащение карточки |
-| Commerce | plan card, preview paywall, access gate, Basic/PRO comparison, demo checkout states and access-state preview | Stars invoice state, entitlement gate API, subscription management |
+| Access | server-calculated access status, access explanation and entry points to the available workspace | Stars invoice state and subscription management after the commercial flow is approved |
 | Admin | role-aware shell variant, server-guarded read-only агрегаты, period switcher, funnel, growth chart и access distribution | user drawer, campaigns, audit и технический Live Ops остаются вне MVP |
 
 «Готово» означает работающий переиспользуемый React-компонент; строка
@@ -86,10 +86,9 @@ Detail — не дубль выдачи и не презентационная �
 
 | Доступ | Основные экраны |
 |---|---|
-| Preview | Welcome, value tour, demo dashboard, feature highlights, paywall entry |
-| Trial / Basic | My Tenders, filters/queries, tender detail, monitoring, profile, billing |
-| Expired | сохранённые данные, объяснение заморозки, paywall и help |
-| Super-admin | клиентские экраны + закрытая «Аналитика» аудитории и воронки; Users, Campaigns, Sources, Audit и технический Live Ops не входят в MVP |
+| Неавторизованный посетитель | короткое объяснение продукта и вход через Telegram Mini App; локальные технические входы не являются частью интерфейса |
+| Subscriber | рабочее пространство, «Мои тендеры», сохранённые мониторинги, карточка тендера, профиль и честный статус доступа |
+| Super-admin | тот же пользовательский путь subscriber плюс поиск ЕИС и закрытая «Аналитика» аудитории и воронки; Users, Campaigns, Sources, Audit и технический Live Ops не входят в MVP |
 
 «Аналитика» — server-guarded read-only экран: он открывается только из
 доверенной session с ролью `super_admin` и показывает лишь агрегаты
@@ -100,11 +99,19 @@ trial или оплатой: состояния `preview`, `trialing`, `paid`, `
 `expired` вычисляются сервером по entitlement и источнику подписки. Вход в
 production остаётся доступным только после проверки Telegram `initData`.
 
-Экран `/queries` уже является защищённым Inertia-маршрутом: без server session
-он ведёт обратно в onboarding, а с session сохраняет запрос через Laravel.
-Browser preview не получает скрытого доступа к данным. Пока production не
-прошёл VPS/Telegram smoke-test, этот экран проверяется локально и не рекламирует
-несуществующие live результаты.
+Рабочие экраны доступны только после server session. Экран `/queries` сохраняет
+мониторинг через Laravel, а `/tenders` показывает только серверные совпадения
+конкретного пользователя. До VPS/Telegram smoke-test они проверяются локально,
+но интерфейс не подменяет отсутствующие данные интерактивными образцами.
+
+## Правило MVP-состояний
+
+В пользовательском интерфейсе не используются demo-режимы, демонстрационные
+счётчики, тестовые checkout, локальные переключатели доступа и кнопки, которые
+ничего не сохраняют. Если функция ещё не запущена, экран либо не показывает её,
+либо коротко и честно объясняет ограничение. Доступ, роль и данные приходят из
+серверной сессии; `super_admin` получает дополнительные возможности, но не
+отдельный декоративный продукт.
 
 ## Ближайший UI-инкремент
 
