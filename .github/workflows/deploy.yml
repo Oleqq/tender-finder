@@ -1,0 +1,25 @@
+name: Deploy to VPS
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: tender-finder-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy reviewed main branch
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.TENDER_FINDER_VPS_HOST }}
+          username: ${{ secrets.TENDER_FINDER_VPS_USER }}
+          key: ${{ secrets.TENDER_FINDER_VPS_DEPLOY_KEY }}
+          fingerprint: ${{ secrets.TENDER_FINDER_VPS_HOST_FINGERPRINT }}
+          script: /opt/tenderfinder/deploy/vps-deploy.sh

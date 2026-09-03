@@ -17,7 +17,8 @@ RUN npm ci \
 FROM frontend-dev AS vite-dev
 
 COPY deploy/vite-dev-entrypoint.sh /usr/local/bin/tender-vite-dev-entrypoint
-RUN chmod +x /usr/local/bin/tender-vite-dev-entrypoint
+RUN sed -i 's/\r$//' /usr/local/bin/tender-vite-dev-entrypoint \
+    && chmod +x /usr/local/bin/tender-vite-dev-entrypoint
 
 ENTRYPOINT ["tender-vite-dev-entrypoint"]
 CMD ["npm", "run", "dev", "--", "--host=0.0.0.0"]
@@ -56,6 +57,7 @@ COPY deploy/entrypoint.sh /usr/local/bin/tender-entrypoint
 
 RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php \
     && php artisan package:discover --ansi \
+    && sed -i 's/\r$//' /usr/local/bin/tender-entrypoint \
     && chmod +x /usr/local/bin/tender-entrypoint \
     && chown -R www-data:www-data vendor
 
@@ -75,6 +77,7 @@ COPY deploy/dev-entrypoint.sh /usr/local/bin/tender-dev-entrypoint
 RUN apk add --no-cache su-exec \
     && rm -f bootstrap/cache/packages.php bootstrap/cache/services.php \
     && php artisan package:discover --ansi \
+    && sed -i 's/\r$//' /usr/local/bin/tender-dev-entrypoint \
     && chmod +x /usr/local/bin/tender-dev-entrypoint \
     && chown -R www-data:www-data vendor
 

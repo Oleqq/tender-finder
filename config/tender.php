@@ -24,6 +24,25 @@ return [
     'access' => [
         'trial_hours' => (int) env('TRIAL_DURATION_HOURS', 72),
         'basic_active_query_limit' => (int) env('BASIC_ACTIVE_QUERY_LIMIT', 3),
+        'pro_active_query_limit' => (int) env('PRO_ACTIVE_QUERY_LIMIT', 10),
+    ],
+
+    'payments' => [
+        'telegram_stars' => [
+            // Keep billing opt-in: no invoice is created until the business
+            // owner approves the XTR prices and explicitly enables it.
+            'enabled' => (bool) env('TELEGRAM_STARS_ENABLED', false),
+            'basic_price_xtr' => (int) env('TELEGRAM_STARS_BASIC_PRICE_XTR', 0),
+            'pro_price_xtr' => (int) env('TELEGRAM_STARS_PRO_PRICE_XTR', 0),
+            'subscription_period_seconds' => (int) env('TELEGRAM_STARS_SUBSCRIPTION_PERIOD_SECONDS', 2_592_000),
+        ],
+        // Reserved integration boundary for a future external web checkout.
+        // Do not enable inside Telegram for digital services: Telegram requires XTR there.
+        'yookassa' => [
+            'enabled' => (bool) env('YOOKASSA_ENABLED', false),
+            'shop_id' => env('YOOKASSA_SHOP_ID'),
+            'secret_key' => env('YOOKASSA_SECRET_KEY'),
+        ],
     ],
 
     'local_mvp_operator' => [

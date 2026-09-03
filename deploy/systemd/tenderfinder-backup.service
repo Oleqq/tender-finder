@@ -1,0 +1,8 @@
+[Unit]
+Description=Tender Finder PostgreSQL backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/tenderfinder/deploy/backup-postgres.sh

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\TelegramUpdate;
 use App\Services\TelegramBotClient;
+use App\Services\TelegramStarsPaymentService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,7 +24,7 @@ class ProcessTelegramUpdate implements ShouldQueue
         public readonly string $chatId,
     ) {}
 
-    public function handle(TelegramBotClient $bot): void
+    public function handle(TelegramBotClient $bot, TelegramStarsPaymentService $stars): void
     {
         $update = TelegramUpdate::query()->where('telegram_update_id', $this->updateId)->first();
 
@@ -37,14 +38,31 @@ class ProcessTelegramUpdate implements ShouldQueue
             default => null,
         };
 
-        if ($text === null) {
+        $invoiceWasSent = false;
+
+        if (str_starts_with($this->command, '/subscribe:')) {
+            $planCode = substr($this->command, strlen('/subscribe:'));
+
+            try {
+                $text = $stars->issueInvoiceForChat($this->chatId, $planCode);
+                $invoiceWasSent = $text === null;
+            } catch (Throwable $exception) {
+                $update->forceFill(['status' => 'failed', 'failure_code' => 'invoice_creation_failed'])->save();
+
+                throw $exception;
+            }
+        }
+
+        if ($text === null && ! $invoiceWasSent) {
             $update->forceFill(['status' => 'ignored', 'processed_at' => now()])->save();
 
             return;
         }
 
         try {
-            $bot->sendMessage($this->chatId, $text);
+            if ($text !== null) {
+                $bot->sendMessage($this->chatId, $text);
+            }
             $update->forceFill([
                 'status' => 'processed',
                 'processed_at' => now(),

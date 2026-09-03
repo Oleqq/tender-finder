@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/** @property array<string, mixed> $limits */
 class Plan extends Model
 {
     protected $fillable = ['code', 'name', 'is_active', 'limits'];
