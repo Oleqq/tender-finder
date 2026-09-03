@@ -52,7 +52,12 @@ export default function Profile() {
     return (
         <>
             <Head title="Профиль" />
-            <AppShell activeNav="/profile" eyebrow="Аккаунт" title="Профиль">
+            <AppShell
+                activeNav="/profile"
+                className="profile-page"
+                eyebrow="Аккаунт"
+                title="Профиль"
+            >
                 <section className="profile-hero page-enter">
                     <span className="profile-avatar">{initials}</span>
                     <div>
@@ -71,7 +76,7 @@ export default function Profile() {
                             <h2>Расписание и предпросмотр</h2>
                         </div>
                     </div>
-                    <GlassCard>
+                    <GlassCard className="notification-settings-card">
                         <form
                             className="notification-settings"
                             onSubmit={savePreferences}
