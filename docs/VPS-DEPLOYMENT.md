@@ -9,9 +9,11 @@ compressed PostgreSQL backup every day at 03:15 UTC and removes backups older
 than 30 days.
 
 The GitHub Actions deployment runs only after the existing CI workflow for
-`main` succeeds. It calls `/opt/tenderfinder/deploy/vps-deploy.sh`, which pulls
-the reviewed branch, builds containers, runs forward-only migrations, starts
-the services, and removes unused image layers.
+`main` succeeds. Actions transfers its checked-out reviewed revision to the
+VPS over SSH, then calls `/opt/tenderfinder/deploy/vps-deploy.sh`. The VPS has
+no credential for the private GitHub repository. The script builds containers,
+runs forward-only migrations, starts the services, and removes unused image
+layers.
 
 ## One-time owner inputs
 

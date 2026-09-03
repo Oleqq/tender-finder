@@ -15,6 +15,21 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
+      - name: Check out the reviewed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Upload release source
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.TENDER_FINDER_VPS_HOST }}
+          username: ${{ secrets.TENDER_FINDER_VPS_USER }}
+          key: ${{ secrets.TENDER_FINDER_VPS_DEPLOY_KEY }}
+          fingerprint: ${{ secrets.TENDER_FINDER_VPS_HOST_FINGERPRINT }}
+          source: "."
+          target: "/opt/tenderfinder-release"
+          rm: true
+          strip_components: 0
       - name: Deploy reviewed main branch
         uses: appleboy/ssh-action@v1.2.2
         with:
@@ -22,4 +37,9 @@ jobs:
           username: ${{ secrets.TENDER_FINDER_VPS_USER }}
           key: ${{ secrets.TENDER_FINDER_VPS_DEPLOY_KEY }}
           fingerprint: ${{ secrets.TENDER_FINDER_VPS_HOST_FINGERPRINT }}
-          script: /opt/tenderfinder/deploy/vps-deploy.sh
+          script: |
+            set -eu
+            install -d -m 755 /opt/tenderfinder
+            cp -a /opt/tenderfinder-release/. /opt/tenderfinder/
+            rm -rf /opt/tenderfinder/.git
+            /opt/tenderfinder/deploy/vps-deploy.sh
