@@ -23,6 +23,7 @@ final class LocalMvpEisRssImportService
         string $url,
         EisRssRelevanceCriteria $criteria,
         int $pages = 1,
+        bool $allowTrackedFeed = false,
     ): LocalMvpEisRssImportResult {
         $canonicalUrl = $this->urls->canonicalFeedUrl($url);
         $pages = min(
@@ -40,7 +41,7 @@ final class LocalMvpEisRssImportService
 
         foreach ($this->pageUrls($canonicalUrl, $pages) as $pageUrl) {
             $this->pauseBeforeNextPage($pagesLoaded);
-            $feed = $this->manualFeed($pageUrl);
+            $feed = $this->manualFeed($pageUrl, $allowTrackedFeed);
 
             try {
                 $result = $this->source->fetch($feed);
@@ -175,13 +176,13 @@ final class LocalMvpEisRssImportService
         }
     }
 
-    private function manualFeed(string $canonicalUrl): SourceFeed
+    private function manualFeed(string $canonicalUrl, bool $allowTrackedFeed): SourceFeed
     {
         $urlHash = hash('sha256', $canonicalUrl);
         $feed = SourceFeed::query()->where('url_hash', $urlHash)->first();
 
         if ($feed !== null) {
-            if ($feed->status !== 'manual_preview') {
+            if ($feed->status !== 'manual_preview' && ! $allowTrackedFeed) {
                 throw new RssSourceException('feed_not_manual');
             }
 

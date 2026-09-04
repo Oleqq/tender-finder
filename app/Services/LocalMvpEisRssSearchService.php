@@ -31,7 +31,12 @@ final class LocalMvpEisRssSearchService
             ? trim($rssUrl)
             : $this->searchUrls->forPhrase($relevance->phrase, $criteria);
 
-        $preview = $this->importer->import($url, $relevance, $pages);
+        $preview = $this->importer->import(
+            $url,
+            $relevance,
+            $pages,
+            allowTrackedFeed: $savedQuery !== null,
+        );
 
         if ($savedQuery !== null && $preview->externalIds !== []) {
             Tender::query()

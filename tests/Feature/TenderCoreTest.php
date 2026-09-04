@@ -158,6 +158,11 @@ it('runs the first EIS search for a regular user and activates background monito
 
     expect(TenderQueryMatch::query()->where('search_query_id', $queryId)->count())->toBe(1)
         ->and(SourceFeed::query()->where('status', 'active')->count())->toBe(1);
+
+    $this->actingAs($user)
+        ->postJson("/queries/{$queryId}/run")
+        ->assertOk()
+        ->assertJsonPath('preview.items_matched', 1);
 });
 
 it('lets an owner update or delete a saved query without exposing it to another user', function () {
