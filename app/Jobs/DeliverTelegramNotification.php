@@ -43,7 +43,7 @@ class DeliverTelegramNotification implements ShouldQueue
             $text = match ($delivery->type) {
                 'trial_ending_24h' => 'Ваш trial Tender Finder закончится примерно через 24 часа. После окончания мониторинги будут заморожены.',
                 'trial_ending_3h' => 'Ваш trial Tender Finder закончится примерно через 3 часа. После окончания мониторинги будут заморожены.',
-                'tender_digest' => 'За этот час найдено больше 20 совпадений. Откройте Mini App: там будет сводка до 10 карточек.',
+                'tender_digest' => $this->digestText($payload),
                 default => "Новый подходящий тендер: {$payload['title']}\n{$payload['url']}",
             };
 
@@ -58,5 +58,26 @@ class DeliverTelegramNotification implements ShouldQueue
 
             throw $exception;
         }
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function digestText(array $payload): string
+    {
+        $count = max(0, (int) ($payload['count'] ?? 0));
+        $cards = '';
+
+        foreach (is_array($payload['tenders'] ?? null) ? $payload['tenders'] : [] as $card) {
+            if (! is_array($card)) {
+                continue;
+            }
+
+            $title = mb_substr((string) ($card['title'] ?? 'Закупка'), 0, 240);
+            $url = (string) ($card['url'] ?? '');
+            $cards .= ($cards === '' ? '' : "\n\n")."• {$title}".($url !== '' ? "\n{$url}" : '');
+        }
+
+        $header = "Дайджест Tender Finder: {$count} новых совпадений за сутки.";
+
+        return mb_substr($header.($cards !== '' ? "\n\n{$cards}" : ''), 0, 3900);
     }
 }

@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('tenders:dispatch-rss')->everySecond()->withoutOverlapping();
 Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();
+Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverlapping();

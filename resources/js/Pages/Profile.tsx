@@ -41,7 +41,7 @@ export default function Profile() {
                 preferences: NotificationPreferences;
             }>('/profile/notification-preferences', preferences);
             setPreferences(response.data.preferences);
-            setMessage('Настройки сохранены. Реальная отправка пока не включена.');
+            setMessage('Настройки уведомлений сохранены.');
         } catch {
             setMessage('Не удалось сохранить настройки. Проверьте время дайджеста.');
         } finally {
@@ -73,7 +73,7 @@ export default function Profile() {
                     <div className="section-heading">
                         <div>
                             <p>Уведомления</p>
-                            <h2>Расписание и предпросмотр</h2>
+                            <h2>Расписание уведомлений</h2>
                         </div>
                     </div>
                     <GlassCard className="notification-settings-card">
@@ -169,7 +169,7 @@ export default function Profile() {
                             ) : null}
                         </form>
                     </GlassCard>
-                    <NotificationPreview preferences={preferences} />
+                    <NotificationStatus preferences={preferences} />
                 </section>
 
                 <GlassCard
@@ -247,7 +247,7 @@ export default function Profile() {
     );
 }
 
-function NotificationPreview({
+function NotificationStatus({
     preferences,
 }: {
     preferences: NotificationPreferences;
@@ -255,29 +255,28 @@ function NotificationPreview({
     return (
         <GlassCard className="notification-preview" tone="quiet">
             <div className="notification-preview__heading">
-                <Badge tone="accent">Пример</Badge>
-                <span>Сообщение не отправляется</span>
+                <Badge tone={preferences.instant_enabled || preferences.digest_enabled ? 'success' : 'neutral'}>
+                    {preferences.instant_enabled || preferences.digest_enabled
+                        ? 'Включено'
+                        : 'Выключено'}
+                </Badge>
+                <span>Telegram-уведомления</span>
             </div>
             {preferences.instant_enabled ? (
                 <div className="notification-preview__message">
-                    <strong>Новая закупка по мониторингу «Разработка сайтов»</strong>
-                    <p>Разработка и сопровождение корпоративного портала</p>
-                    <span>НМЦК 1 250 000 ₽ · срок подачи 12 сентября</span>
+                    <strong>Мгновенные уведомления включены</strong>
+                    <p>Каждое новое совпадение по активному мониторингу будет отправлено в этот чат Telegram.</p>
                 </div>
             ) : null}
             {preferences.digest_enabled ? (
                 <div className="notification-preview__message">
-                    <strong>Дайджест за сутки · 5 новых закупок</strong>
-                    <p>
-                        3 мониторинга дали новые совпадения. Откройте ленту для
-                        просмотра.
-                    </p>
-                    <span>Запланировано на {preferences.digest_time}</span>
+                    <strong>Ежедневный дайджест включён</strong>
+                    <p>В {preferences.digest_time} по выбранному часовому поясу придёт сводка совпадений за сутки.</p>
                 </div>
             ) : null}
             {!preferences.instant_enabled && !preferences.digest_enabled ? (
                 <p>
-                    Оба типа уведомлений отключены — сообщения формироваться не будут.
+                    Уведомления выключены. Карточки продолжат появляться в ленте, но Telegram не будет присылать сообщения.
                 </p>
             ) : null}
         </GlassCard>

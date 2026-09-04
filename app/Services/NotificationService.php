@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\NotificationStatus;
 use App\Jobs\DeliverTelegramNotification;
 use App\Models\NotificationDelivery;
+use App\Models\NotificationPreference;
 use App\Models\TenderQueryMatch;
 
 class NotificationService
@@ -27,6 +28,20 @@ class NotificationService
             return null;
         }
 
+        $preference = NotificationPreference::query()->firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'instant_enabled' => true,
+                'digest_enabled' => true,
+                'digest_time' => '09:00',
+                'timezone' => 'Europe/Moscow',
+            ],
+        );
+
+        if (! $preference->instant_enabled) {
+            return null;
+        }
+
         $hourStart = now()->startOfHour();
         $hourlyCards = NotificationDelivery::query()
             ->where('user_id', $user->id)
@@ -36,34 +51,24 @@ class NotificationService
             ->count();
 
         if ($hourlyCards >= 20) {
-            $key = 'digest:'.$user->id.':'.$hourStart->format('YmdH');
-            $delivery = NotificationDelivery::query()->firstOrCreate(
-                ['idempotency_key' => $key],
-                [
-                    'user_id' => $user->id,
-                    'type' => 'tender_digest',
-                    'status' => NotificationStatus::Queued,
-                    'payload' => ['top_limit' => 10],
-                    'scheduled_at' => now(),
-                ],
-            );
-        } else {
-            $delivery = NotificationDelivery::query()->firstOrCreate(
-                ['idempotency_key' => 'tender-match:'.$match->id],
-                [
-                    'user_id' => $user->id,
-                    'tender_id' => $tender->id,
-                    'search_query_id' => $query->id,
-                    'type' => 'tender_card',
-                    'status' => NotificationStatus::Queued,
-                    'payload' => [
-                        'title' => mb_substr($tender->title, 0, 500),
-                        'url' => $tender->canonical_url,
-                    ],
-                    'scheduled_at' => now(),
-                ],
-            );
+            return null;
         }
+
+        $delivery = NotificationDelivery::query()->firstOrCreate(
+            ['idempotency_key' => 'tender-match:'.$match->id],
+            [
+                'user_id' => $user->id,
+                'tender_id' => $tender->id,
+                'search_query_id' => $query->id,
+                'type' => 'tender_card',
+                'status' => NotificationStatus::Queued,
+                'payload' => [
+                    'title' => mb_substr($tender->title, 0, 500),
+                    'url' => $tender->canonical_url,
+                ],
+                'scheduled_at' => now(),
+            ],
+        );
 
         if ($delivery->wasRecentlyCreated) {
             DeliverTelegramNotification::dispatch($delivery->id)->afterCommit();
