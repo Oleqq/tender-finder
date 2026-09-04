@@ -10,6 +10,5 @@ bootstrap/cache/*.php
 storage/logs
 dump.rdb
 tmp-free-zakupki-monitor
-deploy/local-ca/*.crt
 deploy/local-ca/*.pem
 *.md

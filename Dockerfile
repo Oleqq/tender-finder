@@ -47,7 +47,16 @@ WORKDIR /var/www/html
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
-RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+RUN set -eu; \
+    local_ca_added=0; \
+    for local_ca_file in deploy/local-ca/*.crt; do \
+        [ -f "$local_ca_file" ] || continue; \
+        openssl x509 -in "$local_ca_file" -noout >/dev/null; \
+        cp "$local_ca_file" "/usr/local/share/ca-certificates/$(basename "$local_ca_file")"; \
+        local_ca_added=1; \
+    done; \
+    if [ "$local_ca_added" = "1" ]; then update-ca-certificates >/dev/null; fi; \
+    mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
 FROM app-base AS app
