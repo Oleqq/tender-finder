@@ -9,6 +9,7 @@ use App\Telegram\TelegramInitDataVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class TelegramSessionController extends Controller
@@ -25,7 +26,11 @@ class TelegramSessionController extends Controller
 
         try {
             $identity = $verifier->verify($validated['init_data']);
-        } catch (TelegramInitDataException) {
+        } catch (TelegramInitDataException $exception) {
+            Log::warning('Telegram Mini App session was rejected.', [
+                'reason' => $exception->getMessage(),
+            ]);
+
             throw ValidationException::withMessages([
                 'init_data' => 'Не удалось подтвердить Telegram-сессию. Откройте приложение заново в Telegram.',
             ]);
