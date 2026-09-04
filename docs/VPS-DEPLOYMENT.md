@@ -1,6 +1,6 @@
 # Tender Finder: VPS deployment
 
-## What is automatic
+## Current status
 
 The production stack is one Docker Compose application: Caddy manages HTTPS;
 Laravel `web`, `queue`, and `scheduler` run separately; PostgreSQL and Redis
@@ -8,12 +8,20 @@ are private Docker services with persistent volumes. A systemd timer creates a
 compressed PostgreSQL backup every day at 03:15 UTC and removes backups older
 than 30 days.
 
-The GitHub Actions deployment runs only after the existing CI workflow for
-`main` succeeds. Actions transfers its checked-out reviewed revision to the
-VPS over SSH, then calls `/opt/tenderfinder/deploy/vps-deploy.sh`. The VPS has
-no credential for the private GitHub repository. The script builds containers,
-runs forward-only migrations, starts the services, and removes unused image
-layers.
+The technical production address is `https://200.169.176.78.sslip.io`. It is
+not a business domain and should be replaced before public promotion.
+
+The VPS is currently updated by a reviewed manual release. The repository also
+contains a GitHub Actions workflow named **Deploy to VPS**, but it is triggered
+only manually (`workflow_dispatch`) until the four repository secrets below
+are configured. This prevents a push with an unreviewed or incomplete server
+configuration from changing production.
+
+Once the secrets exist, a maintainer starts **Deploy to VPS** for a green
+commit on `main`. Actions transfers that exact revision over SSH and calls
+`/opt/tenderfinder/deploy/vps-deploy.sh`. The VPS has no credential for the
+private GitHub repository. The script builds containers, runs forward-only
+migrations, starts the services, and removes unused image layers.
 
 ## One-time owner inputs
 
@@ -23,8 +31,10 @@ These items cannot be safely guessed or created by deployment code:
    for a temporary technical check only; it is not a brand domain.
 2. Approved XTR prices for Basic and Pro. The historic 990 ₽ / 2990 ₽ policy
    is not an exchange-rate instruction for Telegram Stars.
-3. Final approved public offer and privacy-policy URLs/versions. Do not set
-   `LEGAL_DOCUMENTS_PUBLISHED=true` before that approval.
+3. Public offer and privacy-policy URLs/versions. The current product copy is
+   published for the present user-flow test; an owner and a lawyer must still
+   approve commercial terms, operator details and document versions before a
+   paid public launch.
 4. The personal numeric Telegram IDs for administrators. Usernames and bot
    usernames are not substitutes.
 5. A GitHub repository administrator must add the four Actions secrets below.
@@ -74,17 +84,20 @@ TELEGRAM_STARS_BASIC_PRICE_XTR=0
 TELEGRAM_STARS_PRO_PRICE_XTR=0
 ```
 
-## First production checks
+## Release checks
 
-1. Point the final domain's A record to the VPS and wait for DNS propagation.
-2. Start the stack; Caddy obtains the TLS certificate after ports 80/443 are
+1. Before every release, GitHub CI must be green: frontend build, PHP tests,
+   PHPStan, Pint, ESLint and whitespace check.
+2. Point the final domain's A record to the VPS and wait for DNS propagation.
+3. Start the stack; Caddy obtains the TLS certificate after ports 80/443 are
    reachable from the Internet.
-3. Check `https://YOUR_DOMAIN/health` and the private readiness endpoint.
-4. Configure the bot's menu button and webhook only after HTTPS is healthy.
+4. Check `https://YOUR_DOMAIN/health` and the private readiness endpoint.
+5. Configure the bot's menu button and webhook only after HTTPS is healthy.
    The webhook endpoint is `https://YOUR_DOMAIN/api/telegram/webhook`.
-5. Test a separate Telegram account: Mini App identity, consent, trial,
-   `/subscribe basic`, pre-checkout rejection, successful payment, and a
-   duplicate payment webhook.
+6. Test a separate Telegram account: Mini App identity, consent, trial,
+   monitoring, first RSS search, a repeat check, a new-card notification and
+   the daily digest. The EIS feed part must wait until outbound VPS access to
+   `zakupki.gov.ru:443` is restored.
 
 ## YooKassa boundary
 
