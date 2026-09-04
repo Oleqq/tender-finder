@@ -54,11 +54,11 @@ export function presentAccess(access: Access | null): AccessPresentation {
         case 'preview':
         default:
             return {
-                badge: 'Ожидает активации',
-                title: 'Доступ ещё не активирован',
+                badge: '3 дня бесплатно',
+                title: 'Начните пробный период',
                 description:
-                    'Профиль создан. Рабочие функции откроются после подтверждённого доступа.',
-                detail: 'статус проверяется сервером',
+                    'Примите оферту и политику — доступ включится сразу.',
+                detail: '72 часа · до 3 мониторингов',
                 tone: 'accent',
             };
     }

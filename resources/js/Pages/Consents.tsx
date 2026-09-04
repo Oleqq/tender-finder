@@ -23,7 +23,6 @@ export default function Consents() {
             await window.axios.post('/consents', {
                 documents: ['offer', 'privacy'],
             });
-            await window.axios.post('/trial/start');
             router.visit('/dashboard');
         } catch (requestError) {
             const response = (
@@ -77,9 +76,8 @@ export default function Consents() {
                         <br />и под контролем.
                     </h2>
                     <p>
-                        Сервер отдельно запишет принятие оферты и согласие на обработку
-                        персональных данных, а затем начнёт ваш единственный пробный
-                        период.
+                        Мы запишем принятие оферты и согласие на обработку персональных
+                        данных, а затем сразу включим ваш единственный пробный период.
                     </p>
                 </section>
                 <GlassCard className="consent-card page-enter page-enter--delay">
@@ -111,8 +109,8 @@ export default function Consents() {
                         >
                             <span>
                                 {isSubmitting
-                                    ? 'Запускаем пробный период…'
-                                    : 'Начать пробный период'}
+                                    ? 'Включаем 3 дня бесплатно…'
+                                    : 'Начать 3 дня бесплатно'}
                             </span>
                             <Icon name="arrow-right" size={20} />
                         </button>

@@ -27,6 +27,8 @@ export default function Dashboard() {
     const access = presentAccess(auth.access);
     const isSuperAdmin = auth.user?.role === 'super_admin';
     const canUseMonitoring = ['trialing', 'active'].includes(auth.access?.state ?? '');
+    const canStartTrial = auth.access?.state === 'preview';
+    const accessHref = canStartTrial ? '/consents' : '/plans';
 
     return (
         <>
@@ -47,7 +49,9 @@ export default function Dashboard() {
                         <p>
                             {canUseMonitoring
                                 ? 'Создавайте мониторинги и разбирайте только те закупки, которые совпали с вашими условиями.'
-                                : 'Профиль готов. Мониторинги и новые совпадения станут доступны после активации доступа.'}
+                                : canStartTrial
+                                  ? 'Примите оферту и политику — сразу включим 3 дня доступа и до трёх мониторингов.'
+                                  : 'Профиль готов. Выберите способ продления доступа, чтобы снова создавать мониторинги.'}
                         </p>
                     </div>
                     <span aria-hidden="true" className="dashboard-signal">
@@ -69,17 +73,21 @@ export default function Dashboard() {
                         <span>
                             {canUseMonitoring
                                 ? 'Когда сервер найдёт подходящую закупку, карточка появится в ленте с причиной совпадения.'
-                                : 'Здесь появится ваша лента после активации доступа и первого мониторинга.'}
+                                : canStartTrial
+                                  ? 'Начните 3 дня бесплатно — затем добавьте первый мониторинг, и здесь появится лента.'
+                                  : 'Здесь появится ваша лента после продления доступа и первого мониторинга.'}
                         </span>
                     </div>
                     <Link
                         aria-label={
                             canUseMonitoring
                                 ? 'Открыть мои тендеры'
-                                : 'Открыть информацию о доступе'
+                                : canStartTrial
+                                  ? 'Начать 3 дня бесплатно'
+                                  : 'Открыть информацию о доступе'
                         }
                         className="icon-button icon-button--soft"
-                        href={canUseMonitoring ? '/tenders' : '/plans'}
+                        href={canUseMonitoring ? '/tenders' : accessHref}
                     >
                         <Icon name="chevron-right" size={20} />
                     </Link>
@@ -154,18 +162,29 @@ export default function Dashboard() {
                             <h2>
                                 {canUseMonitoring
                                     ? 'Настройте мониторинг'
-                                    : 'Активируйте доступ'}
+                                    : canStartTrial
+                                      ? 'Начните 3 дня бесплатно'
+                                      : 'Продлите доступ'}
                             </h2>
                         </div>
-                        <Link href={canUseMonitoring ? '/queries' : '/plans'}>
-                            {canUseMonitoring ? 'Мониторинги' : 'Подробнее'}{' '}
+                        <Link href={canUseMonitoring ? '/queries' : accessHref}>
+                            {canUseMonitoring
+                                ? 'Мониторинги'
+                                : canStartTrial
+                                  ? 'Начать'
+                                  : 'Подробнее'}{' '}
                             <Icon name="chevron-right" size={16} />
                         </Link>
                     </div>
-                    <InlineAlert title="Как работает поток" tone="neutral">
+                    <InlineAlert
+                        title={canStartTrial ? 'Что будет дальше' : 'Как работает поток'}
+                        tone="neutral"
+                    >
                         {canUseMonitoring
                             ? 'Мониторинг хранит ваши условия. В ленту попадают только серверные совпадения, а не рекомендации или примерные карточки.'
-                            : 'Доступ рассчитывается на сервере. Мы не показываем форму мониторинга, пока его нет, и не создаём тестовые данные.'}
+                            : canStartTrial
+                              ? 'После принятия документов trial включится автоматически. Никакую заявку, код или оплату вводить не нужно.'
+                              : 'Мы не показываем форму мониторинга, пока нет доступа, и не создаём тестовые данные.'}
                     </InlineAlert>
                 </section>
 

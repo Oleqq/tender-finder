@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\ConsentDocument;
 use App\Services\ConsentService;
 use App\Services\LegalDocumentsUnavailableException;
+use App\Services\TrialAlreadyUsedException;
+use App\Services\TrialService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -12,7 +14,11 @@ use Illuminate\Validation\ValidationException;
 
 class ConsentController extends Controller
 {
-    public function store(Request $request, ConsentService $consents): JsonResponse
+    public function store(
+        Request $request,
+        ConsentService $consents,
+        TrialService $trials,
+    ): JsonResponse
     {
         $validated = $request->validate([
             'documents' => ['required', 'array', 'size:2'],
@@ -32,11 +38,23 @@ class ConsentController extends Controller
 
         try {
             $consents->acceptCurrent($request->user(), $documents, $request->ip());
+
+            // Accepting the current documents is the only user action needed to
+            // begin a trial. Keeping this on the server avoids a half-completed
+            // flow if the Mini App closes between two browser requests.
+            $access = $trials->start($request->user());
         } catch (LegalDocumentsUnavailableException) {
             return response()->json(['message' => 'Юридические документы пока не опубликованы.'], 503);
+        } catch (TrialAlreadyUsedException) {
+            // Re-sending the form must be harmless after a user has already
+            // used their one trial; it is not an activation error.
+            return response()->json(['status' => 'accepted']);
         }
 
-        return response()->json(['status' => 'accepted']);
+        return response()->json([
+            'status' => 'trial_started',
+            'access' => $access->toArray(),
+        ], 201);
     }
 
     public function revoke(Request $request, ConsentService $consents): JsonResponse

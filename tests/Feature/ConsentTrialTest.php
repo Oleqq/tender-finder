@@ -16,23 +16,20 @@ beforeEach(function (): void {
     config()->set('tender.access.basic_active_query_limit', 3);
 });
 
-it('records current consents idempotently and starts a single 72 hour trial', function () {
+it('records current consents and starts a single 72 hour trial in one action', function () {
     $user = User::factory()->create(['telegram_id' => '7001']);
 
     $this->actingAs($user)
         ->postJson('/consents', ['documents' => ['offer', 'privacy']])
-        ->assertOk();
+        ->assertCreated()
+        ->assertJsonPath('status', 'trial_started')
+        ->assertJsonPath('access.state', 'trialing')
+        ->assertJsonPath('access.active_query_limit', 3);
     $this->actingAs($user)
         ->postJson('/consents', ['documents' => ['privacy', 'offer']])
         ->assertOk();
 
     expect(ConsentEvent::query()->where('user_id', $user->id)->count())->toBe(2);
-
-    $this->actingAs($user)
-        ->postJson('/trial/start')
-        ->assertCreated()
-        ->assertJsonPath('access.state', 'trialing')
-        ->assertJsonPath('access.active_query_limit', 3);
 
     $entitlement = Entitlement::query()->where('user_id', $user->id)->firstOrFail();
     expect($entitlement->starts_at?->diffInHours($entitlement->ends_at))->toBe(72.0);
