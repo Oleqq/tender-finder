@@ -1,10 +1,7 @@
 name: Deploy to VPS
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: tender-finder-production
@@ -12,13 +9,12 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out the reviewed revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
       - name: Upload release source
         uses: appleboy/scp-action@v1.0.0
         with:
