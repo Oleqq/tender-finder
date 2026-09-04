@@ -7,6 +7,7 @@ import type { PageProps } from '../types';
 export default function Welcome() {
     const { auth } = usePage<PageProps>().props;
     const isSuperAdmin = auth.user?.role === 'super_admin';
+    const needsFirstStart = auth.user !== null && auth.access?.state === 'preview';
 
     return (
         <>
@@ -50,19 +51,25 @@ export default function Welcome() {
                 <div className="welcome-actions page-enter page-enter--later">
                     {auth.user ? (
                         <>
-                            <Badge tone={isSuperAdmin ? 'success' : 'accent'}>
-                                {isSuperAdmin
-                                    ? 'Расширенный доступ'
-                                    : 'Ваше рабочее пространство'}
+                            <Badge tone={needsFirstStart ? 'accent' : isSuperAdmin ? 'success' : 'accent'}>
+                                {needsFirstStart
+                                    ? 'Первый запуск'
+                                    : isSuperAdmin
+                                      ? 'Расширенный доступ'
+                                      : 'Ваше рабочее пространство'}
                             </Badge>
                             <Link
                                 className="button button--primary button--lg"
-                                href="/dashboard"
+                                href={needsFirstStart ? '/onboarding' : '/dashboard'}
                             >
-                                <span>Открыть рабочее пространство</span>
+                                <span>
+                                    {needsFirstStart
+                                        ? 'Начать 3 дня бесплатно'
+                                        : 'Открыть рабочее пространство'}
+                                </span>
                                 <Icon name="arrow-right" size={20} />
                             </Link>
-                            {isSuperAdmin ? (
+                            {isSuperAdmin && !needsFirstStart ? (
                                 <div className="welcome-admin-links">
                                     <Link href="/mvp/workspace">
                                         Поиск ЕИС{' '}
