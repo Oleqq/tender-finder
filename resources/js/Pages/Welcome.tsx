@@ -12,7 +12,10 @@ export default function Welcome() {
     return (
         <>
             <Head title="Tender Finder" />
-            <AppShell navigationVisible={Boolean(auth.user)} title="Tender Finder">
+            <AppShell
+                navigationVisible={Boolean(auth.user) && !needsFirstStart}
+                title="Tender Finder"
+            >
                 <section className="welcome-hero page-enter">
                     <div className="welcome-hero__signal" aria-hidden="true">
                         <span className="signal-ring signal-ring--one" />
