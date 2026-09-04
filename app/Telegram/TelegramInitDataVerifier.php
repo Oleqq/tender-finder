@@ -27,7 +27,9 @@ class TelegramInitDataVerifier
         $dataCheckString = collect($data)
             ->map(fn (string $value, string $key): string => $key.'='.$value)
             ->implode("\n");
-        $secretKey = hash_hmac('sha256', 'WebAppData', $token, true);
+        // Telegram defines this as HMAC_SHA256(bot_token, "WebAppData"):
+        // the token is the message and WebAppData is the key.
+        $secretKey = hash_hmac('sha256', $token, 'WebAppData', true);
         $expectedHash = hash_hmac('sha256', $dataCheckString, $secretKey);
 
         if (! hash_equals($expectedHash, $hash)) {

@@ -14,7 +14,7 @@ function signedTelegramInitData(array $user, ?int $authDate = null): string
     ];
     ksort($data, SORT_STRING);
     $checkString = collect($data)->map(fn (string $value, string $key) => $key.'='.$value)->implode("\n");
-    $secret = hash_hmac('sha256', 'WebAppData', (string) config('tender.telegram.bot_token'), true);
+    $secret = hash_hmac('sha256', (string) config('tender.telegram.bot_token'), 'WebAppData', true);
     $data['hash'] = hash_hmac('sha256', $checkString, $secret);
 
     return http_build_query($data, '', '&', PHP_QUERY_RFC3986);
