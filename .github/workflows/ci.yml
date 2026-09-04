@@ -62,8 +62,6 @@ jobs:
       - run: npm run build
       - run: php artisan test
       - run: vendor/bin/phpstan analyse --memory-limit=1G
+      - run: vendor/bin/pint --test
       - run: npm run lint
-      # The repository's historical PHP/Prettier formatting baseline is not
-      # clean yet. Avoid failing every release for unrelated legacy files;
-      # still reject whitespace damage introduced by the current commit.
       - run: git diff --check HEAD^ HEAD

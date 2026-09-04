@@ -18,8 +18,7 @@ class ConsentController extends Controller
         Request $request,
         ConsentService $consents,
         TrialService $trials,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $validated = $request->validate([
             'documents' => ['required', 'array', 'size:2'],
             'documents.*' => ['required', 'string', 'distinct', Rule::in(array_column(ConsentDocument::cases(), 'value'))],

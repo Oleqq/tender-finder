@@ -29,9 +29,9 @@ class TelegramBotClient
     public function sendMessage(string $chatId, string $text): void
     {
         $this->call('sendMessage', [
-                'chat_id' => $chatId,
-                'text' => $text,
-                'disable_web_page_preview' => true,
+            'chat_id' => $chatId,
+            'text' => $text,
+            'disable_web_page_preview' => true,
         ]);
     }
 

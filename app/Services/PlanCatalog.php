@@ -7,6 +7,7 @@ use App\Models\Plan;
 class PlanCatalog
 {
     public const BASIC_CODE = 'basic';
+
     public const PRO_CODE = 'pro';
 
     public function basic(): Plan
