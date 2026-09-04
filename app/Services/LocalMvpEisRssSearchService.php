@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SearchQuery;
+use App\Models\Tender;
 use App\Models\User;
 use App\Tenders\EisRssRelevanceCriteria;
 use App\Tenders\EisRssSearchCriteria;
@@ -15,6 +16,7 @@ final class LocalMvpEisRssSearchService
         private readonly LocalMvpSearchSnapshotService $snapshots,
         private readonly LocalMvpTenderWorkspaceService $workspace,
         private readonly EisRssSearchUrlFactory $searchUrls,
+        private readonly TenderMatchingService $matching,
     ) {}
 
     public function run(
@@ -30,6 +32,14 @@ final class LocalMvpEisRssSearchService
             : $this->searchUrls->forPhrase($relevance->phrase, $criteria);
 
         $preview = $this->importer->import($url, $relevance, $pages);
+
+        if ($savedQuery !== null && $preview->externalIds !== []) {
+            Tender::query()
+                ->where('source', 'eis_rss')
+                ->whereIn('external_id', $preview->externalIds)
+                ->each(fn (Tender $tender) => $this->matching->matchTender($tender, false));
+        }
+
         $tenders = $this->workspace->tendersForSourceExternalIds(
             $user,
             'eis_rss',

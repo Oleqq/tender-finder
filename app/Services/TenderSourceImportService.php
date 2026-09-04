@@ -75,8 +75,13 @@ class TenderSourceImportService
                     $itemsCreated++;
                 }
 
-                if (! $isFirstSuccessfulPoll && $queueMatches && $isNewTender) {
-                    MatchTender::dispatch($tender->id)->afterCommit();
+                if ($queueMatches && $isNewTender) {
+                    // The first import builds the user's initial feed but must not
+                    // send a burst of notifications for historic procurements.
+                    MatchTender::dispatch(
+                        $tender->id,
+                        ! $isFirstSuccessfulPoll,
+                    )->afterCommit();
                 }
             }
 

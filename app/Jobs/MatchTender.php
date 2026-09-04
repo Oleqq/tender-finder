@@ -14,14 +14,17 @@ class MatchTender implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public readonly int $tenderId) {}
+    public function __construct(
+        public readonly int $tenderId,
+        public readonly bool $queueNotifications = true,
+    ) {}
 
     public function handle(TenderMatchingService $matching): void
     {
         $tender = Tender::query()->find($this->tenderId);
 
         if ($tender !== null) {
-            $matching->matchTender($tender);
+            $matching->matchTender($tender, $this->queueNotifications);
         }
     }
 }

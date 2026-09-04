@@ -77,13 +77,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/queries', [SearchQueryController::class, 'store'])->name('queries.store');
     Route::patch('/queries/{query}', [SearchQueryController::class, 'update'])->name('queries.update');
     Route::post('/queries/{query}/run', SavedSearchRunController::class)
-        ->middleware(['super_admin', 'throttle:local-mvp-rss-preview'])
+        ->middleware('throttle:local-mvp-rss-preview')
         ->name('queries.run');
     Route::get('/queries/{query}/runs', [SavedSearchRunHistoryController::class, 'index'])
-        ->middleware('super_admin')
         ->name('queries.runs.index');
     Route::get('/queries/{query}/runs/{run}', [SavedSearchRunHistoryController::class, 'show'])
-        ->middleware('super_admin')
         ->name('queries.runs.show');
     Route::post('/queries/{query}/pause', [SearchQueryController::class, 'pause'])->name('queries.pause');
     Route::post('/queries/{query}/resume', [SearchQueryController::class, 'resume'])->name('queries.resume');

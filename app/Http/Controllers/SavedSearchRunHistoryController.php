@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\QueryStatus;
 use App\Models\LocalMvpSearchSnapshot;
 use App\Models\SearchQuery;
-use App\Services\LocalMvpOperatorService;
 use App\Services\LocalMvpSearchSnapshotService;
 use App\Services\LocalMvpTenderWorkspaceService;
 use Illuminate\Http\JsonResponse;
@@ -16,10 +15,9 @@ final class SavedSearchRunHistoryController extends Controller
     public function index(
         Request $request,
         SearchQuery $query,
-        LocalMvpOperatorService $operator,
         LocalMvpSearchSnapshotService $snapshots,
     ): JsonResponse {
-        $this->assertAccess($request, $query, $operator);
+        $this->assertAccess($request, $query);
 
         $runs = $query->manualRuns()
             ->latest('id')
@@ -38,11 +36,10 @@ final class SavedSearchRunHistoryController extends Controller
         Request $request,
         SearchQuery $query,
         LocalMvpSearchSnapshot $run,
-        LocalMvpOperatorService $operator,
         LocalMvpSearchSnapshotService $snapshots,
         LocalMvpTenderWorkspaceService $workspace,
     ): JsonResponse {
-        $this->assertAccess($request, $query, $operator);
+        $this->assertAccess($request, $query);
         abort_unless(
             $run->user_id === $request->user()?->id && $run->search_query_id === $query->id,
             404,
@@ -66,9 +63,7 @@ final class SavedSearchRunHistoryController extends Controller
     private function assertAccess(
         Request $request,
         SearchQuery $query,
-        LocalMvpOperatorService $operator,
     ): void {
-        abort_unless($operator->canUseWorkspace($request->user()), 404);
         abort_unless(
             $query->user_id === $request->user()?->id && $query->status !== QueryStatus::Deleted,
             404,

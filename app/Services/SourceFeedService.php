@@ -17,6 +17,14 @@ class SourceFeedService
         $existing = SourceFeed::query()->where('url_hash', $hash)->first();
 
         if ($existing !== null) {
+            if ($existing->status === 'manual_preview') {
+                $existing->forceFill([
+                    'status' => 'active',
+                    'poll_interval_seconds' => (int) config('tender.rss.poll_interval_seconds', 600),
+                    'next_poll_at' => now(),
+                ])->save();
+            }
+
             return $existing;
         }
 

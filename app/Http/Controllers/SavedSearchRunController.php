@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AccessState;
 use App\Enums\QueryStatus;
 use App\Models\SearchQuery;
+use App\Services\AccessService;
 use App\Services\LocalMvpEisRssSearchService;
-use App\Services\LocalMvpOperatorService;
 use App\Services\SearchQueryPresenter;
+use App\Services\SourceFeedService;
 use App\Tenders\EisRssMatchMode;
 use App\Tenders\EisRssRelevanceCriteria;
 use App\Tenders\EisRssSearchCriteria;
+use App\Tenders\EisRssSearchUrlFactory;
 use App\Tenders\RssSourceException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,14 +24,19 @@ final class SavedSearchRunController extends Controller
     public function __invoke(
         Request $request,
         SearchQuery $query,
-        LocalMvpOperatorService $operator,
+        AccessService $access,
         LocalMvpEisRssSearchService $search,
         SearchQueryPresenter $presenter,
+        SourceFeedService $feeds,
+        EisRssSearchUrlFactory $searchUrls,
     ): JsonResponse {
-        abort_unless($operator->canUseWorkspace($request->user()), 404);
         abort_unless(
             $query->user_id === $request->user()?->id && $query->status !== QueryStatus::Deleted,
             404,
+        );
+        abort_unless(
+            in_array($access->snapshotFor($request->user())->state, [AccessState::Trialing, AccessState::Active], true),
+            403,
         );
 
         $source = is_array($query->filters) && is_array($query->filters['source'] ?? null)
@@ -74,6 +82,10 @@ final class SavedSearchRunController extends Controller
                 (int) ($source['pages'] ?? 3),
                 $criteria,
                 $query,
+            );
+            $feeds->findOrCreate(
+                $this->nullableString($source['rss_url'] ?? null)
+                    ?? $searchUrls->forPhrase($relevance->phrase, $criteria),
             );
         } catch (RssSourceException $exception) {
             throw ValidationException::withMessages([

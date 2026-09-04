@@ -13,13 +13,14 @@ use App\Services\TenderSourceImportService;
 use App\Tenders\EisRssSource;
 use App\Tenders\RssSourceException;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function (): void {
     $this->withoutMiddleware(ValidateCsrfToken::class);
 });
 
-it('imports synthetic RSS safely, deduplicates reg numbers, and keeps first poll silent', function () {
+it('imports synthetic RSS safely and matches the initial feed without notifying about old cards', function () {
     Queue::fake();
     $feed = SourceFeed::query()->create([
         'canonical_url' => 'https://zakupki.gov.ru/epz/order/extendedsearch/rss.html?searchString=site',
@@ -33,12 +34,12 @@ it('imports synthetic RSS safely, deduplicates reg numbers, and keeps first poll
     $first = $importer->import($feed, $source->parse(file_get_contents(base_path('tests/Fixtures/eis-rss-initial.xml'))), 'eis_rss');
     expect($first->items_created)->toBe(1)
         ->and(Tender::query()->count())->toBe(1);
-    Queue::assertNothingPushed();
+    Queue::assertPushed(MatchTender::class, fn (MatchTender $job): bool => $job->queueNotifications === false);
 
     $second = $importer->import($feed->fresh(), $source->parse(file_get_contents(base_path('tests/Fixtures/eis-rss-next.xml'))), 'eis_rss');
     expect($second->items_created)->toBe(1)
         ->and(Tender::query()->count())->toBe(2);
-    Queue::assertPushed(MatchTender::class, 1);
+    Queue::assertPushed(MatchTender::class, fn (MatchTender $job): bool => $job->queueNotifications === true);
 });
 
 it('rejects HTML and skips untrusted RSS item links before storing anything', function () {
@@ -120,6 +121,43 @@ it('enforces the server-side three active query limit', function () {
     $this->actingAs($user)->postJson('/queries', ['keywords' => ['четвёртый']])
         ->assertUnprocessable()
         ->assertJsonValidationErrors('limit');
+});
+
+it('runs the first EIS search for a regular user and activates background monitoring', function () {
+    $fixture = file_get_contents(base_path('tests/Fixtures/eis-rss-initial.xml'));
+    expect($fixture)->not->toBeFalse();
+
+    Http::fake([
+        'https://zakupki.gov.ru/epz/order/extendedsearch/rss.html*' => Http::response(
+            $fixture,
+            200,
+            ['Content-Type' => 'application/rss+xml'],
+        ),
+    ]);
+
+    $user = User::factory()->create(['telegram_id' => '9005']);
+    Entitlement::query()->create([
+        'user_id' => $user->id,
+        'code' => 'active_queries',
+        'status' => SubscriptionStatus::Active,
+        'value' => 3,
+        'starts_at' => now()->subMinute(),
+        'ends_at' => now()->addDay(),
+    ]);
+
+    $queryId = $this->actingAs($user)
+        ->postJson('/queries', ['keywords' => ['поддержка', 'сайта']])
+        ->assertCreated()
+        ->json('query.id');
+
+    $this->actingAs($user)
+        ->postJson("/queries/{$queryId}/run")
+        ->assertOk()
+        ->assertJsonPath('preview.items_matched', 1)
+        ->assertJsonCount(1, 'tenders');
+
+    expect(TenderQueryMatch::query()->where('search_query_id', $queryId)->count())->toBe(1)
+        ->and(SourceFeed::query()->where('status', 'active')->count())->toBe(1);
 });
 
 it('lets an owner update or delete a saved query without exposing it to another user', function () {

@@ -158,6 +158,7 @@ export default function MyQueries() {
             );
             setQueries((current) => [response.data.query, ...current]);
             setCreateForm(emptyQueryForm());
+            await runQuery(response.data.query);
         } catch {
             setCreateError(
                 'Не удалось создать мониторинг. Проверьте доступ и попробуйте ещё раз.',
@@ -282,7 +283,7 @@ export default function MyQueries() {
         }
     };
 
-    const runQuery = async (query: QueryDto): Promise<void> => {
+    async function runQuery(query: QueryDto): Promise<void> {
         setActionError('');
         setRunningQueryId(query.id);
 
@@ -308,7 +309,7 @@ export default function MyQueries() {
         } finally {
             setRunningQueryId(null);
         }
-    };
+    }
 
     const openHistoricalRun = (
         query: QueryDto,
@@ -355,7 +356,7 @@ export default function MyQueries() {
     const canCreate =
         ['trialing', 'active'].includes(auth.access?.state ?? '') &&
         auth.access?.active_query_limit !== null;
-    const canRunManually = auth.user?.role === 'super_admin';
+    const canRunManually = canCreate;
 
     return (
         <>
@@ -400,7 +401,7 @@ export default function MyQueries() {
                                 <FieldError>{createError}</FieldError>
                             ) : null}
                             <Button disabled={isCreating} icon="check" type="submit">
-                                {isCreating ? 'Создаём…' : 'Включить мониторинг'}
+                                {isCreating ? 'Создаём и ищем…' : 'Включить мониторинг'}
                             </Button>
                         </form>
                     </GlassCard>
@@ -466,7 +467,7 @@ export default function MyQueries() {
                                                 >
                                                     {runningQueryId === query.id
                                                         ? 'Запускаем…'
-                                                        : 'Запустить сейчас'}
+                                                        : 'Проверить сейчас'}
                                                 </Button>
                                                 <Button
                                                     onClick={() =>
@@ -663,7 +664,7 @@ function QueryRunSummaryCard({ query }: { query: QueryDto }) {
         return (
             <div className="query-card__run query-card__run--empty">
                 <Icon name="search" size={18} />
-                <p>Данные появятся здесь после первого запуска.</p>
+                <p>Первый поиск ещё не завершён. Нажмите «Проверить сейчас».</p>
             </div>
         );
     }
