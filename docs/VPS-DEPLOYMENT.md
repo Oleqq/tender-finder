@@ -8,8 +8,9 @@ are private Docker services with persistent volumes. A systemd timer creates a
 compressed PostgreSQL backup every day at 03:15 UTC and removes backups older
 than 30 days.
 
-The technical production address is `https://200.169.176.78.sslip.io`. It is
-not a business domain and should be replaced before public promotion.
+The technical production address is `https://200.165.238.247.sslip.io`. It is
+not a business domain and should be replaced before public promotion. The old
+VPS is retained unchanged and is not part of this deployment target.
 
 The VPS is currently updated by a reviewed manual release. The repository also
 contains a GitHub Actions workflow named **Deploy to VPS**, but it is triggered
@@ -21,7 +22,9 @@ Once the secrets exist, a maintainer starts **Deploy to VPS** for a green
 commit on `main`. Actions transfers that exact revision over SSH and calls
 `/opt/tenderfinder/deploy/vps-deploy.sh`. The VPS has no credential for the
 private GitHub repository. The script builds containers, runs forward-only
-migrations, starts the services, and removes unused image layers.
+migrations, starts the services, and removes unused image layers. Shell scripts
+are normalized to LF by `.gitattributes` so the deployment script is portable
+between Windows worktrees and the Linux VPS.
 
 ## One-time owner inputs
 
