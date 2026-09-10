@@ -84,6 +84,28 @@ return [
         'request_timeout_seconds' => (int) env('RSS_REQUEST_TIMEOUT_SECONDS', 30),
     ],
 
+    'rostender' => [
+        // The supplier's API licence must explicitly allow distribution to
+        // Tender Finder users. Keep both switches false until that written
+        // permission has been received and reviewed.
+        'enabled' => (bool) env('ROSTENDER_ENABLED', false),
+        'public_distribution_approved' => (bool) env('ROSTENDER_PUBLIC_DISTRIBUTION_APPROVED', false),
+        'api_key' => env('ROSTENDER_API_KEY'),
+        'base_url' => env('ROSTENDER_BASE_URL', 'https://rostender.info/api/tenders/get'),
+        'request_timeout_seconds' => (int) env('ROSTENDER_REQUEST_TIMEOUT_SECONDS', 15),
+        'daily_quota_limit' => (int) env('ROSTENDER_DAILY_QUOTA_LIMIT', 200),
+        // Kept out of normal polling so a future explicitly approved urgent
+        // operation is not starved by the scheduler.
+        'daily_quota_reserve' => (int) env('ROSTENDER_DAILY_QUOTA_RESERVE', 20),
+        'max_details_per_poll' => (int) env('ROSTENDER_MAX_DETAILS_PER_POLL', 20),
+        'basic_poll_interval_seconds' => (int) env('ROSTENDER_BASIC_POLL_INTERVAL_SECONDS', 86400),
+        'pro_poll_interval_seconds' => (int) env('ROSTENDER_PRO_POLL_INTERVAL_SECONDS', 86400),
+        'basic_manual_checks_per_day' => (int) env('ROSTENDER_BASIC_MANUAL_CHECKS_PER_DAY', 0),
+        'pro_manual_checks_per_day' => (int) env('ROSTENDER_PRO_MANUAL_CHECKS_PER_DAY', 0),
+        'basic_active_monitor_limit' => (int) env('ROSTENDER_BASIC_ACTIVE_MONITOR_LIMIT', 0),
+        'pro_active_monitor_limit' => (int) env('ROSTENDER_PRO_ACTIVE_MONITOR_LIMIT', 0),
+    ],
+
     'eis_enrichment' => [
         // Enrichment is always triggered by an explicit operator action and
         // reads only the public print form and document list for one notice.

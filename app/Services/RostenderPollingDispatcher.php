@@ -2,35 +2,30 @@
 
 namespace App\Services;
 
-use App\Jobs\PollEisRssFeed;
+use App\Jobs\PollRostenderTemplate;
 use App\Models\SourceFeed;
 use Illuminate\Support\Facades\Cache;
 
-class RssPollingDispatcher
+class RostenderPollingDispatcher
 {
+    public function __construct(private readonly RostenderAccessGate $gate) {}
+
     public function dispatchOneDueFeed(): bool
     {
-        if (! config('tender.rss.live_polling_enabled', false)) {
+        if (! $this->gate->allowsDataProcessing()) {
             return false;
         }
 
-        $lock = Cache::lock('rss-poll-dispatch', 5);
+        $lock = Cache::lock('rostender-poll-dispatch', 5);
 
         if (! $lock->get()) {
             return false;
         }
 
         try {
-            $lastRequestAt = Cache::get('rss-last-request-at');
-            $minimumInterval = max(1, (int) config('tender.rss.global_min_interval_milliseconds', 1500));
-
-            if (is_float($lastRequestAt) && (microtime(true) - $lastRequestAt) * 1000 < $minimumInterval) {
-                return false;
-            }
-
             /** @var SourceFeed|null $feed */
             $feed = SourceFeed::query()
-                ->where('source', 'eis_rss')
+                ->where('source', 'rostender')
                 ->where('status', 'active')
                 ->where(function ($query): void {
                     $query->whereNull('next_poll_at')->orWhere('next_poll_at', '<=', now());
@@ -46,8 +41,7 @@ class RssPollingDispatcher
                 'next_poll_at' => now()->addSeconds($feed->poll_interval_seconds),
                 'last_attempt_at' => now(),
             ])->save();
-            Cache::put('rss-last-request-at', microtime(true), 60);
-            PollEisRssFeed::dispatch($feed->id);
+            PollRostenderTemplate::dispatch($feed->id);
 
             return true;
         } finally {

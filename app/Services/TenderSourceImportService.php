@@ -8,6 +8,7 @@ use App\Models\SourceFeedItem;
 use App\Models\SourceRun;
 use App\Models\Tender;
 use App\Tenders\SourceFetchResult;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class TenderSourceImportService
@@ -69,6 +70,14 @@ class TenderSourceImportService
                     'deadline_at' => $item->deadlineAt,
                     'metadata' => $metadata === [] ? null : $metadata,
                 ]);
+
+                if ($item->externalUpdatedAt !== null) {
+                    $tender->external_updated_at = Carbon::instance($item->externalUpdatedAt);
+                }
+
+                if ($item->detailsFetchedAt !== null) {
+                    $tender->details_fetched_at = Carbon::instance($item->detailsFetchedAt);
+                }
                 $tender->save();
 
                 if ($isNewTender) {

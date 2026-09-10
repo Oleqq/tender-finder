@@ -36,6 +36,7 @@ class SourceFeedService
         $feed = SourceFeed::query()->create([
             'canonical_url' => $canonicalUrl,
             'url_hash' => $hash,
+            'source' => 'eis_rss',
             'status' => 'active',
             'poll_interval_seconds' => (int) config('tender.rss.poll_interval_seconds', 600),
             'next_poll_at' => now(),

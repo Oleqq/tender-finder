@@ -17,6 +17,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deadline_at
  * @property string $canonical_url
  * @property Carbon $created_at
+ * @property Carbon|null $external_updated_at
+ * @property Carbon|null $details_fetched_at
  */
 class Tender extends Model
 {
@@ -34,6 +36,8 @@ class Tender extends Model
         'currency',
         'published_at',
         'deadline_at',
+        'external_updated_at',
+        'details_fetched_at',
         'metadata',
     ];
 
@@ -43,6 +47,8 @@ class Tender extends Model
             'budget_amount' => 'decimal:2',
             'published_at' => 'datetime',
             'deadline_at' => 'datetime',
+            'external_updated_at' => 'datetime',
+            'details_fetched_at' => 'datetime',
             'metadata' => 'array',
         ];
     }

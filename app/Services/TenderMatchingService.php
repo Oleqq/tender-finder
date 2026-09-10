@@ -85,27 +85,46 @@ class TenderMatchingService
         SearchQuery::query()
             ->where('status', QueryStatus::Active)
             ->each(function (SearchQuery $query) use ($tender, $queueNotifications, &$matches): void {
-                $result = $this->evaluate($query, $tender);
-
-                if (! $result->matches) {
-                    return;
-                }
-
-                $match = TenderQueryMatch::query()->firstOrCreate(
-                    ['tender_id' => $tender->id, 'search_query_id' => $query->id],
-                    ['match_reasons' => $result->reasons, 'matched_at' => now()],
-                );
-
-                if ($match->wasRecentlyCreated) {
-                    $matches++;
-
-                    if ($queueNotifications) {
-                        app(NotificationService::class)->queueForMatch($match);
-                    }
-                }
+                $matches += $this->matchTenderForQuery($tender, $query, $queueNotifications);
             });
 
         return $matches;
+    }
+
+    /** @param iterable<SearchQuery> $queries */
+    public function matchTenderForQueries(Tender $tender, iterable $queries, bool $queueNotifications = true): int
+    {
+        $matches = 0;
+
+        foreach ($queries as $query) {
+            $matches += $this->matchTenderForQuery($tender, $query, $queueNotifications);
+        }
+
+        return $matches;
+    }
+
+    private function matchTenderForQuery(Tender $tender, SearchQuery $query, bool $queueNotifications): int
+    {
+        $result = $this->evaluate($query, $tender);
+
+        if (! $result->matches) {
+            return 0;
+        }
+
+        $match = TenderQueryMatch::query()->firstOrCreate(
+            ['tender_id' => $tender->id, 'search_query_id' => $query->id],
+            ['match_reasons' => $result->reasons, 'matched_at' => now()],
+        );
+
+        if (! $match->wasRecentlyCreated) {
+            return 0;
+        }
+
+        if ($queueNotifications) {
+            app(NotificationService::class)->queueForMatch($match);
+        }
+
+        return 1;
     }
 
     private function lower(?string $value): string

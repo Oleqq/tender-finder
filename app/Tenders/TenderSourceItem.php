@@ -23,5 +23,7 @@ abstract readonly class TenderSourceItem
         public string $currency = 'RUB',
         public ?CarbonImmutable $deadlineAt = null,
         public array $metadata = [],
+        public ?CarbonImmutable $externalUpdatedAt = null,
+        public ?CarbonImmutable $detailsFetchedAt = null,
     ) {}
 }

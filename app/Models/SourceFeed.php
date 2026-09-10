@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class SourceFeed extends Model
 {
     protected $fillable = [
+        'source',
+        'source_identifier',
         'canonical_url',
         'url_hash',
         'status',
@@ -27,6 +29,7 @@ class SourceFeed extends Model
             'last_attempt_at' => 'datetime',
             'last_success_at' => 'datetime',
             'poll_interval_seconds' => 'integer',
+            'source_identifier' => 'integer',
         ];
     }
 
