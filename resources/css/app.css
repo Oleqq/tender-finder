@@ -1191,3 +1191,21 @@ input:focus-visible {
     *::before,
     *::after { scroll-behavior: auto !important; animation: none !important; transition-duration: 0.01ms !important; }
 }
+
+
+.monitoring-wizard__steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.monitoring-wizard__steps button { padding: 8px 12px; border: 1px solid currentColor; border-radius: 16px; font-size: 13px; }
+.monitoring-wizard__steps button[aria-current="step"] { background: #196f66; color: #fff; border-color: #196f66; }
+.monitoring-wizard__steps button:disabled { opacity: .5; }
+.monitoring-wizard__fields { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
+.monitoring-wizard__fields legend { font-weight: 600; margin-bottom: 12px; }
+.monitoring-wizard__fields p { margin: 12px 0; }
+.monitoring-wizard__preview { margin: 16px 0; padding: 16px; border: 1px solid #b7cec8; border-radius: 16px; overflow-wrap: anywhere; }
+.monitoring-wizard__preview ul { padding-left: 20px; list-style: disc; }
+.monitoring-wizard__preview li { margin: 10px 0; }
+.follow-up-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; font-size: 14px; line-height: 1.5; }
+.follow-up-toggle input { flex-shrink: 0; margin-top: 4px; }
+
+.follow-up-dialogs .bottom-sheet { max-height: calc(100dvh - 24px); overflow-y: auto; }
+.tender-feed-card__editor > .follow-up-toggle,
+.tender-feed-card__editor > p { grid-column: 1 / -1; }

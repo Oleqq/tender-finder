@@ -41,6 +41,10 @@ class SearchQueryService
     public function update(SearchQuery $query, array $attributes): SearchQuery
     {
         return DB::transaction(function () use ($query, $attributes): SearchQuery {
+            $query = SearchQuery::query()->lockForUpdate()->findOrFail($query->id);
+            if (isset($attributes['filters'])) {
+                $attributes['filters'] = array_replace($query->filters ?? [], $attributes['filters']);
+            }
             $query->fill($attributes)->save();
             $this->rostenderFeeds->synchronize($query, $this->rostenderTemplateId($query));
 

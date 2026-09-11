@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { type FormEvent, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
+import { TenderFeedbackActions } from '../Components/TenderFeedbackActions';
 import { Icon } from '../Components/Icon';
 import {
     Badge,
@@ -18,6 +19,11 @@ type TenderStatus = 'new' | 'favorite' | 'potential' | 'dismissed' | 'archived';
 type TenderMatch = {
     id: number;
     tender_id: number;
+    search_query_id: number;
+    customer: string | null;
+    deadline_reminders_enabled: boolean;
+    action_reminder_enabled: boolean;
+    watch_changes: boolean;
     title: string;
     description: string | null;
     canonical_url: string;
@@ -196,7 +202,11 @@ export default function Tenders() {
                             {sourceOptions.map((option) => (
                                 <button
                                     aria-pressed={filters.source === option.value}
-                                    className={filters.source === option.value ? 'is-active' : ''}
+                                    className={
+                                        filters.source === option.value
+                                            ? 'is-active'
+                                            : ''
+                                    }
                                     key={option.value}
                                     onClick={() => visit({ source: option.value })}
                                     type="button"
@@ -383,7 +393,11 @@ export default function Tenders() {
                                         href="/queries"
                                     >
                                         <Icon name="tenders" size={18} />
-                                        <span>{filters.source === 'rostender' ? 'Подключить шаблон RosTender' : 'Открыть мониторинги'}</span>
+                                        <span>
+                                            {filters.source === 'rostender'
+                                                ? 'Подключить шаблон RosTender'
+                                                : 'Открыть мониторинги'}
+                                        </span>
                                     </Link>
                                 )
                             }
@@ -424,6 +438,27 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
     const [persistedStatus, setPersistedStatus] = useState<TenderStatus>(match.status);
     const [tags, setTags] = useState(match.tags.join(', '));
     const [nextActionOn, setNextActionOn] = useState(match.next_action_on ?? '');
+    const [deadlineReminder, setDeadlineReminder] = useState(
+        match.deadline_reminders_enabled,
+    );
+    const [actionReminder, setActionReminder] = useState(match.action_reminder_enabled);
+    const [watchChanges, setWatchChanges] = useState(match.watch_changes);
+    const [savedFollowUp, setSavedFollowUp] = useState({
+        deadline: match.deadline_reminders_enabled,
+        action: match.action_reminder_enabled,
+        watch: match.watch_changes,
+    });
+    const [savedTags, setSavedTags] = useState(match.tags.join(', '));
+    const [savedAction, setSavedAction] = useState(match.next_action_on ?? '');
+    const cancelEdit = () => {
+        setStatus(persistedStatus);
+        setTags(savedTags);
+        setNextActionOn(savedAction);
+        setDeadlineReminder(savedFollowUp.deadline);
+        setActionReminder(savedFollowUp.action);
+        setWatchChanges(savedFollowUp.watch);
+        setEditing(false);
+    };
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
@@ -454,11 +489,21 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                 status,
                 tags: splitTags(tags),
                 next_action_on: nextActionOn || null,
+                deadline_reminders_enabled: deadlineReminder,
+                action_reminder_enabled: actionReminder,
+                watch_changes: watchChanges,
             });
             setStatus(response.data.state.status);
             setPersistedStatus(response.data.state.status);
             setTags(response.data.state.tags.join(', '));
             setNextActionOn(response.data.state.next_action_on ?? '');
+            setSavedFollowUp({
+                deadline: deadlineReminder,
+                action: actionReminder,
+                watch: watchChanges,
+            });
+            setSavedTags(response.data.state.tags.join(', '));
+            setSavedAction(response.data.state.next_action_on ?? '');
             setEditing(false);
         } catch {
             setError('Не удалось сохранить личные поля карточки.');
@@ -471,7 +516,9 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
         <GlassCard as="article" className="tender-card tender-feed-card">
             <div className="tender-card__meta">
                 <Badge tone={statusTone(status)}>{statusLabel(status)}</Badge>
-                {match.source === 'rostender' ? <Badge tone="accent">RosTender</Badge> : null}
+                {match.source === 'rostender' ? (
+                    <Badge tone="accent">RosTender</Badge>
+                ) : null}
                 <span>
                     <Icon name="spark" size={14} /> {match.match_reasons.join(', ')}
                 </span>
@@ -529,6 +576,46 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                             value={nextActionOn}
                         />
                     </label>
+                    <label className="follow-up-toggle">
+                        <input
+                            type="checkbox"
+                            checked={deadlineReminder}
+                            onChange={(e) => setDeadlineReminder(e.target.checked)}
+                        />
+                        <span>
+                            Напомнить в Telegram за 3 дня и за сутки до окончания подачи
+                        </span>
+                    </label>
+                    {!match.deadline_at ? (
+                        <p>
+                            Источник пока не указал срок. Напоминания начнут работать,
+                            когда он появится.
+                        </p>
+                    ) : null}
+                    <label className="follow-up-toggle">
+                        <input
+                            type="checkbox"
+                            checked={actionReminder}
+                            onChange={(e) => setActionReminder(e.target.checked)}
+                        />
+                        <span>
+                            Напомнить о следующем действии в 09:00 по часовому поясу
+                            профиля
+                        </span>
+                    </label>
+                    <label className="follow-up-toggle">
+                        <input
+                            type="checkbox"
+                            checked={watchChanges}
+                            onChange={(e) => setWatchChanges(e.target.checked)}
+                        />
+                        <span>Сообщать об изменении цены, срока и статуса</span>
+                    </label>
+                    <p>
+                        {match.source === 'rostender'
+                            ? 'Выбранные карточки RosTender проверяются по очереди, не чаще раза в 6 часов, в пределах лимита источника.'
+                            : 'Изменения ЕИС фиксируются при получении обновлённых данных от источника.'}
+                    </p>
                     {error ? <p className="field-error">{error}</p> : null}
                     <div className="tender-feed-card__editor-actions">
                         <Button disabled={saving} onClick={save} size="sm">
@@ -536,7 +623,7 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                         </Button>
                         <Button
                             disabled={saving}
-                            onClick={() => setEditing(false)}
+                            onClick={cancelEdit}
                             size="sm"
                             variant="secondary"
                         >
@@ -545,8 +632,37 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                     </div>
                 </div>
             ) : null}
+            {!editing &&
+            (savedFollowUp.deadline || savedFollowUp.action || savedFollowUp.watch) ? (
+                <p>
+                    Включено:{' '}
+                    {[
+                        savedFollowUp.deadline ? 'напоминания о сроке' : '',
+                        savedFollowUp.action ? 'напоминание о действии' : '',
+                        savedFollowUp.watch ? 'отслеживание изменений' : '',
+                    ]
+                        .filter(Boolean)
+                        .join(', ')}
+                </p>
+            ) : null}
+            <TenderFeedbackActions
+                tenderId={match.tender_id}
+                queryId={match.search_query_id}
+                queryName={match.query_name}
+                customer={match.customer}
+                onDismiss={() => {
+                    setStatus('dismissed');
+                    setPersistedStatus('dismissed');
+                }}
+            />
             <div className="tender-feed-card__links">
-                <button onClick={() => setEditing((value) => !value)} type="button">
+                <button
+                    onClick={() => {
+                        if (editing) cancelEdit();
+                        else setEditing(true);
+                    }}
+                    type="button"
+                >
                     {editing ? 'Закрыть редактор' : 'Изменить отметку'}
                 </button>
                 <Link href={'/local/mvp/tenders/' + match.tender_id}>

@@ -6,6 +6,7 @@ use App\Models\Tender;
 use App\Tenders\EisTenderEnrichmentParser;
 use App\Tenders\RssSourceException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 final class EisTenderEnrichmentService
@@ -45,12 +46,17 @@ final class EisTenderEnrichmentService
         $metadata['attachments'] = $attachments;
         $metadata['enriched_at'] = now()->toAtomString();
 
-        $tender->forceFill([
-            'deadline_at' => $fields['deadline_at'] ?? $tender->deadline_at,
-            'metadata' => $metadata,
-        ])->save();
+        return DB::transaction(function () use ($tender, $fields, $metadata): Tender {
+            $tender = Tender::query()->lockForUpdate()->findOrFail($tender->id);
+            $before = TenderFacts::snapshot($tender);
+            $tender->forceFill([
+                'deadline_at' => $fields['deadline_at'] ?? $tender->deadline_at,
+                'metadata' => array_replace($tender->metadata ?? [], $metadata),
+            ])->save();
+            app(TenderFollowUpService::class)->recordChanges($tender, $before);
 
-        return $tender->fresh();
+            return $tender->fresh();
+        });
     }
 
     /** @param array<string, string> $query */

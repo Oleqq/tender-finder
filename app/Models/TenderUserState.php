@@ -15,6 +15,10 @@ use Illuminate\Support\Carbon;
  * @property string|null $note
  * @property list<string>|null $tags
  * @property Carbon|null $next_action_on
+ * @property bool $deadline_reminders_enabled
+ * @property bool $action_reminder_enabled
+ * @property bool $watch_changes
+ * @property Carbon|null $watch_started_at
  * @property User $user
  * @property Tender $tender
  */
@@ -27,6 +31,7 @@ class TenderUserState extends Model
         'note',
         'tags',
         'next_action_on',
+        'deadline_reminders_enabled', 'action_reminder_enabled', 'watch_changes', 'watch_started_at',
     ];
 
     protected function casts(): array
@@ -35,6 +40,10 @@ class TenderUserState extends Model
             'status' => TenderUserStatus::class,
             'tags' => 'array',
             'next_action_on' => 'date',
+            'deadline_reminders_enabled' => 'boolean',
+            'action_reminder_enabled' => 'boolean',
+            'watch_changes' => 'boolean',
+            'watch_started_at' => 'datetime',
         ];
     }
 

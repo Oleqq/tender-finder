@@ -23,9 +23,12 @@ final class TenderPersonalStateController extends Controller
 
         $attributes = $request->validate([
             'status' => ['required', Rule::enum(TenderUserStatus::class)],
+            'deadline_reminders_enabled' => ['sometimes', 'boolean'],
+            'action_reminder_enabled' => ['sometimes', 'boolean'],
+            'watch_changes' => ['sometimes', 'boolean'],
             'tags' => ['nullable', 'array', 'max:10'],
             'tags.*' => ['required', 'string', 'max:40'],
-            'next_action_on' => ['nullable', 'date_format:Y-m-d'],
+            'next_action_on' => ['required_if:action_reminder_enabled,true', 'nullable', 'date_format:Y-m-d'],
         ]);
         $tags = $this->tags($attributes['tags'] ?? []);
         $nextActionOn = $this->nullableText($attributes['next_action_on'] ?? null);
@@ -34,7 +37,12 @@ final class TenderPersonalStateController extends Controller
             'user_id' => $user->id,
             'tender_id' => $tender->id,
         ]);
+        $watch = $attributes['watch_changes'] ?? $state->watch_changes ?? false;
         $state->forceFill([
+            'deadline_reminders_enabled' => $attributes['deadline_reminders_enabled'] ?? $state->deadline_reminders_enabled ?? false,
+            'action_reminder_enabled' => $attributes['action_reminder_enabled'] ?? $state->action_reminder_enabled ?? false,
+            'watch_started_at' => $watch ? ($state->watch_started_at ?? now()) : null,
+            'watch_changes' => $watch,
             'status' => $status,
             'tags' => $tags === [] ? null : $tags,
             'next_action_on' => $nextActionOn,
@@ -44,6 +52,9 @@ final class TenderPersonalStateController extends Controller
             && $state->note === null
             && $tags === []
             && $nextActionOn === null
+            && ! $state->deadline_reminders_enabled
+            && ! $state->action_reminder_enabled
+            && ! $state->watch_changes
         ) {
             if ($state->exists) {
                 $state->delete();
@@ -54,6 +65,9 @@ final class TenderPersonalStateController extends Controller
 
         return response()->json([
             'state' => [
+                'deadline_reminders_enabled' => (bool) $state->deadline_reminders_enabled,
+                'action_reminder_enabled' => (bool) $state->action_reminder_enabled,
+                'watch_changes' => (bool) $state->watch_changes,
                 'status' => $status->value,
                 'tags' => $tags,
                 'next_action_on' => $nextActionOn,

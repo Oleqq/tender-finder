@@ -199,6 +199,9 @@ class LocalMvpTenderWorkspaceService
             && $note === null
             && $tags === []
             && $nextActionOn === null
+            && ! $state->deadline_reminders_enabled
+            && ! $state->action_reminder_enabled
+            && ! $state->watch_changes
         ) {
             if ($state->exists) {
                 $state->delete();
@@ -385,7 +388,10 @@ class LocalMvpTenderWorkspaceService
     {
         return filled($state->note)
             || (is_array($state->tags) && $state->tags !== [])
-            || $state->next_action_on !== null;
+            || $state->next_action_on !== null
+            || $state->deadline_reminders_enabled
+            || $state->action_reminder_enabled
+            || $state->watch_changes;
     }
 
     private function nullableMetadataText(mixed $value): ?string

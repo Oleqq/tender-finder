@@ -2,6 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
+import { MonitoringWizard } from '../Components/MonitoringWizard';
 import { Icon } from '../Components/Icon';
 import {
     SavedSearchRunHistory,
@@ -77,6 +78,7 @@ type QueryFormValues = {
     name: string;
     keywords: string;
     minusKeywords: string;
+    excludedCustomers: string;
     region: string;
     budgetMin: string;
     budgetMax: string;
@@ -106,6 +108,7 @@ const emptyQueryForm = (): QueryFormValues => ({
     name: '',
     keywords: '',
     minusKeywords: '',
+    excludedCustomers: '',
     region: '',
     budgetMin: '',
     budgetMax: '',
@@ -115,8 +118,11 @@ const emptyQueryForm = (): QueryFormValues => ({
 });
 
 export default function MyQueries() {
-    const { auth, queries: initialQueries, rostenderTemplates } =
-        usePage<PageProps<MyQueriesProps>>().props;
+    const {
+        auth,
+        queries: initialQueries,
+        rostenderTemplates,
+    } = usePage<PageProps<MyQueriesProps>>().props;
     const [queries, setQueries] = useState<QueryDto[]>(initialQueries);
     const [createForm, setCreateForm] = useState<QueryFormValues>(emptyQueryForm);
     const [editingQuery, setEditingQuery] = useState<QueryDto | null>(null);
@@ -165,9 +171,12 @@ export default function MyQueries() {
             setQueries((current) => [response.data.query, ...current]);
             setCreateForm(emptyQueryForm());
             await runQuery(response.data.query);
-        } catch {
+        } catch (error) {
             setCreateError(
-                'Не удалось создать мониторинг. Проверьте доступ и попробуйте ещё раз.',
+                requestErrorMessage(
+                    error,
+                    'Не удалось создать мониторинг. Проверьте доступ и попробуйте ещё раз.',
+                ),
             );
         } finally {
             setIsCreating(false);
@@ -222,6 +231,7 @@ export default function MyQueries() {
         try {
             const response = await window.axios.post<{ query: QueryDto }>('/queries', {
                 ...payload,
+                filters: mergedFilters(duplicatingQuery, payload),
             });
             setQueries((current) => [response.data.query, ...current]);
             setDuplicatingQuery(null);
@@ -257,7 +267,7 @@ export default function MyQueries() {
         try {
             const response = await window.axios.patch<{ query: QueryDto }>(
                 `/queries/${editingQuery.id}`,
-                payload,
+                { ...payload, filters: mergedFilters(editingQuery, payload) },
             );
             replaceQuery(response.data.query);
             setEditingQuery(null);
@@ -299,7 +309,9 @@ export default function MyQueries() {
             replaceQuery(response.data.query);
 
             if (response.data.queued) {
-                setActionNotice('Проверка RosTender поставлена в очередь. Карточки появятся в ленте после синхронизации.');
+                setActionNotice(
+                    'Проверка RosTender поставлена в очередь. Карточки появятся в ленте после синхронизации.',
+                );
                 return;
             }
 
@@ -401,24 +413,20 @@ export default function MyQueries() {
                                 <h2>Что искать?</h2>
                             </div>
                         </div>
-                        <form onSubmit={createQuery}>
-                            <QueryFields
-                                form={createForm}
-                                onChange={updateForm(setCreateForm)}
-                                rostenderTemplates={rostenderTemplates}
-                            />
-                            <p className="query-create__hint">
-                                Запятая разделяет слова. Keywords обязательны,
-                                минус-слова исключают совпадение; неизвестные RSS-поля
-                                не угадываются.
-                            </p>
-                            {createError ? (
-                                <FieldError>{createError}</FieldError>
-                            ) : null}
-                            <Button disabled={isCreating} icon="check" type="submit">
-                                {isCreating ? 'Создаём и ищем…' : 'Включить мониторинг'}
-                            </Button>
-                        </form>
+                        <MonitoringWizard
+                            fields={(step) => (
+                                <QueryFields
+                                    form={createForm}
+                                    onChange={updateForm(setCreateForm)}
+                                    rostenderTemplates={rostenderTemplates}
+                                    step={step}
+                                />
+                            )}
+                            payload={toQueryPayload(createForm)}
+                            saving={isCreating}
+                            error={createError}
+                            onSubmit={createQuery}
+                        />
                     </GlassCard>
                 ) : (
                     <InlineAlert title="Мониторинги пока недоступны" tone="neutral">
@@ -587,7 +595,11 @@ export default function MyQueries() {
                 title="Изменить мониторинг"
             >
                 <form className="query-edit-form" onSubmit={updateQuery}>
-                    <QueryFields form={editForm} onChange={updateForm(setEditForm)} rostenderTemplates={rostenderTemplates} />
+                    <QueryFields
+                        form={editForm}
+                        onChange={updateForm(setEditForm)}
+                        rostenderTemplates={rostenderTemplates}
+                    />
                     {editError ? <FieldError>{editError}</FieldError> : null}
                     <Button
                         className="sheet-action"
@@ -618,7 +630,11 @@ export default function MyQueries() {
                         Все условия источника скопированы. Измените название и основные
                         ограничения перед сохранением.
                     </p>
-                    <QueryFields form={editForm} onChange={updateForm(setEditForm)} rostenderTemplates={rostenderTemplates} />
+                    <QueryFields
+                        form={editForm}
+                        onChange={updateForm(setEditForm)}
+                        rostenderTemplates={rostenderTemplates}
+                    />
                     {editError ? <FieldError>{editError}</FieldError> : null}
                     <Button
                         className="sheet-action"
@@ -813,106 +829,147 @@ function QueryFields({
     form,
     onChange,
     rostenderTemplates,
+    step,
 }: {
+    step?: number;
     form: QueryFormValues;
     onChange: (field: keyof QueryFormValues, value: string) => void;
     rostenderTemplates: Array<{ id: number; name: string }>;
 }) {
     return (
         <>
-            <label className="form-field">
-                <span>Площадка для мониторинга</span>
-                <select
-                    onChange={(event) => onChange('rostenderTemplateId', event.target.value)}
-                    value={form.rostenderTemplateId ?? ''}
-                >
-                    <option value="">Не подключать RosTender</option>
-                    {rostenderTemplates.map((template) => (
-                        <option key={template.id} value={String(template.id)}>
-                            RosTender · {template.name}
-                        </option>
-                    ))}
-                </select>
-            </label>
-            {rostenderTemplates.length > 0 ? (
-                <p className="query-create__hint">
-                    Шаблон задаёт удалённую выдачу RosTender; ваши ключевые слова и фильтры дополнительно отберут подходящие карточки в TenderFinder.
+            <div hidden={step !== undefined && step !== 3}>
+                <label className="form-field">
+                    <span>Площадка для мониторинга</span>
+                    <select
+                        onChange={(event) =>
+                            onChange('rostenderTemplateId', event.target.value)
+                        }
+                        value={form.rostenderTemplateId ?? ''}
+                    >
+                        <option value="">ЕИС · поиск по ключевым словам</option>
+                        {rostenderTemplates.map((template) => (
+                            <option key={template.id} value={String(template.id)}>
+                                RosTender · {template.name}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                {rostenderTemplates.length > 0 ? (
+                    <p className="query-create__hint">
+                        Шаблон задаёт удалённую выдачу RosTender; ваши ключевые слова и
+                        фильтры дополнительно отберут подходящие карточки в
+                        TenderFinder.
+                    </p>
+                ) : null}
+            </div>
+            <div hidden={step !== undefined && step !== 0}>
+                <p>
+                    Опишите нишу ключевыми словами через запятую. Все указанные слова
+                    должны встретиться в карточке.
                 </p>
-            ) : null}
-            <label className="form-field">
-                <span>Название мониторинга</span>
-                <input
-                    onChange={(event) => onChange('name', event.target.value)}
-                    placeholder="например, Поддержка сайта"
-                    value={form.name}
-                />
-            </label>
-            <label className="form-field">
-                <span>Ключевые слова</span>
-                <input
-                    onChange={(event) => onChange('keywords', event.target.value)}
-                    placeholder="например, сайт, поддержка"
-                    value={form.keywords}
-                />
-            </label>
-            <label className="form-field">
-                <span>Минус-слова</span>
-                <input
-                    onChange={(event) => onChange('minusKeywords', event.target.value)}
-                    placeholder="например, строительство"
-                    value={form.minusKeywords}
-                />
-            </label>
-            <label className="form-field">
-                <span>Регион</span>
-                <input
-                    onChange={(event) => onChange('region', event.target.value)}
-                    placeholder="например, Москва"
-                    value={form.region}
-                />
-            </label>
-            <div className="query-create__grid">
                 <label className="form-field">
-                    <span>Бюджет от, ₽</span>
+                    <span>Название мониторинга</span>
                     <input
-                        inputMode="decimal"
-                        min="0"
-                        onChange={(event) => onChange('budgetMin', event.target.value)}
-                        placeholder="0"
-                        type="number"
-                        value={form.budgetMin}
+                        onChange={(event) => onChange('name', event.target.value)}
+                        placeholder="например, Поддержка сайта"
+                        value={form.name}
                     />
                 </label>
                 <label className="form-field">
-                    <span>Бюджет до, ₽</span>
+                    <span>Ключевые слова</span>
                     <input
-                        inputMode="decimal"
-                        min={form.budgetMin || '0'}
-                        onChange={(event) => onChange('budgetMax', event.target.value)}
-                        placeholder="Без лимита"
-                        type="number"
-                        value={form.budgetMax}
+                        onChange={(event) => onChange('keywords', event.target.value)}
+                        placeholder="например, сайт, поддержка"
+                        value={form.keywords}
                     />
                 </label>
                 <label className="form-field">
-                    <span>Дедлайн от</span>
+                    <span>Минус-слова</span>
                     <input
                         onChange={(event) =>
-                            onChange('deadlineFrom', event.target.value)
+                            onChange('minusKeywords', event.target.value)
                         }
-                        type="date"
-                        value={form.deadlineFrom}
+                        placeholder="например, строительство"
+                        value={form.minusKeywords}
                     />
                 </label>
+                {form.excludedCustomers || step === undefined ? (
+                    <label className="form-field">
+                        <span>Исключённые заказчики — по одному на строку</span>
+                        <textarea
+                            value={form.excludedCustomers}
+                            onChange={(event) =>
+                                onChange('excludedCustomers', event.target.value)
+                            }
+                        />
+                        <small>
+                            Удалите строку, чтобы снова получать закупки заказчика.
+                        </small>
+                    </label>
+                ) : null}
+            </div>
+            <div hidden={step !== undefined && step !== 1}>
+                <p>Оставьте поле пустым, если готовы работать по всей России.</p>
                 <label className="form-field">
-                    <span>Дедлайн до</span>
+                    <span>Регион</span>
                     <input
-                        min={form.deadlineFrom || undefined}
-                        onChange={(event) => onChange('deadlineTo', event.target.value)}
-                        type="date"
-                        value={form.deadlineTo}
+                        onChange={(event) => onChange('region', event.target.value)}
+                        placeholder="например, Москва"
+                        value={form.region}
                     />
                 </label>
+            </div>
+            <div hidden={step !== undefined && step !== 2}>
+                <div className="query-create__grid">
+                    <label className="form-field">
+                        <span>Бюджет от, ₽</span>
+                        <input
+                            inputMode="decimal"
+                            min="0"
+                            onChange={(event) =>
+                                onChange('budgetMin', event.target.value)
+                            }
+                            placeholder="0"
+                            type="number"
+                            value={form.budgetMin}
+                        />
+                    </label>
+                    <label className="form-field">
+                        <span>Бюджет до, ₽</span>
+                        <input
+                            inputMode="decimal"
+                            min={form.budgetMin || '0'}
+                            onChange={(event) =>
+                                onChange('budgetMax', event.target.value)
+                            }
+                            placeholder="Без лимита"
+                            type="number"
+                            value={form.budgetMax}
+                        />
+                    </label>
+                    <label className="form-field">
+                        <span>Дедлайн от</span>
+                        <input
+                            onChange={(event) =>
+                                onChange('deadlineFrom', event.target.value)
+                            }
+                            type="date"
+                            value={form.deadlineFrom}
+                        />
+                    </label>
+                    <label className="form-field">
+                        <span>Дедлайн до</span>
+                        <input
+                            min={form.deadlineFrom || undefined}
+                            onChange={(event) =>
+                                onChange('deadlineTo', event.target.value)
+                            }
+                            type="date"
+                            value={form.deadlineTo}
+                        />
+                    </label>
+                </div>
             </div>
         </>
     );
@@ -931,6 +988,9 @@ function queryToForm(query: QueryDto): QueryFormValues {
         name: query.name,
         keywords: query.keywords.join(', '),
         minusKeywords: query.minus_keywords?.join(', ') ?? '',
+        excludedCustomers: Array.isArray(query.filters?.excluded_customers)
+            ? query.filters.excluded_customers.join('\n')
+            : '',
         region: query.region ?? '',
         budgetMin: query.budget_min ?? '',
         budgetMax: query.budget_max ?? '',
@@ -947,9 +1007,16 @@ function toQueryPayload(form: QueryFormValues): QueryPayload | null {
         return null;
     }
 
-    const source = form.rostenderTemplateId === null
-        ? undefined
-        : { rostender_template_id: form.rostenderTemplateId === '' ? null : Number(form.rostenderTemplateId) };
+    const source =
+        form.rostenderTemplateId === null
+            ? undefined
+            : {
+                  stage_application: true,
+                  rostender_template_id:
+                      form.rostenderTemplateId === ''
+                          ? null
+                          : Number(form.rostenderTemplateId),
+              };
 
     return {
         name: form.name.trim() || null,
@@ -960,7 +1027,13 @@ function toQueryPayload(form: QueryFormValues): QueryPayload | null {
         budget_max: form.budgetMax || null,
         deadline_from: form.deadlineFrom || null,
         deadline_to: form.deadlineTo || null,
-        ...(source ? { filters: { source } } : {}),
+        filters: {
+            ...(source ? { source } : {}),
+            excluded_customers: form.excludedCustomers
+                .split('\n')
+                .map((value) => value.trim())
+                .filter(Boolean),
+        },
     };
 }
 
@@ -1004,7 +1077,11 @@ function rostenderTemplateName(
     const id = rostenderTemplateId(query);
     const template = templates.find((item) => String(item.id) === id);
 
-    return template ? `RosTender · ${template.name}` : id ? 'RosTender · шаблон подключён' : null;
+    return template
+        ? `RosTender · ${template.name}`
+        : id
+          ? 'RosTender · шаблон подключён'
+          : null;
 }
 
 function budgetDetail(min: string | null, max: string | null): string | null {
@@ -1092,4 +1169,28 @@ function statusLabel(status: QueryStatus): string {
         paused: 'На паузе',
         frozen: 'Заморожен',
     }[status];
+}
+
+function mergedFilters(
+    query: QueryDto,
+    payload: QueryPayload,
+): Record<string, unknown> {
+    const existing = query.filters ?? {};
+    const originalSource =
+        typeof existing.source === 'object' && existing.source !== null
+            ? existing.source
+            : {};
+    const update = payload.filters ?? {};
+    const changedSource =
+        typeof update.source === 'object' && update.source !== null
+            ? (update.source as Record<string, unknown>)
+            : {};
+    return {
+        ...existing,
+        ...update,
+        source: {
+            ...originalSource,
+            rostender_template_id: changedSource.rostender_template_id ?? null,
+        },
+    };
 }

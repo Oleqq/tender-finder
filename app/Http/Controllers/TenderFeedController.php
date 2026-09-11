@@ -7,6 +7,7 @@ use App\Models\SearchQuery;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
+use App\Services\TenderFacts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -114,6 +115,11 @@ class TenderFeedController extends Controller
                 'currency' => $match->tender->currency,
                 'deadline_at' => $match->tender->deadline_at?->toAtomString(),
                 'matched_at' => $match->matched_at->toAtomString(),
+                'search_query_id' => $match->search_query_id,
+                'customer' => TenderFacts::customer($match->tender),
+                'deadline_reminders_enabled' => (bool) $state?->deadline_reminders_enabled,
+                'action_reminder_enabled' => (bool) $state?->action_reminder_enabled,
+                'watch_changes' => (bool) $state?->watch_changes,
                 'query_name' => $match->searchQuery->name,
                 'source' => $match->tender->source,
                 'status' => $state?->status->value ?? TenderUserStatus::New->value,

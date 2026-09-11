@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
+ * @property array<string, mixed>|null $metadata
+ * @property Carbon|null $watch_checked_at
  * @property int $id
  * @property string $title
  * @property string|null $description
@@ -38,6 +40,7 @@ class Tender extends Model
         'deadline_at',
         'external_updated_at',
         'details_fetched_at',
+        'watch_checked_at',
         'metadata',
     ];
 
@@ -49,6 +52,7 @@ class Tender extends Model
             'deadline_at' => 'datetime',
             'external_updated_at' => 'datetime',
             'details_fetched_at' => 'datetime',
+            'watch_checked_at' => 'datetime',
             'metadata' => 'array',
         ];
     }

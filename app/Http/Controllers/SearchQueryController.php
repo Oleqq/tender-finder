@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\SearchQuery;
+use App\Services\AccessService;
+use App\Services\MonitoringPreviewService;
 use App\Services\QueryAccessDeniedException;
 use App\Services\QueryLimitReachedException;
 use App\Services\RostenderTemplateCatalog;
@@ -11,6 +13,8 @@ use App\Services\SearchQueryService;
 use App\Tenders\EisRegionCatalog;
 use App\Tenders\EisRssUrlValidator;
 use App\Tenders\RostenderAccessDisabledException;
+use App\Tenders\RostenderApiException;
+use App\Tenders\RostenderQuotaExceededException;
 use App\Tenders\RssSourceException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,6 +47,19 @@ class SearchQueryController extends Controller
                 ->map(fn ($template): array => ['id' => $template->id, 'name' => $template->name])
                 ->values(),
         ]);
+    }
+
+    public function preview(Request $request, AccessService $access, MonitoringPreviewService $preview): JsonResponse
+    {
+        abort_unless($access->hasActiveAccess($request->user()), 403);
+        $attributes = $this->validatedAttributes($request);
+        try {
+            return response()->json($preview->preview($attributes));
+        } catch (RostenderQuotaExceededException) {
+            return response()->json(['message' => 'Лимит проверок источника исчерпан. Попробуйте позже.'], 429);
+        } catch (RostenderApiException|RostenderAccessDisabledException|RssSourceException) {
+            return response()->json(['message' => 'Источник сейчас недоступен. Это не означает, что подходящих тендеров нет. Попробуйте позже или сохраните мониторинг.'], 503);
+        }
     }
 
     public function store(Request $request, SearchQueryService $queries): JsonResponse
@@ -148,7 +165,9 @@ class SearchQueryController extends Controller
             'budget_max' => ['nullable', 'numeric', 'gte:budget_min'],
             'deadline_from' => ['nullable', 'date_format:Y-m-d'],
             'deadline_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:deadline_from'],
-            'filters' => ['nullable', 'array:source,relevance'],
+            'filters' => ['nullable', 'array:source,relevance,excluded_customers'],
+            'filters.excluded_customers' => ['sometimes', 'array', 'max:50'],
+            'filters.excluded_customers.*' => ['required', 'string', 'max:200', 'distinct'],
             'filters.relevance' => ['nullable', 'array:match_mode'],
             'filters.relevance.match_mode' => ['nullable', 'string', 'in:all,any,exact'],
             'filters.source' => ['nullable', 'array:law_44,law_223,stage_application,stage_commission,stage_completed,stage_cancelled,joint_purchase,placed_by_separate_subdivision,union_state_budget,created_by_customer_representative,smp_sono,budget_from,budget_to,published_from,published_to,regions,okpd2,okpd2_with_nested,pages,rss_url,rostender_template_id'],

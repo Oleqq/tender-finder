@@ -12,3 +12,6 @@ Schedule::command('tenders:dispatch-rss')->everySecond()->withoutOverlapping();
 Schedule::command('tenders:dispatch-rostender')->everyMinute()->withoutOverlapping();
 Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();
 Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverlapping();
+
+Schedule::command('notifications:send-tender-reminders')->everyMinute()->withoutOverlapping();
+Schedule::command('tenders:refresh-watched')->hourly()->withoutOverlapping();

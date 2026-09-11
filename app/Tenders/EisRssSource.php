@@ -180,6 +180,7 @@ class EisRssSource implements TenderSource
             'budgetAmount' => $budgetAmount,
             'metadata' => array_filter([
                 'customer' => $customer,
+                'stage' => $this->field($rawSummary, 'Этап размещения', ['Идентификационный код закупки', 'Размещено', 'Обновлено']),
                 'category' => $procedureType,
                 'procurement_law' => $law,
             ]),

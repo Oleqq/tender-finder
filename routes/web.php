@@ -22,6 +22,7 @@ use App\Http\Controllers\SavedSearchRunHistoryController;
 use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderExportController;
+use App\Http\Controllers\TenderFeedbackController;
 use App\Http\Controllers\TenderFeedController;
 use App\Http\Controllers\TenderFeedViewController;
 use App\Http\Controllers\TenderPersonalStateController;
@@ -74,6 +75,9 @@ Route::middleware('auth')->group(function () {
         ->middleware('super_admin')
         ->name('operations.demo');
     Route::get('/queries', [SearchQueryController::class, 'index'])->name('queries.index');
+    Route::post('/queries/preview', [SearchQueryController::class, 'preview'])->middleware('throttle:local-mvp-rss-preview')->name('queries.preview');
+    Route::post('/tenders/{tender}/feedback', [TenderFeedbackController::class, 'store'])->middleware('throttle:local-mvp-preview')->name('tenders.feedback');
+    Route::get('/tenders/{tender}/changes', [TenderFeedbackController::class, 'changes'])->name('tenders.changes');
     Route::post('/queries', [SearchQueryController::class, 'store'])->name('queries.store');
     Route::patch('/queries/{query}', [SearchQueryController::class, 'update'])->name('queries.update');
     Route::post('/queries/{query}/run', SavedSearchRunController::class)

@@ -12,6 +12,12 @@ class TenderMatchingService
 {
     public function evaluate(SearchQuery $query, Tender $tender): TenderMatchResult
     {
+        $customer = TenderFacts::customer($tender);
+        $excludedCustomers = $query->filters['excluded_customers'] ?? [];
+        if ($customer !== null && in_array($this->lower($customer), array_map(fn (string $name): string => $this->lower($name), $excludedCustomers), true)) {
+            return new TenderMatchResult(false, ['excluded_by' => 'customer']);
+        }
+
         $haystack = $this->lower($tender->title.' '.$tender->description);
         $keywords = array_filter($query->keywords ?? [], 'is_string');
         $mode = $this->matchMode($query);
