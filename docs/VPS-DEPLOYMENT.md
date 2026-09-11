@@ -28,6 +28,14 @@ between Windows worktrees and the Linux VPS.
 
 ## Latest verified release
 
+On 11 September 2026, commit `484fc98` was deployed through
+`deploy/vps-deploy.sh` without replacing `.env.production`. It adds the
+RosTender template-selection monitoring flow and source-scoped tender feed.
+The production API smoke-test verified the enabled gates, an hourly polling
+interval, and access to the configured template catalog; no secrets or tender
+payloads were emitted. The public health endpoint remained healthy after the
+restart.
+
 On 11 September 2026, commit `4211242` was copied to the new VPS as a tracked
 source archive, without replacing `.env.production`, and released through the
 standard Compose script. Migration
