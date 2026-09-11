@@ -26,6 +26,18 @@ migrations, starts the services, and removes unused image layers. Shell scripts
 are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
+## Latest verified release
+
+On 11 September 2026, commit `4211242` was copied to the new VPS as a tracked
+source archive, without replacing `.env.production`, and released through the
+standard Compose script. Migration
+`2026_09_10_120000_add_rostender_source_support` was then verified as applied.
+The public health endpoint returned `{"status":"ok","application":"Tender Finder"}`
+after the restart. Commit `b78ef27` subsequently made the release script build
+the profiled `migrate` image before executing migrations; the GitHub Actions
+release command invokes the script through `sh` so it is portable from Windows
+checkouts.
+
 ## One-time owner inputs
 
 These items cannot be safely guessed or created by deployment code:
