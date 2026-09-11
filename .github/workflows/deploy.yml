@@ -38,4 +38,4 @@ jobs:
             install -d -m 755 /opt/tenderfinder
             cp -a /opt/tenderfinder-release/. /opt/tenderfinder/
             rm -rf /opt/tenderfinder/.git
-            /opt/tenderfinder/deploy/vps-deploy.sh
+            sh /opt/tenderfinder/deploy/vps-deploy.sh

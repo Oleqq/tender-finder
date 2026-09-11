@@ -8,7 +8,9 @@ set -eu
 project_dir=/opt/tenderfinder
 cd "$project_dir"
 
-docker compose --env-file .env.production -f compose.production.yml build --pull
+# The migration service is behind the `ops` profile. Build it explicitly as
+# well so a newly added migration never runs from a stale image.
+docker compose --env-file .env.production -f compose.production.yml --profile ops build --pull
 docker compose --env-file .env.production -f compose.production.yml --profile ops run --rm migrate
 docker compose --env-file .env.production -f compose.production.yml up -d --remove-orphans
 docker image prune -f
