@@ -28,6 +28,7 @@ type TenderMatch = {
     deadline_at: string | null;
     matched_at: string;
     query_name: string;
+    source: string;
     status: TenderStatus;
     tags: string[];
     next_action_on: string | null;
@@ -39,6 +40,7 @@ type FeedFilters = {
     status: string;
     tag: string;
     query_id: number | null;
+    source: string;
     sort: string;
 };
 
@@ -77,6 +79,11 @@ const statusOptions = [
     { value: 'potential', label: 'Потенциальные' },
     { value: 'dismissed', label: 'Скрытые' },
     { value: 'archived', label: 'Убраны' },
+];
+
+const sourceOptions = [
+    { value: 'all', label: 'Все источники', description: 'Единая лента совпадений' },
+    { value: 'rostender', label: 'RosTender', description: 'Подключённые шаблоны' },
 ];
 
 export default function Tenders() {
@@ -148,6 +155,7 @@ export default function Tenders() {
             filters.status !== 'all' ||
             filters.tag ||
             filters.query_id ||
+            filters.source !== 'all' ||
             filters.sort !== 'matched_desc',
     );
 
@@ -179,6 +187,26 @@ export default function Tenders() {
                 </GlassCard>
 
                 <GlassCard className="tender-feed-controls page-enter page-enter--delay">
+                    <div aria-label="Источник тендеров" className="tender-feed-sources">
+                        <div>
+                            <p>Источник</p>
+                            <strong>С чего собрать вашу ленту?</strong>
+                        </div>
+                        <div className="tender-feed-sources__options">
+                            {sourceOptions.map((option) => (
+                                <button
+                                    aria-pressed={filters.source === option.value}
+                                    className={filters.source === option.value ? 'is-active' : ''}
+                                    key={option.value}
+                                    onClick={() => visit({ source: option.value })}
+                                    type="button"
+                                >
+                                    <strong>{option.label}</strong>
+                                    <span>{option.description}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                     <form className="tender-feed-search" onSubmit={submitSearch}>
                         <SearchInput
                             aria-label="Поиск по ленте"
@@ -355,20 +383,24 @@ export default function Tenders() {
                                         href="/queries"
                                     >
                                         <Icon name="tenders" size={18} />
-                                        <span>Открыть мониторинги</span>
+                                        <span>{filters.source === 'rostender' ? 'Подключить шаблон RosTender' : 'Открыть мониторинги'}</span>
                                     </Link>
                                 )
                             }
                             description={
                                 hasFilters
                                     ? 'Попробуйте изменить поиск, статус, тег или мониторинг.'
-                                    : 'Когда закупка совпадёт с мониторингом, сервер сохранит её здесь вместе с причиной совпадения.'
+                                    : filters.source === 'rostender'
+                                      ? 'Подключите шаблон RosTender к мониторингу — после первой синхронизации совпадения появятся здесь.'
+                                      : 'Когда закупка совпадёт с мониторингом, сервер сохранит её здесь вместе с причиной совпадения.'
                             }
                             icon="compass"
                             title={
                                 hasFilters
                                     ? 'По выбранным условиям ничего нет'
-                                    : 'Пока нет подходящих закупок'
+                                    : filters.source === 'rostender'
+                                      ? 'RosTender пока не подключён к мониторингам'
+                                      : 'Пока нет подходящих закупок'
                             }
                         />
                     </div>
@@ -439,6 +471,7 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
         <GlassCard as="article" className="tender-card tender-feed-card">
             <div className="tender-card__meta">
                 <Badge tone={statusTone(status)}>{statusLabel(status)}</Badge>
+                {match.source === 'rostender' ? <Badge tone="accent">RosTender</Badge> : null}
                 <span>
                     <Icon name="spark" size={14} /> {match.match_reasons.join(', ')}
                 </span>

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Tenders\RostenderApiException;
+use App\Tenders\RostenderSearchTemplate;
 use App\Tenders\RostenderTemplateListItem;
 use App\Tenders\RostenderTemplatePage;
 use App\Tenders\RostenderTenderItem;
@@ -59,6 +60,30 @@ class RostenderApiClient
         }
 
         return RostenderTenderItem::fromDetail($data);
+    }
+
+    /** @return list<RostenderSearchTemplate> */
+    public function templates(): array
+    {
+        $payload = $this->get('templates');
+        $data = $payload['data'] ?? null;
+
+        if (! is_array($data)) {
+            throw new RostenderApiException('invalid_payload');
+        }
+
+        $templates = [];
+
+        foreach ($data as $item) {
+            $id = is_array($item) && isset($item['id']) && is_numeric($item['id']) ? (int) $item['id'] : 0;
+            $name = is_array($item) && is_string($item['name'] ?? null) ? trim($item['name']) : '';
+
+            if ($id > 0 && $name !== '') {
+                $templates[] = new RostenderSearchTemplate($id, $name);
+            }
+        }
+
+        return $templates;
     }
 
     /** @param array<string, scalar> $query

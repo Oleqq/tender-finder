@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\DB;
 
 class SearchQueryService
 {
-    public function __construct(private readonly AccessService $access) {}
+    public function __construct(
+        private readonly AccessService $access,
+        private readonly RostenderTemplateFeedService $rostenderFeeds,
+    ) {}
 
     /** @param array<string, mixed> $attributes */
     public function create(User $user, array $attributes): SearchQuery
@@ -28,6 +31,8 @@ class SearchQueryService
                 'monitoring_started_at' => now(),
             ]);
 
+            $this->rostenderFeeds->synchronize($query, $this->rostenderTemplateId($query));
+
             return $query;
         });
     }
@@ -35,14 +40,18 @@ class SearchQueryService
     /** @param array<string, mixed> $attributes */
     public function update(SearchQuery $query, array $attributes): SearchQuery
     {
-        $query->fill($attributes)->save();
+        return DB::transaction(function () use ($query, $attributes): SearchQuery {
+            $query->fill($attributes)->save();
+            $this->rostenderFeeds->synchronize($query, $this->rostenderTemplateId($query));
 
-        return $query->refresh();
+            return $query->refresh();
+        });
     }
 
     public function pause(SearchQuery $query): SearchQuery
     {
         $query->forceFill(['status' => QueryStatus::Paused, 'paused_at' => now()])->save();
+        $this->rostenderFeeds->refreshFor($query);
 
         return $query->refresh();
     }
@@ -59,6 +68,7 @@ class SearchQueryService
                 'frozen_at' => null,
                 'monitoring_started_at' => now(),
             ])->save();
+            $this->rostenderFeeds->refreshFor($query);
 
             return $query->refresh();
         });
@@ -67,6 +77,7 @@ class SearchQueryService
     public function freeze(SearchQuery $query): SearchQuery
     {
         $query->forceFill(['status' => QueryStatus::Frozen, 'frozen_at' => now()])->save();
+        $this->rostenderFeeds->refreshFor($query);
 
         return $query->refresh();
     }
@@ -74,6 +85,16 @@ class SearchQueryService
     public function delete(SearchQuery $query): void
     {
         $query->forceFill(['status' => QueryStatus::Deleted])->save();
+        $this->rostenderFeeds->detach($query);
+    }
+
+    private function rostenderTemplateId(SearchQuery $query): ?int
+    {
+        $filters = is_array($query->filters) ? $query->filters : [];
+        $source = is_array($filters['source'] ?? null) ? $filters['source'] : [];
+        $templateId = $source['rostender_template_id'] ?? null;
+
+        return is_int($templateId) && $templateId > 0 ? $templateId : null;
     }
 
     private function assertCanHaveActiveQuery(User $user, ?int $exceptQueryId = null): void

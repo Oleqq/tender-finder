@@ -113,6 +113,36 @@ it('filters sorts and paginates the signed-in users tender feed', function () {
             ->where('tenderMatches.data.0.tags', ['приоритет']));
 });
 
+it('can scope the personal tender feed to RosTender matches', function () {
+    $user = User::factory()->create(['telegram_id' => '9301']);
+    $query = SearchQuery::query()->create([
+        'user_id' => $user->id,
+        'name' => 'Сайты',
+        'keywords' => ['сайт'],
+        'status' => 'active',
+    ]);
+    $rostender = tenderForFeed('rostender-only', 'Разработка сайта', ['source' => 'rostender']);
+    $other = tenderForFeed('other-source', 'Поддержка сайта');
+
+    foreach ([$rostender, $other] as $tender) {
+        TenderQueryMatch::query()->create([
+            'tender_id' => $tender->id,
+            'search_query_id' => $query->id,
+            'match_reasons' => ['keywords' => ['сайт']],
+            'matched_at' => now(),
+        ]);
+    }
+
+    $this->actingAs($user)
+        ->get('/tenders?source=rostender')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.source', 'rostender')
+            ->where('tenderMatches.total', 1)
+            ->where('tenderMatches.data.0.source', 'rostender')
+            ->where('tenderMatches.data.0.title', 'Разработка сайта'));
+});
+
 it('keeps the tender feed behind the authenticated user journey', function () {
     $this->get('/tenders')->assertRedirect('/onboarding');
 });

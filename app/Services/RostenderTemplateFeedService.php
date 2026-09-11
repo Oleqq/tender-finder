@@ -50,6 +50,7 @@ class RostenderTemplateFeedService
             ->whereHas('searchQuery', fn ($builder) => $builder
                 ->where('user_id', $user->id)
                 ->where('status', QueryStatus::Active))
+            ->where('search_query_id', '!=', $query->id)
             ->count();
 
         if ($activeLinks >= $limit) {
@@ -78,7 +79,79 @@ class RostenderTemplateFeedService
             'search_query_id' => $query->id,
         ]);
 
+        $this->refreshFeedStatus($feed);
+
         return $feed;
+    }
+
+    public function synchronize(SearchQuery $query, ?int $templateId): void
+    {
+        if ($templateId === null) {
+            $this->detach($query);
+
+            return;
+        }
+
+        $this->attach($query, $templateId);
+
+        $obsoleteFeeds = SourceFeed::query()
+            ->where('source', 'rostender')
+            ->where('source_identifier', '!=', $templateId)
+            ->whereIn('id', RostenderFeedSearchQuery::query()
+                ->where('search_query_id', $query->id)
+                ->select('source_feed_id'))
+            ->get();
+
+        if ($obsoleteFeeds->isEmpty()) {
+            return;
+        }
+
+        RostenderFeedSearchQuery::query()
+            ->where('search_query_id', $query->id)
+            ->whereIn('source_feed_id', $obsoleteFeeds->modelKeys())
+            ->delete();
+
+        $obsoleteFeeds->each(fn (SourceFeed $feed) => $this->refreshFeedStatus($feed));
+    }
+
+    public function detach(SearchQuery $query): void
+    {
+        $feeds = SourceFeed::query()
+            ->where('source', 'rostender')
+            ->whereIn('id', RostenderFeedSearchQuery::query()
+                ->where('search_query_id', $query->id)
+                ->select('source_feed_id'))
+            ->get();
+
+        RostenderFeedSearchQuery::query()
+            ->where('search_query_id', $query->id)
+            ->delete();
+
+        $feeds->each(fn (SourceFeed $feed) => $this->refreshFeedStatus($feed));
+    }
+
+    public function refreshFor(SearchQuery $query): void
+    {
+        SourceFeed::query()
+            ->where('source', 'rostender')
+            ->whereIn('id', RostenderFeedSearchQuery::query()
+                ->where('search_query_id', $query->id)
+                ->select('source_feed_id'))
+            ->get()
+            ->each(fn (SourceFeed $feed) => $this->refreshFeedStatus($feed));
+    }
+
+    private function refreshFeedStatus(SourceFeed $feed): void
+    {
+        $hasActiveMonitoring = RostenderFeedSearchQuery::query()
+            ->where('source_feed_id', $feed->id)
+            ->whereHas('searchQuery', fn ($builder) => $builder->where('status', QueryStatus::Active))
+            ->exists();
+
+        $feed->forceFill($hasActiveMonitoring
+            ? ['status' => 'active', 'next_poll_at' => $feed->next_poll_at ?? now()]
+            : ['status' => 'paused', 'next_poll_at' => null])
+            ->save();
     }
 
     private function activeMonitoringLimit(User $user): int

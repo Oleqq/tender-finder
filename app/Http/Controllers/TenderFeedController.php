@@ -28,6 +28,7 @@ class TenderFeedController extends Controller
             'status' => ['nullable', Rule::in(['all', ...array_column(TenderUserStatus::cases(), 'value')])],
             'tag' => ['nullable', 'string', 'max:40'],
             'query_id' => ['nullable', 'integer'],
+            'source' => ['nullable', Rule::in(['all', 'rostender', 'eis_rss'])],
             'sort' => ['nullable', Rule::in(['matched_desc', 'deadline_asc', 'budget_desc', 'budget_asc'])],
         ]);
 
@@ -35,6 +36,7 @@ class TenderFeedController extends Controller
         $status = (string) ($filters['status'] ?? 'all');
         $tag = trim((string) ($filters['tag'] ?? ''));
         $queryId = isset($filters['query_id']) ? (int) $filters['query_id'] : null;
+        $source = (string) ($filters['source'] ?? 'all');
         $sort = (string) ($filters['sort'] ?? 'matched_desc');
 
         $matches = TenderQueryMatch::query()
@@ -90,6 +92,10 @@ class TenderFeedController extends Controller
                 ->whereJsonContains('tags', $tag));
         }
 
+        if ($source !== 'all') {
+            $matches->whereHas('tender', fn (Builder $query) => $query->where('source', $source));
+        }
+
         $this->applySort($matches, $sort);
 
         $paginator = $matches->paginate(12)->withQueryString();
@@ -109,6 +115,7 @@ class TenderFeedController extends Controller
                 'deadline_at' => $match->tender->deadline_at?->toAtomString(),
                 'matched_at' => $match->matched_at->toAtomString(),
                 'query_name' => $match->searchQuery->name,
+                'source' => $match->tender->source,
                 'status' => $state?->status->value ?? TenderUserStatus::New->value,
                 'tags' => $this->tags($state),
                 'next_action_on' => $state?->next_action_on?->format('Y-m-d'),
@@ -123,6 +130,7 @@ class TenderFeedController extends Controller
                 'status' => $status,
                 'tag' => $tag,
                 'query_id' => $queryId,
+                'source' => $source,
                 'sort' => $sort,
             ],
             'filterOptions' => [

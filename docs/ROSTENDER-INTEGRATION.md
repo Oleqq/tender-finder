@@ -63,8 +63,8 @@ daily interval and limits only after checking the actual contract and usage:
 ```dotenv
 ROSTENDER_DAILY_QUOTA_LIMIT=200
 ROSTENDER_DAILY_QUOTA_RESERVE=20
-ROSTENDER_BASIC_POLL_INTERVAL_SECONDS=86400
-ROSTENDER_PRO_POLL_INTERVAL_SECONDS=86400
+ROSTENDER_BASIC_POLL_INTERVAL_SECONDS=3600
+ROSTENDER_PRO_POLL_INTERVAL_SECONDS=3600
 ROSTENDER_MAX_DETAILS_PER_POLL=20
 ROSTENDER_BASIC_MANUAL_CHECKS_PER_DAY=0
 ROSTENDER_PRO_MANUAL_CHECKS_PER_DAY=0
@@ -86,8 +86,11 @@ until the product policy is approved.
    environment file.
 3. Set the limits and refresh cadence from the purchased API allowance, leaving
    headroom for detail cards and operations.
-4. Enable both legal switches in a controlled environment and use saved
-   RosTender templates only.
+4. Enable both legal switches and select one saved RosTender template when
+   creating a Tender Finder monitoring. The API does not expose arbitrary
+   free-text search or template creation; it polls the template selected in
+   the RosTender cabinet and Tender Finder applies the monitoring criteria to
+   the imported cards.
 5. Run one controlled queue smoke test, verify rate-limit headers/counters,
    initial-import silence, scoped matching, and no unexpected detail refetch.
 6. Only then expose a reviewed monitoring-management UI and update legal

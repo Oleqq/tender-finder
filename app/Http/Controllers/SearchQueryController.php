@@ -5,16 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\SearchQuery;
 use App\Services\QueryAccessDeniedException;
 use App\Services\QueryLimitReachedException;
+use App\Services\RostenderTemplateCatalog;
 use App\Services\SearchQueryPresenter;
 use App\Services\SearchQueryService;
 use App\Tenders\EisRegionCatalog;
 use App\Tenders\EisRssUrlValidator;
+use App\Tenders\RostenderAccessDisabledException;
 use App\Tenders\RssSourceException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class SearchQueryController extends Controller
 {
@@ -22,6 +25,7 @@ class SearchQueryController extends Controller
         private readonly EisRssUrlValidator $eisRssUrls,
         private readonly SearchQueryPresenter $presenter,
         private readonly EisRegionCatalog $regions,
+        private readonly RostenderTemplateCatalog $rostenderTemplates,
     ) {}
 
     public function index(Request $request): Response
@@ -34,6 +38,9 @@ class SearchQueryController extends Controller
                 ->latest()
                 ->get()
                 ->map(fn (SearchQuery $query): array => $this->presenter->toArray($query))
+                ->values(),
+            'rostenderTemplates' => collect($this->rostenderTemplates->available())
+                ->map(fn ($template): array => ['id' => $template->id, 'name' => $template->name])
                 ->values(),
         ]);
     }
@@ -50,6 +57,16 @@ class SearchQueryController extends Controller
             throw ValidationException::withMessages([
                 'limit' => 'Достигнут лимит: в закрытой бете доступны 3 активных мониторинга.',
             ]);
+        } catch (RostenderAccessDisabledException) {
+            throw ValidationException::withMessages([
+                'filters.source.rostender_template_id' => 'RosTender пока недоступен для вашего тарифа.',
+            ]);
+        } catch (RuntimeException $exception) {
+            throw ValidationException::withMessages([
+                'filters.source.rostender_template_id' => $exception->getMessage() === 'rostender_monitoring_limit_reached'
+                    ? 'Достигнут лимит RosTender-мониторингов для вашего тарифа.'
+                    : 'Не удалось подключить шаблон RosTender. Попробуйте ещё раз.',
+            ]);
         }
 
         return response()->json(['query' => $this->presenter->toArray($query)], 201);
@@ -59,7 +76,21 @@ class SearchQueryController extends Controller
     {
         $this->assertOwnership($request, $query);
 
-        return response()->json(['query' => $this->presenter->toArray($queries->update($query, $this->validatedAttributes($request)))]);
+        try {
+            $query = $queries->update($query, $this->validatedAttributes($request));
+        } catch (RostenderAccessDisabledException) {
+            throw ValidationException::withMessages([
+                'filters.source.rostender_template_id' => 'RosTender пока недоступен для вашего тарифа.',
+            ]);
+        } catch (RuntimeException $exception) {
+            throw ValidationException::withMessages([
+                'filters.source.rostender_template_id' => $exception->getMessage() === 'rostender_monitoring_limit_reached'
+                    ? 'Достигнут лимит RosTender-мониторингов для вашего тарифа.'
+                    : 'Не удалось подключить шаблон RosTender. Попробуйте ещё раз.',
+            ]);
+        }
+
+        return response()->json(['query' => $this->presenter->toArray($query)]);
     }
 
     public function pause(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
@@ -120,7 +151,7 @@ class SearchQueryController extends Controller
             'filters' => ['nullable', 'array:source,relevance'],
             'filters.relevance' => ['nullable', 'array:match_mode'],
             'filters.relevance.match_mode' => ['nullable', 'string', 'in:all,any,exact'],
-            'filters.source' => ['nullable', 'array:law_44,law_223,stage_application,stage_commission,stage_completed,stage_cancelled,joint_purchase,placed_by_separate_subdivision,union_state_budget,created_by_customer_representative,smp_sono,budget_from,budget_to,published_from,published_to,regions,okpd2,okpd2_with_nested,pages,rss_url'],
+            'filters.source' => ['nullable', 'array:law_44,law_223,stage_application,stage_commission,stage_completed,stage_cancelled,joint_purchase,placed_by_separate_subdivision,union_state_budget,created_by_customer_representative,smp_sono,budget_from,budget_to,published_from,published_to,regions,okpd2,okpd2_with_nested,pages,rss_url,rostender_template_id'],
             'filters.source.law_44' => ['nullable', 'boolean'],
             'filters.source.law_223' => ['nullable', 'boolean'],
             'filters.source.stage_application' => ['nullable', 'boolean'],
@@ -148,6 +179,7 @@ class SearchQueryController extends Controller
             'filters.source.okpd2_with_nested' => ['nullable', 'boolean'],
             'filters.source.pages' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('tender.rss.manual_search_max_pages', 3))],
             'filters.source.rss_url' => ['nullable', 'url', 'max:2000'],
+            'filters.source.rostender_template_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $keywords = array_values(array_filter(array_map('trim', $attributes['keywords'])));
@@ -180,6 +212,15 @@ class SearchQueryController extends Controller
         $this->validateSourceRegions($source['regions'] ?? []);
 
         $rssUrl = $this->nullableString($source['rss_url'] ?? null);
+        $rostenderTemplateId = isset($source['rostender_template_id'])
+            ? (int) $source['rostender_template_id']
+            : null;
+
+        if ($rostenderTemplateId !== null && ! $this->rostenderTemplates->contains($rostenderTemplateId)) {
+            throw ValidationException::withMessages([
+                'filters.source.rostender_template_id' => 'Выберите доступный шаблон RosTender.',
+            ]);
+        }
 
         if ($rssUrl !== null) {
             try {
@@ -214,6 +255,7 @@ class SearchQueryController extends Controller
                 'okpd2_with_nested' => (bool) ($source['okpd2_with_nested'] ?? true),
                 'pages' => (int) ($source['pages'] ?? 3),
                 'rss_url' => $rssUrl,
+                'rostender_template_id' => $rostenderTemplateId,
             ],
         ];
     }

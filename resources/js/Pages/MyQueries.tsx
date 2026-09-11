@@ -59,8 +59,9 @@ type TenderDto = {
 };
 
 type QueryRunResponse = {
-    preview: QueryRunSummary;
-    tenders: TenderDto[];
+    queued?: boolean;
+    preview?: QueryRunSummary;
+    tenders?: TenderDto[];
     query: QueryDto;
 };
 
@@ -81,6 +82,7 @@ type QueryFormValues = {
     budgetMax: string;
     deadlineFrom: string;
     deadlineTo: string;
+    rostenderTemplateId: string | null;
 };
 
 type QueryPayload = {
@@ -97,6 +99,7 @@ type QueryPayload = {
 
 type MyQueriesProps = {
     queries: QueryDto[];
+    rostenderTemplates: Array<{ id: number; name: string }>;
 };
 
 const emptyQueryForm = (): QueryFormValues => ({
@@ -108,10 +111,11 @@ const emptyQueryForm = (): QueryFormValues => ({
     budgetMax: '',
     deadlineFrom: '',
     deadlineTo: '',
+    rostenderTemplateId: '',
 });
 
 export default function MyQueries() {
-    const { auth, queries: initialQueries } =
+    const { auth, queries: initialQueries, rostenderTemplates } =
         usePage<PageProps<MyQueriesProps>>().props;
     const [queries, setQueries] = useState<QueryDto[]>(initialQueries);
     const [createForm, setCreateForm] = useState<QueryFormValues>(emptyQueryForm);
@@ -122,6 +126,7 @@ export default function MyQueries() {
     const [createError, setCreateError] = useState('');
     const [editError, setEditError] = useState('');
     const [actionError, setActionError] = useState('');
+    const [actionNotice, setActionNotice] = useState('');
     const [isCreating, setIsCreating] = useState(false);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [isDuplicating, setIsDuplicating] = useState(false);
@@ -149,6 +154,7 @@ export default function MyQueries() {
 
         setCreateError('');
         setActionError('');
+        setActionNotice('');
         setIsCreating(true);
 
         try {
@@ -216,7 +222,6 @@ export default function MyQueries() {
         try {
             const response = await window.axios.post<{ query: QueryDto }>('/queries', {
                 ...payload,
-                filters: duplicatingQuery.filters,
             });
             setQueries((current) => [response.data.query, ...current]);
             setDuplicatingQuery(null);
@@ -292,6 +297,15 @@ export default function MyQueries() {
                 `/queries/${query.id}/run`,
             );
             replaceQuery(response.data.query);
+
+            if (response.data.queued) {
+                setActionNotice('Проверка RosTender поставлена в очередь. Карточки появятся в ленте после синхронизации.');
+                return;
+            }
+
+            if (!response.data.preview || !response.data.tenders) {
+                throw new Error('Unexpected monitoring response');
+            }
             setRunView({
                 queryName: response.data.query.name,
                 caption: 'Только что выполненный запуск',
@@ -391,6 +405,7 @@ export default function MyQueries() {
                             <QueryFields
                                 form={createForm}
                                 onChange={updateForm(setCreateForm)}
+                                rostenderTemplates={rostenderTemplates}
                             />
                             <p className="query-create__hint">
                                 Запятая разделяет слова. Keywords обязательны,
@@ -418,6 +433,12 @@ export default function MyQueries() {
                     </InlineAlert>
                 ) : null}
 
+                {actionNotice ? (
+                    <InlineAlert title="Проверка запланирована" tone="success">
+                        {actionNotice}
+                    </InlineAlert>
+                ) : null}
+
                 <section className="query-list page-enter page-enter--later">
                     <div className="section-heading">
                         <div>
@@ -434,7 +455,7 @@ export default function MyQueries() {
                         </GlassCard>
                     ) : (
                         queries.map((query) => {
-                            const details = queryDetails(query);
+                            const details = queryDetails(query, rostenderTemplates);
 
                             return (
                                 <GlassCard
@@ -566,7 +587,7 @@ export default function MyQueries() {
                 title="Изменить мониторинг"
             >
                 <form className="query-edit-form" onSubmit={updateQuery}>
-                    <QueryFields form={editForm} onChange={updateForm(setEditForm)} />
+                    <QueryFields form={editForm} onChange={updateForm(setEditForm)} rostenderTemplates={rostenderTemplates} />
                     {editError ? <FieldError>{editError}</FieldError> : null}
                     <Button
                         className="sheet-action"
@@ -597,7 +618,7 @@ export default function MyQueries() {
                         Все условия источника скопированы. Измените название и основные
                         ограничения перед сохранением.
                     </p>
-                    <QueryFields form={editForm} onChange={updateForm(setEditForm)} />
+                    <QueryFields form={editForm} onChange={updateForm(setEditForm)} rostenderTemplates={rostenderTemplates} />
                     {editError ? <FieldError>{editError}</FieldError> : null}
                     <Button
                         className="sheet-action"
@@ -791,12 +812,33 @@ function QueryRunResults({ run, onClose }: { run: QueryRunView; onClose: () => v
 function QueryFields({
     form,
     onChange,
+    rostenderTemplates,
 }: {
     form: QueryFormValues;
     onChange: (field: keyof QueryFormValues, value: string) => void;
+    rostenderTemplates: Array<{ id: number; name: string }>;
 }) {
     return (
         <>
+            <label className="form-field">
+                <span>Площадка для мониторинга</span>
+                <select
+                    onChange={(event) => onChange('rostenderTemplateId', event.target.value)}
+                    value={form.rostenderTemplateId ?? ''}
+                >
+                    <option value="">Не подключать RosTender</option>
+                    {rostenderTemplates.map((template) => (
+                        <option key={template.id} value={String(template.id)}>
+                            RosTender · {template.name}
+                        </option>
+                    ))}
+                </select>
+            </label>
+            {rostenderTemplates.length > 0 ? (
+                <p className="query-create__hint">
+                    Шаблон задаёт удалённую выдачу RosTender; ваши ключевые слова и фильтры дополнительно отберут подходящие карточки в TenderFinder.
+                </p>
+            ) : null}
             <label className="form-field">
                 <span>Название мониторинга</span>
                 <input
@@ -894,6 +936,7 @@ function queryToForm(query: QueryDto): QueryFormValues {
         budgetMax: query.budget_max ?? '',
         deadlineFrom: query.deadline_from ?? '',
         deadlineTo: query.deadline_to ?? '',
+        rostenderTemplateId: rostenderTemplateId(query),
     };
 }
 
@@ -904,6 +947,10 @@ function toQueryPayload(form: QueryFormValues): QueryPayload | null {
         return null;
     }
 
+    const source = form.rostenderTemplateId === null
+        ? undefined
+        : { rostender_template_id: form.rostenderTemplateId === '' ? null : Number(form.rostenderTemplateId) };
+
     return {
         name: form.name.trim() || null,
         keywords,
@@ -913,6 +960,7 @@ function toQueryPayload(form: QueryFormValues): QueryPayload | null {
         budget_max: form.budgetMax || null,
         deadline_from: form.deadlineFrom || null,
         deadline_to: form.deadlineTo || null,
+        ...(source ? { filters: { source } } : {}),
     };
 }
 
@@ -923,14 +971,40 @@ function splitKeywords(value: string): string[] {
         .filter(Boolean);
 }
 
-function queryDetails(query: QueryDto): string | null {
+function queryDetails(
+    query: QueryDto,
+    rostenderTemplates: Array<{ id: number; name: string }>,
+): string | null {
     const details = [
+        rostenderTemplateName(query, rostenderTemplates),
         query.region,
         budgetDetail(query.budget_min, query.budget_max),
         dateDetail(query.deadline_from, query.deadline_to),
     ].filter(Boolean);
 
     return details.length > 0 ? details.join(' · ') : null;
+}
+
+function rostenderTemplateId(query: QueryDto): string | null {
+    const source = query.filters?.source;
+
+    if (!source || typeof source !== 'object') {
+        return null;
+    }
+
+    const value = (source as Record<string, unknown>).rostender_template_id;
+
+    return typeof value === 'number' && value > 0 ? String(value) : null;
+}
+
+function rostenderTemplateName(
+    query: QueryDto,
+    templates: Array<{ id: number; name: string }>,
+): string | null {
+    const id = rostenderTemplateId(query);
+    const template = templates.find((item) => String(item.id) === id);
+
+    return template ? `RosTender · ${template.name}` : id ? 'RosTender · шаблон подключён' : null;
 }
 
 function budgetDetail(min: string | null, max: string | null): string | null {

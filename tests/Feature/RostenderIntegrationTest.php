@@ -110,6 +110,54 @@ it('deduplicates a saved template and applies the plan source-monitor limit', fu
     expect(fn () => $service->attach($second, 43))->toThrow(RuntimeException::class, 'rostender_monitoring_limit_reached');
 });
 
+it('connects a users monitoring to an approved RosTender template and queues a manual refresh', function () {
+    Queue::fake();
+    config()->set('tender.rostender.basic_active_monitor_limit', 1);
+    config()->set('tender.rostender.basic_manual_checks_per_day', 1);
+    config()->set('tender.rostender.basic_poll_interval_seconds', 3600);
+    Http::fake([
+        'https://rostender.info/api/tenders/get/templates' => Http::response([
+            'success' => true,
+            'data' => [['id' => 42, 'name' => 'Разработка сайтов']],
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+    $plan = Plan::query()->create(['code' => 'basic', 'name' => 'Basic', 'is_active' => true, 'limits' => []]);
+    Entitlement::query()->create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'code' => 'active_queries',
+        'status' => 'active',
+        'value' => 3,
+        'starts_at' => now()->subMinute(),
+        'ends_at' => now()->addDay(),
+    ]);
+
+    $queryId = $this->actingAs($user)
+        ->postJson('/queries', [
+            'keywords' => ['разработка', 'сайта'],
+            'filters' => ['source' => ['rostender_template_id' => 42]],
+        ])
+        ->assertCreated()
+        ->json('query.id');
+
+    $feed = SourceFeed::query()->where('source', 'rostender')->sole();
+    expect($feed->source_identifier)->toBe(42)
+        ->and($feed->poll_interval_seconds)->toBe(3600);
+    $this->assertDatabaseHas('rostender_feed_search_query', [
+        'source_feed_id' => $feed->id,
+        'search_query_id' => $queryId,
+    ]);
+
+    $this->actingAs($user)
+        ->postJson("/queries/{$queryId}/run")
+        ->assertStatus(202)
+        ->assertJsonPath('queued', true);
+
+    Queue::assertPushed(PollRostenderTemplate::class, fn (PollRostenderTemplate $job): bool => $job->feedId === $feed->id);
+});
+
 it('imports new detail cards once and scopes matching to monitorings linked to the template', function () {
     Queue::fake();
     $feed = SourceFeed::query()->create([

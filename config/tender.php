@@ -98,8 +98,8 @@ return [
         // operation is not starved by the scheduler.
         'daily_quota_reserve' => (int) env('ROSTENDER_DAILY_QUOTA_RESERVE', 20),
         'max_details_per_poll' => (int) env('ROSTENDER_MAX_DETAILS_PER_POLL', 20),
-        'basic_poll_interval_seconds' => (int) env('ROSTENDER_BASIC_POLL_INTERVAL_SECONDS', 86400),
-        'pro_poll_interval_seconds' => (int) env('ROSTENDER_PRO_POLL_INTERVAL_SECONDS', 86400),
+        'basic_poll_interval_seconds' => (int) env('ROSTENDER_BASIC_POLL_INTERVAL_SECONDS', 3600),
+        'pro_poll_interval_seconds' => (int) env('ROSTENDER_PRO_POLL_INTERVAL_SECONDS', 3600),
         'basic_manual_checks_per_day' => (int) env('ROSTENDER_BASIC_MANUAL_CHECKS_PER_DAY', 0),
         'pro_manual_checks_per_day' => (int) env('ROSTENDER_PRO_MANUAL_CHECKS_PER_DAY', 0),
         'basic_active_monitor_limit' => (int) env('ROSTENDER_BASIC_ACTIVE_MONITOR_LIMIT', 0),
