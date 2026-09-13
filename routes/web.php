@@ -60,12 +60,16 @@ Route::get('/team-invitations/{token}', [TeamController::class, 'invitation']);
 Route::middleware('auth')->group(function () {
     Route::get('/teams', [TeamController::class, 'index'])->name('teams');
     Route::post('/teams', [TeamController::class, 'store']);
+    Route::patch('/teams/{team}/archive', [TeamController::class, 'archive']);
+    Route::post('/teams/{team}/transfer-ownership', [TeamController::class, 'transferOwnership']);
+    Route::delete('/teams/{team}', [TeamController::class, 'destroy']);
     Route::post('/teams/{team}/invitations', [TeamController::class, 'invite'])->middleware('throttle:30,1');
     Route::delete('/teams/{team}/invitations/{invitation}', [TeamController::class, 'revoke']);
     Route::patch('/teams/{team}/members/{member}', [TeamController::class, 'member']);
     Route::delete('/teams/{team}/members/{member}', [TeamController::class, 'member']);
     Route::post('/team-invitations/{token}', [TeamController::class, 'accept'])->middleware('throttle:30,1');
     Route::post('/checklist-templates', [ChecklistTemplateController::class, 'store']);
+    Route::patch('/checklist-templates/{template}', [ChecklistTemplateController::class, 'update']);
     Route::delete('/checklist-templates/{template}', [ChecklistTemplateController::class, 'destroy']);
     Route::post('/tenders/{tender}/templates/{template}', [ChecklistTemplateController::class, 'apply']);
     Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');

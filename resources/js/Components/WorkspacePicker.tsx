@@ -2,9 +2,16 @@ import { Link, router, usePage } from '@inertiajs/react';
 import type { PageProps } from '../types';
 
 export type TeamScope = {
-    team: { id: number; name: string; role: string } | null;
-    teams: { id: number; name: string; role: string }[];
-    members: { id: number; name: string; role: string }[];
+    team: { id: number; name: string; role: string; archived_at: string | null } | null;
+    teams: { id: number; name: string; role: string; archived_at: string | null }[];
+    members: {
+        id: number;
+        name: string;
+        role: string;
+        active_applications?: number;
+        open_tasks?: number;
+        overdue_tasks?: number;
+    }[];
     can_edit: boolean;
 };
 export function WorkspacePicker({ path }: { path: string }) {
@@ -27,6 +34,7 @@ export function WorkspacePicker({ path }: { path: string }) {
                     {teams.map((t) => (
                         <option key={t.id} value={t.id}>
                             {t.name}
+                            {t.archived_at ? ' · архив' : ''}
                         </option>
                     ))}
                 </select>
@@ -35,9 +43,11 @@ export function WorkspacePicker({ path }: { path: string }) {
             {team && (
                 <p className="work-help">
                     Общие заявки команды «{team.name}».{' '}
-                    {team.role === 'viewer'
-                        ? 'Доступ только для просмотра.'
-                        : 'Изменения видны всем участникам.'}
+                    {team.archived_at
+                        ? 'Команда в архиве: данные доступны только для чтения.'
+                        : team.role === 'viewer'
+                          ? 'Доступ только для просмотра.'
+                          : 'Изменения видны всем участникам.'}
                 </p>
             )}
         </div>

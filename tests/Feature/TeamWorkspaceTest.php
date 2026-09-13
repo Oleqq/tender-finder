@@ -124,3 +124,80 @@ it('rolls back template application when the checklist limit would be exceeded',
     $this->postJson('/tenders/'.$tender->id.'/templates/'.$id)->assertUnprocessable();
     expect($p->items()->count())->toBe(99)->and(DB::table('checklist_template_applications')->count())->toBe(0);
 });
+
+it('transfers ownership atomically to an editing member', function () {
+    [$owner, $member, $viewer, $team] = teamFixture();
+
+    $this->actingAs($owner)->postJson('/teams/'.$team->id.'/transfer-ownership', ['member_id' => $viewer->id])->assertUnprocessable();
+    $this->postJson('/teams/'.$team->id.'/transfer-ownership', ['member_id' => $member->id])->assertOk();
+
+    expect($team->fresh()->owner_id)->toBe($member->id)
+        ->and(DB::table('team_members')->where('team_id', $team->id)->where('user_id', $owner->id)->value('role'))->toBe('member')
+        ->and(DB::table('team_members')->where('team_id', $team->id)->where('user_id', $member->id)->value('role'))->toBe('owner')
+        ->and(DB::table('team_activity_logs')->where('team_id', $team->id)->where('action', 'ownership_transferred')->exists())->toBeTrue();
+
+    $this->postJson('/teams/'.$team->id.'/invitations', ['role' => 'member'])->assertForbidden();
+    $this->actingAs($member)->postJson('/teams/'.$team->id.'/invitations', ['role' => 'member'])->assertCreated();
+});
+
+it('archives teams as read only and only deletes an archived team after exact confirmation', function () {
+    [$owner, $member, $viewer, $team, $tender] = teamFixture();
+    TenderParticipation::query()->create(['team_id' => $team->id, 'user_id' => $owner->id, 'tender_id' => $tender->id]);
+
+    $this->actingAs($owner)->deleteJson('/teams/'.$team->id, ['name' => $team->name])->assertConflict();
+    $this->patchJson('/teams/'.$team->id.'/archive', ['archived' => true])->assertOk();
+    $this->actingAs($member)->postJson('/tenders/'.$tender->id.'/checklist?team_id='.$team->id, ['title' => 'Новая задача'])->assertConflict();
+    $this->actingAs($owner)->deleteJson('/teams/'.$team->id, ['name' => 'Другая команда'])->assertUnprocessable();
+    $this->patchJson('/teams/'.$team->id.'/archive', ['archived' => false])->assertOk();
+    $this->postJson('/teams/'.$team->id.'/invitations', ['role' => 'viewer'])->assertCreated();
+    $this->patchJson('/teams/'.$team->id.'/archive', ['archived' => true])->assertOk();
+    $this->deleteJson('/teams/'.$team->id, ['name' => $team->name])->assertOk()->assertJsonPath('deleted', true);
+
+    expect(Team::query()->find($team->id))->toBeNull()
+        ->and(TenderParticipation::query()->where('team_id', $team->id)->exists())->toBeFalse();
+});
+
+it('enforces the active team limit when restoring an archived team', function () {
+    [$owner, $member, $viewer, $team] = teamFixture();
+    $team->update(['archived_at' => now()]);
+    foreach (range(1, 10) as $number) {
+        Team::query()->create(['name' => 'Команда '.$number, 'owner_id' => $owner->id]);
+    }
+
+    $this->actingAs($owner)->patchJson('/teams/'.$team->id.'/archive', ['archived' => false])->assertUnprocessable();
+    expect($team->fresh()->archived_at)->not->toBeNull();
+});
+
+it('versions edited templates and applies each version once', function () {
+    [$owner, $member, $viewer, $team, $tender] = teamFixture();
+    $scope = '?team_id='.$team->id;
+    TenderParticipation::query()->create(['team_id' => $team->id, 'user_id' => $owner->id, 'tender_id' => $tender->id]);
+    $template = $this->actingAs($owner)->postJson('/checklist-templates'.$scope, ['name' => 'Проверка', 'items' => ['Первая']])
+        ->assertCreated()->json('template');
+
+    $this->postJson('/tenders/'.$tender->id.'/templates/'.$template['id'].$scope)->assertOk()->assertJsonCount(1, 'participation.items');
+    $updated = $this->patchJson('/checklist-templates/'.$template['id'].$scope, ['name' => 'Полная проверка', 'items' => ['Первая', 'Вторая'], 'version' => 1])
+        ->assertOk()->assertJsonPath('template.version', 2)->json('template');
+    $this->patchJson('/checklist-templates/'.$template['id'].$scope, ['name' => 'Старая правка', 'items' => ['Третья'], 'version' => 1])->assertConflict();
+    $this->postJson('/tenders/'.$tender->id.'/templates/'.$template['id'].$scope)->assertOk()->assertJsonCount(3, 'participation.items');
+    $this->postJson('/tenders/'.$tender->id.'/templates/'.$template['id'].$scope)->assertOk()->assertJsonCount(3, 'participation.items');
+
+    expect($updated['name'])->toBe('Полная проверка')
+        ->and(DB::table('checklist_template_versions')->where('template_id', $template['id'])->count())->toBe(2)
+        ->and(DB::table('checklist_template_applications')->where('template_id', $template['id'])->count())->toBe(2);
+});
+
+it('shows workload and recent activity only to team members', function () {
+    [$owner, $member, $viewer, $team, $tender] = teamFixture();
+    $participation = TenderParticipation::query()->create(['team_id' => $team->id, 'user_id' => $owner->id, 'tender_id' => $tender->id,
+        'stage' => 'preparing', 'assignee_id' => $member->id]);
+    $participation->items()->create(['title' => 'Просрочена', 'assignee_id' => $member->id, 'due_on' => now()->subDay()]);
+    $participation->items()->create(['title' => 'Без срока', 'assignee_id' => $member->id]);
+    DB::table('team_activity_logs')->insert(['team_id' => $team->id, 'actor_id' => $owner->id, 'action' => 'task_created',
+        'context' => json_encode(['task_id' => 1]), 'created_at' => now()]);
+
+    $this->actingAs($member)->get('/teams?team_id='.$team->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('members.1.active_applications', 1)->where('members.1.open_tasks', 2)->where('members.1.overdue_tasks', 1)
+        ->where('activities.0.action', 'task_created'));
+    $this->actingAs(User::factory()->create())->get('/teams?team_id='.$team->id)->assertNotFound();
+});

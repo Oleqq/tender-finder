@@ -23,7 +23,7 @@ final class TaskReminderService
         }
         if ($p->team_id) {
             $team = Team::query()->find($p->team_id);
-            if (! $team || ! in_array(app(TeamWorkspaceService::class)->role($user, $team), ['owner', 'member'], true)) {
+            if (! $team || $team->archived_at !== null || ! in_array(app(TeamWorkspaceService::class)->role($user, $team), ['owner', 'member'], true)) {
                 return null;
             }
         } else {

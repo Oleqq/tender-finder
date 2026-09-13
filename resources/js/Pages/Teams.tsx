@@ -8,11 +8,49 @@ import { WorkspacePicker, type TeamScope } from '../Components/WorkspacePicker';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import type { PageProps } from '../types';
 
+type TeamActivity = {
+    id: number;
+    action: string;
+    context: Record<string, string | number | boolean | null>;
+    created_at: string;
+    actor_name: string | null;
+};
+
+const activityLabel = (activity: TeamActivity): string => {
+    const labels: Record<string, string> = {
+        team_created: 'создал команду',
+        invitation_created: 'создал приглашение',
+        invitation_revoked: 'отозвал приглашение',
+        member_joined: 'присоединился к команде',
+        invitation_accepted: 'использовал приглашение, уже состоя в команде',
+        member_left: 'покинул команду',
+        member_removed: 'удалил участника',
+        member_role_changed: 'изменил роль участника',
+        ownership_transferred: 'передал владение командой',
+        team_archived: 'перенёс команду в архив',
+        team_restored: 'восстановил команду из архива',
+        template_created: 'создал шаблон',
+        template_updated: 'обновил шаблон',
+        template_deleted: 'удалил шаблон',
+        template_applied: 'применил шаблон к заявке',
+        participation_updated: 'изменил этап заявки',
+        task_created: 'создал задачу',
+        task_updated: 'изменил задачу',
+        task_deleted: 'удалил задачу',
+    };
+    const template = activity.context.template_name
+        ? ` «${activity.context.template_name}»`
+        : '';
+
+    return `${labels[activity.action] ?? activity.action}${template}`;
+};
+
 export default function Teams() {
-    const { team, members, invitations, auth } = usePage<
+    const { team, members, invitations, activities, auth } = usePage<
         PageProps<
             TeamScope & {
                 invitations: { id: number; role: string; expires_at: string }[];
+                activities: TeamActivity[];
             }
         >
     >().props;
@@ -21,6 +59,7 @@ export default function Teams() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [invite, setInvite] = useState('');
+    const [deleteName, setDeleteName] = useState('');
     const mutate = async (
         method: 'post' | 'patch' | 'delete',
         url: string,
@@ -33,7 +72,8 @@ export default function Teams() {
             if (response.data.url) {
                 setInvite(response.data.url);
                 router.reload();
-            } else if (response.data.team_id)
+            } else if (response.data.deleted) router.get('/teams');
+            else if (response.data.team_id)
                 router.get('/teams', { team_id: response.data.team_id });
             else router.get('/teams', team ? { team_id: team.id } : {});
         } catch (e) {
@@ -84,6 +124,12 @@ export default function Teams() {
                     <>
                         <GlassCard className="work-card">
                             <h2>{team.name}</h2>
+                            {team.archived_at && (
+                                <p role="status" className="work-help">
+                                    Команда находится в архиве. Заявки, задачи и журнал
+                                    сохранены, изменения отключены.
+                                </p>
+                            )}
                             <Link href={scopedUrl('/participation', team)}>
                                 Заявки команды
                             </Link>
@@ -102,7 +148,14 @@ export default function Teams() {
                                                   ? 'Наблюдатель'
                                                   : 'Участник'}
                                         </p>
+                                        <p className="work-help">
+                                            Активных заявок:{' '}
+                                            {m.active_applications ?? 0} · открытых
+                                            задач: {m.open_tasks ?? 0} · просрочено:{' '}
+                                            {m.overdue_tasks ?? 0}
+                                        </p>
                                         {team.role === 'owner' &&
+                                            !team.archived_at &&
                                             m.role !== 'owner' && (
                                                 <div className="work-actions">
                                                     <Button
@@ -143,9 +196,33 @@ export default function Teams() {
                                                     >
                                                         Удалить участника
                                                     </Button>
+                                                    {m.role === 'member' && (
+                                                        <Button
+                                                            disabled={busy}
+                                                            variant="ghost"
+                                                            onClick={() => {
+                                                                if (
+                                                                    window.confirm(
+                                                                        `Передать владение пользователю ${m.name || m.id}? Вы останетесь участником.`,
+                                                                    )
+                                                                )
+                                                                    void mutate(
+                                                                        'post',
+                                                                        `/teams/${team.id}/transfer-ownership`,
+                                                                        {
+                                                                            member_id:
+                                                                                m.id,
+                                                                        },
+                                                                    );
+                                                            }}
+                                                        >
+                                                            Сделать владельцем
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             )}
                                         {m.id === auth.user?.id &&
+                                            !team.archived_at &&
                                             m.role !== 'owner' && (
                                                 <Button
                                                     disabled={busy}
@@ -178,7 +255,7 @@ export default function Teams() {
                                 ))}
                             </div>
                         </GlassCard>
-                        {team.role === 'owner' && (
+                        {team.role === 'owner' && !team.archived_at && (
                             <GlassCard className="work-card">
                                 <h2>Пригласить сотрудника</h2>
                                 <p>
@@ -260,6 +337,114 @@ export default function Teams() {
                                 ))}
                             </GlassCard>
                         )}
+                        {team.role === 'owner' && (
+                            <GlassCard className="work-card">
+                                <h2>Управление командой</h2>
+                                {!team.archived_at ? (
+                                    <>
+                                        <p>
+                                            Архив отключает изменения, приглашения и
+                                            напоминания, сохраняя заявки и журнал.
+                                        </p>
+                                        <Button
+                                            disabled={busy}
+                                            variant="secondary"
+                                            onClick={() => {
+                                                if (
+                                                    window.confirm(
+                                                        'Перенести команду в архив?',
+                                                    )
+                                                )
+                                                    void mutate(
+                                                        'patch',
+                                                        `/teams/${team.id}/archive`,
+                                                        { archived: true },
+                                                    );
+                                            }}
+                                        >
+                                            Перенести в архив
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button
+                                            disabled={busy}
+                                            variant="secondary"
+                                            onClick={() =>
+                                                void mutate(
+                                                    'patch',
+                                                    `/teams/${team.id}/archive`,
+                                                    { archived: false },
+                                                )
+                                            }
+                                        >
+                                            Восстановить команду
+                                        </Button>
+                                        <form
+                                            className="work-form"
+                                            onSubmit={(event) => {
+                                                event.preventDefault();
+                                                if (
+                                                    window.confirm(
+                                                        'Окончательно удалить команду и все её общие заявки и задачи? Это действие нельзя отменить.',
+                                                    )
+                                                )
+                                                    void mutate(
+                                                        'delete',
+                                                        `/teams/${team.id}`,
+                                                        { name: deleteName },
+                                                    );
+                                            }}
+                                        >
+                                            <label>
+                                                Для удаления введите «{team.name}»
+                                                <input
+                                                    required
+                                                    value={deleteName}
+                                                    onChange={(event) =>
+                                                        setDeleteName(
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                />
+                                            </label>
+                                            <Button
+                                                type="submit"
+                                                variant="ghost"
+                                                disabled={
+                                                    busy || deleteName !== team.name
+                                                }
+                                            >
+                                                Удалить команду окончательно
+                                            </Button>
+                                        </form>
+                                    </>
+                                )}
+                            </GlassCard>
+                        )}
+                        <GlassCard className="work-card">
+                            <h2>Журнал действий</h2>
+                            {activities.length === 0 ? (
+                                <p className="work-help">Действий пока нет.</p>
+                            ) : (
+                                <div className="work-list">
+                                    {activities.map((activity) => (
+                                        <div className="work-task" key={activity.id}>
+                                            <strong>
+                                                {activity.actor_name ||
+                                                    'Удалённый пользователь'}
+                                            </strong>
+                                            <p>{activityLabel(activity)}</p>
+                                            <small>
+                                                {new Date(
+                                                    activity.created_at,
+                                                ).toLocaleString('ru-RU')}
+                                            </small>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </GlassCard>
                     </>
                 )}
             </AppShell>

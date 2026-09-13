@@ -7,6 +7,7 @@ use App\Models\Tender;
 use App\Models\TenderChecklistItem;
 use App\Models\TenderParticipation;
 use App\Models\User;
+use App\Services\TeamActivityService;
 use App\Services\TeamWorkspaceService;
 use App\Services\TenderWorkService;
 use Illuminate\Http\JsonResponse;
@@ -50,7 +51,7 @@ final class TenderWorkController extends Controller
 
         return Inertia::render('TenderWork', [
             ...$scope->props($user, $team),
-            'templates' => app(ChecklistTemplateController::class)->templates($user, $team)->orderBy('name')->get(['id', 'name', 'items']),
+            'templates' => app(ChecklistTemplateController::class)->templates($user, $team)->with('versions')->orderBy('name')->get(['id', 'name', 'items', 'version']),
             'tender' => ['id' => $tender->id, 'title' => $tender->title, 'canonical_url' => $tender->canonical_url,
                 'deadline_at' => $tender->deadline_at?->toAtomString()],
             'participation' => $work->present($work->participations($user, $team)->where('tender_id', $tender->id)->first()),
@@ -85,6 +86,10 @@ final class TenderWorkController extends Controller
             $p->fill(['assignee_id' => $assignee, 'stage' => $data['stage'], 'loss_reason' => $reason, 'version' => $p->version + 1])->save();
             DB::table('tender_participation_events')->insert(['participation_id' => $p->id, 'from_stage' => $old,
                 'actor_id' => $user->id, 'to_stage' => $p->stage->value, 'reason' => $reason, 'created_at' => now()]);
+            if ($team) {
+                app(TeamActivityService::class)->record($team, $user, 'participation_updated', ['participation_id' => $p->id,
+                    'tender_id' => $tender->id, 'stage' => $p->stage->value, 'assignee_id' => $assignee]);
+            }
 
             return $p;
         });
@@ -104,7 +109,10 @@ final class TenderWorkController extends Controller
             $scope->lock($user, $team);
             $p = $work->participations($user, $team)->where('tender_id', $tender->id)->lockForUpdate()->firstOrFail();
             abort_if($p->items()->count() >= 100, 422, 'В чек-листе допускается до 100 задач.');
-            $p->items()->create(['assignee_id' => $scope->assignee($user, $team, $data['assignee_id'] ?? null), 'reminder_enabled' => $data['reminder_enabled'] ?? false, 'title' => trim($data['title']), 'due_on' => $data['due_on'] ?? null]);
+            $item = $p->items()->create(['assignee_id' => $scope->assignee($user, $team, $data['assignee_id'] ?? null), 'reminder_enabled' => $data['reminder_enabled'] ?? false, 'title' => trim($data['title']), 'due_on' => $data['due_on'] ?? null]);
+            if ($team) {
+                app(TeamActivityService::class)->record($team, $user, 'task_created', ['participation_id' => $p->id, 'task_id' => $item->id]);
+            }
 
             return $p;
         });
@@ -140,12 +148,18 @@ final class TenderWorkController extends Controller
             abort_if($locked->version !== (int) $data['version'], 409, 'Задача изменена в другой вкладке. Обновите страницу.');
             if ($delete) {
                 $locked->delete();
+                if ($team) {
+                    app(TeamActivityService::class)->record($team, $user, 'task_deleted', ['participation_id' => $locked->participation_id, 'task_id' => $locked->id]);
+                }
             } else {
                 abort_if(($data['reminder_enabled'] ?? $locked->reminder_enabled) && empty($data['due_on']), 422, 'Для напоминания нужен срок задачи.');
                 $locked->fill(['assignee_id' => array_key_exists('assignee_id', $data) ? $scope->assignee($user, $team, $data['assignee_id']) : $locked->assignee_id,
                     'reminder_enabled' => $data['reminder_enabled'] ?? $locked->reminder_enabled, 'title' => trim($data['title']), 'due_on' => $data['due_on'] ?? null,
                     'completed_at' => $data['completed'] ? ($locked->completed_at ?? now()) : null,
                     'version' => $locked->version + 1])->save();
+                if ($team) {
+                    app(TeamActivityService::class)->record($team, $user, 'task_updated', ['participation_id' => $locked->participation_id, 'task_id' => $locked->id]);
+                }
             }
         });
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ParticipationStage;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ final class TeamWorkspaceService
     {
         $role = $this->role($user, $team);
         abort_unless($role !== null, 404);
+        abort_if($write && $team->archived_at !== null, 409, 'Команда находится в архиве. Восстановите её, чтобы вносить изменения.');
         abort_if(($write && $role === 'viewer') || ($owner && $team->owner_id !== $user->id), 403);
     }
 
@@ -59,11 +61,35 @@ final class TeamWorkspaceService
     public function props(User $user, ?Team $team): array
     {
         $teams = DB::table('teams')->join('team_members', 'teams.id', '=', 'team_members.team_id')
-            ->where('team_members.user_id', $user->id)->orderBy('teams.name')->get(['teams.id', 'teams.name', 'team_members.role']);
+            ->where('team_members.user_id', $user->id)->orderByRaw('teams.archived_at IS NOT NULL')->orderBy('teams.name')
+            ->get(['teams.id', 'teams.name', 'teams.archived_at', 'team_members.role']);
         $members = $team ? DB::table('team_members')->join('users', 'users.id', '=', 'team_members.user_id')
             ->where('team_id', $team->id)->orderBy('users.id')->get(['users.id', 'users.name', 'team_members.role']) : [];
 
-        return ['teams' => $teams, 'team' => $team ? ['id' => $team->id, 'name' => $team->name, 'role' => $this->role($user, $team)] : null,
-            'members' => $members, 'can_edit' => ! $team || $this->role($user, $team) !== 'viewer'];
+        if ($team) {
+            $activeStages = [ParticipationStage::Studying->value, ParticipationStage::Preparing->value, ParticipationStage::Submitted->value];
+            $applications = DB::table('tender_participations')->where('team_id', $team->id)->whereNotNull('assignee_id')
+                ->whereIn('stage', $activeStages)->groupBy('assignee_id')->selectRaw('assignee_id, COUNT(*) as total')->pluck('total', 'assignee_id');
+            $tasks = DB::table('tender_checklist_items')->join('tender_participations', 'tender_participations.id', '=', 'tender_checklist_items.participation_id')
+                ->where('tender_participations.team_id', $team->id)->whereNotNull('tender_checklist_items.assignee_id')
+                ->whereNull('tender_checklist_items.completed_at')->groupBy('tender_checklist_items.assignee_id')
+                ->selectRaw('tender_checklist_items.assignee_id, COUNT(*) as total')->pluck('total', 'tender_checklist_items.assignee_id');
+            $overdue = DB::table('tender_checklist_items')->join('tender_participations', 'tender_participations.id', '=', 'tender_checklist_items.participation_id')
+                ->where('tender_participations.team_id', $team->id)->whereNotNull('tender_checklist_items.assignee_id')
+                ->whereNull('tender_checklist_items.completed_at')->whereDate('tender_checklist_items.due_on', '<', now(app(TenderCalendarService::class)->timezone($user))->toDateString())
+                ->groupBy('tender_checklist_items.assignee_id')->selectRaw('tender_checklist_items.assignee_id, COUNT(*) as total')
+                ->pluck('total', 'tender_checklist_items.assignee_id');
+            $members->transform(function (object $member) use ($applications, $tasks, $overdue): object {
+                $member->active_applications = (int) ($applications[$member->id] ?? 0);
+                $member->open_tasks = (int) ($tasks[$member->id] ?? 0);
+                $member->overdue_tasks = (int) ($overdue[$member->id] ?? 0);
+
+                return $member;
+            });
+        }
+
+        return ['teams' => $teams, 'team' => $team ? ['id' => $team->id, 'name' => $team->name, 'role' => $this->role($user, $team),
+            'archived_at' => $team->archived_at?->toAtomString()] : null,
+            'members' => $members, 'can_edit' => ! $team || ($team->archived_at === null && $this->role($user, $team) !== 'viewer')];
     }
 }

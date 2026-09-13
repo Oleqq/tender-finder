@@ -128,3 +128,12 @@ it('reminds the owner of a personal task and stops after the tender is hidden', 
     $service->queueDue();
     expect(NotificationDelivery::query()->count())->toBe(0);
 });
+
+it('does not queue or deliver reminders from an archived team', function () {
+    [$member, $team, $p, $item] = reminderFixture();
+    $team->update(['archived_at' => now()]);
+
+    expect(app(TaskReminderService::class)->recipient($item))->toBeNull();
+    app(TaskReminderService::class)->queueDue();
+    expect(NotificationDelivery::query()->count())->toBe(0);
+});
