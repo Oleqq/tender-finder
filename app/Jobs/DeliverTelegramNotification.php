@@ -7,6 +7,7 @@ use App\Models\NotificationDelivery;
 use App\Models\NotificationPreference;
 use App\Models\TenderUserState;
 use App\Services\AccessService;
+use App\Services\ParticipationCommentService;
 use App\Services\TaskReminderService;
 use App\Services\TelegramBotClient;
 use App\Services\TenderFollowUpService;
@@ -33,8 +34,8 @@ class DeliverTelegramNotification implements ShouldQueue
             return;
         }
 
-        $retryTask = $delivery->type === 'task_reminder' && $delivery->status === NotificationStatus::Failed;
-        if ($delivery->status !== NotificationStatus::Queued && ! $retryTask) {
+        $retryableFailure = in_array($delivery->type, ['task_reminder', 'team_mention'], true) && $delivery->status === NotificationStatus::Failed;
+        if ($delivery->status !== NotificationStatus::Queued && ! $retryableFailure) {
             return;
         }
 
@@ -59,6 +60,12 @@ class DeliverTelegramNotification implements ShouldQueue
             return;
         }
 
+        if ($delivery->type === 'team_mention' && ! app(ParticipationCommentService::class)->stillDue($delivery)) {
+            $delivery->forceFill(['status' => NotificationStatus::Skipped, 'failure_code' => 'mention_no_longer_due'])->save();
+
+            return;
+        }
+
         try {
             $payload = $delivery->payload ?? [];
             $text = match ($delivery->type) {
@@ -69,6 +76,7 @@ class DeliverTelegramNotification implements ShouldQueue
                 'tender_change' => $this->changesText($payload),
                 'tender_digest' => $this->digestText($payload),
                 'task_reminder' => (($payload['phase'] ?? '') === 'upcoming' ? 'Задача на завтра' : 'Задача просрочена').": {$payload['title']}\nСрок: {$payload['due_on']}\n{$payload['tender_title']}\n{$payload['url']}",
+                'team_mention' => "{$payload['author']} упомянул вас в заявке «{$payload['title']}»\n{$payload['excerpt']}\n{$payload['url']}",
                 default => "Новый подходящий тендер: {$payload['title']}\n{$payload['url']}",
             };
 

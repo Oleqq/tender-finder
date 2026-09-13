@@ -11,6 +11,7 @@ export function TenderWorkNav({ active }: { active: string }) {
             {[
                 ['/tenders', 'Лента'],
                 ['/participation', 'Участие'],
+                ['/participation/analytics', 'Аналитика'],
                 ['/calendar', 'Календарь'],
             ].map(([href, label]) => (
                 <Link

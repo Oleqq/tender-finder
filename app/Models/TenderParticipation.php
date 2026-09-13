@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ParticipationStage $stage
  * @property string|null $loss_reason
  * @property int $version
+ * @property int $economics_version
  * @property Tender $tender
  */
 class TenderParticipation extends Model
@@ -24,7 +25,18 @@ class TenderParticipation extends Model
 
     protected function casts(): array
     {
-        return ['stage' => ParticipationStage::class, 'version' => 'integer'];
+        return [
+            'stage' => ParticipationStage::class,
+            'version' => 'integer',
+            'economics_version' => 'integer',
+            'planned_revenue' => 'decimal:2',
+            'planned_cost' => 'decimal:2',
+            'security_cost' => 'decimal:2',
+            'commission_cost' => 'decimal:2',
+            'other_cost' => 'decimal:2',
+            'actual_revenue' => 'decimal:2',
+            'actual_cost' => 'decimal:2',
+        ];
     }
 
     /** @return BelongsTo<Tender, $this> */

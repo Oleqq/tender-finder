@@ -60,6 +60,12 @@ erDiagram
     SOURCE_FEED_ITEMS ||--o| TENDERS : normalizes_to
     TENDERS ||--o{ TENDER_QUERY_MATCHES : matches
     SEARCH_QUERIES ||--o{ TENDER_QUERY_MATCHES : explains
+    USERS ||--o{ TENDER_PARTICIPATIONS : owns_or_assigned
+    TENDERS ||--o{ TENDER_PARTICIPATIONS : tracked_as
+    TENDER_PARTICIPATIONS ||--o{ PARTICIPATION_COMMENTS : discusses
+    PARTICIPATION_COMMENTS ||--o{ PARTICIPATION_COMMENT_VERSIONS : preserves
+    PARTICIPATION_COMMENTS ||--o{ PARTICIPATION_COMMENT_MENTIONS : notifies
+    USERS ||--o{ PARTICIPATION_COMMENT_READS : reads
     USERS ||--o{ NOTIFICATION_DELIVERIES : receives
     TENDERS ||--o{ NOTIFICATION_DELIVERIES : references
     SEARCH_QUERIES ||--o{ NOTIFICATION_DELIVERIES : triggers
@@ -132,6 +138,21 @@ Railway scheduler service, а не HTTP-процессом web-приложен�
 `:memory:`, а GitHub Actions проверяет migrations на выделенной PostgreSQL
 `tender_finder_testing`. Production contract — PostgreSQL 16; тестовый
 fail-safe не допускает запуск suite на постоянной dev-базе.
+
+### Участие, обсуждения и экономика
+
+| Таблица | Главное содержимое | Правило |
+|---|---|---|
+| `tender_participations` | личный или командный контекст, этап, ответственный, причина проигрыша, плановые/фактические суммы, решение go/no-go и независимые версии workflow/экономики | одна заявка на тендер в пределах личной области или команды; денежные поля хранятся как `decimal(18,2)` |
+| `participation_comments` | автор, текущий текст, версия, время правки и логического удаления | комментарий остаётся связан с заявкой; автора можно обнулить при удалении пользователя |
+| `participation_comment_versions` | снимок текста, действие, редактор и номер версии | append-only история; версия уникальна внутри комментария |
+| `participation_comment_mentions` | адресат упоминания и время прочтения | одно упоминание пользователя в комментарии; создаёт идемпотентную Telegram-доставку |
+| `participation_comment_reads` | последний показанный пользователю comment ID для заявки | уникальная позиция чтения на пару заявка/пользователь; новые параллельные комментарии не помечаются прочитанными |
+
+Права на эти строки выводятся из владельца личной заявки либо активного
+членства и роли в команде. Архив команды оставляет данные доступными для чтения
+и блокирует изменения и новые доставки. Агрегаты аналитики вычисляются из
+заявок и переходов этапов, поэтому отдельная таблица метрик не создаётся.
 
 ### Состояния
 

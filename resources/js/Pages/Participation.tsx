@@ -17,6 +17,8 @@ type Row = {
     deadline_at: string | null;
     items_count: number;
     completed_count: number;
+    unread_comments: number;
+    decision: 'go' | 'no_go' | null;
 };
 
 export default function ParticipationPage() {
@@ -113,6 +115,15 @@ export default function ParticipationPage() {
                             >
                                 {stageLabel(row.stage)}
                             </Badge>
+                            {row.decision ? (
+                                <Badge
+                                    tone={row.decision === 'go' ? 'success' : 'danger'}
+                                >
+                                    {row.decision === 'go'
+                                        ? 'Участвуем'
+                                        : 'Не участвуем'}
+                                </Badge>
+                            ) : null}
                             <h2>
                                 <Link
                                     href={scopedUrl(
@@ -138,6 +149,11 @@ export default function ParticipationPage() {
                                     {row.completed_count} / {row.items_count} задач
                                 </span>
                             </div>
+                            {row.unread_comments > 0 ? (
+                                <p className="work-unread">
+                                    Новых комментариев: {row.unread_comments}
+                                </p>
+                            ) : null}
                             {row.loss_reason ? (
                                 <p className="work-reason">
                                     Причина проигрыша: {row.loss_reason}

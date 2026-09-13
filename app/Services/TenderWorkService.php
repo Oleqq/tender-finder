@@ -59,6 +59,7 @@ final class TenderWorkService
             'assignee_id' => $participation->assignee_id,
             'loss_reason' => $participation->loss_reason,
             'version' => $participation->version,
+            'economics' => $this->economics($participation),
             'items' => $participation->items()->orderBy('id')->get()->map(fn (TenderChecklistItem $item): array => [
                 'id' => $item->id, 'title' => $item->title, 'due_on' => $item->due_on?->format('Y-m-d'),
                 'assignee_id' => $item->assignee_id, 'reminder_enabled' => $item->reminder_enabled,
@@ -70,5 +71,38 @@ final class TenderWorkService
                     'reason' => $event->reason, 'created_at' => Carbon::parse($event->created_at)->toAtomString(),
                 ])->all(),
         ];
+    }
+
+    /** @return array<string, float|int|string|null> */
+    public function economics(TenderParticipation $participation): array
+    {
+        $plannedRevenue = $this->money($participation->planned_revenue);
+        $plannedExpenses = $this->money($participation->planned_cost) + $this->money($participation->security_cost)
+            + $this->money($participation->commission_cost) + $this->money($participation->other_cost);
+        $plannedMargin = $plannedRevenue - $plannedExpenses;
+        $actualRevenue = $this->money($participation->actual_revenue);
+        $actualCost = $this->money($participation->actual_cost);
+
+        return [
+            'planned_revenue' => $participation->planned_revenue,
+            'planned_cost' => $participation->planned_cost,
+            'security_cost' => $participation->security_cost,
+            'commission_cost' => $participation->commission_cost,
+            'other_cost' => $participation->other_cost,
+            'actual_revenue' => $participation->actual_revenue,
+            'actual_cost' => $participation->actual_cost,
+            'decision' => $participation->participation_decision,
+            'decision_note' => $participation->decision_note,
+            'version' => $participation->economics_version,
+            'planned_expenses' => round($plannedExpenses, 2),
+            'planned_margin' => round($plannedMargin, 2),
+            'planned_margin_percent' => $plannedRevenue > 0 ? round($plannedMargin / $plannedRevenue * 100, 1) : null,
+            'actual_margin' => round($actualRevenue - $actualCost, 2),
+        ];
+    }
+
+    private function money(mixed $value): float
+    {
+        return $value === null ? 0.0 : (float) $value;
     }
 }

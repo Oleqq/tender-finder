@@ -7,6 +7,7 @@ use App\Models\Tender;
 use App\Models\TenderChecklistItem;
 use App\Models\TenderParticipation;
 use App\Models\User;
+use App\Services\ParticipationCommentService;
 use App\Services\TeamActivityService;
 use App\Services\TeamWorkspaceService;
 use App\Services\TenderWorkService;
@@ -32,11 +33,14 @@ final class TenderWorkController extends Controller
         $rows = (clone $base)->when($stage, fn ($q) => $q->where('stage', $stage))
             ->with('tender')->withCount(['items', 'items as completed_count' => fn ($q) => $q->whereNotNull('completed_at')])
             ->latest('updated_at')->orderByDesc('id')->paginate(20)->withQueryString();
+        $comments = app(ParticipationCommentService::class);
         $rows->through(fn (TenderParticipation $p): array => [
             'id' => $p->id, 'tender_id' => $p->tender_id, 'title' => $p->tender->title,
             'assignee_id' => $p->assignee_id, 'stage' => $p->stage->value, 'loss_reason' => $p->loss_reason,
             'deadline_at' => $p->tender->deadline_at?->toAtomString(),
             'items_count' => (int) $p->getAttribute('items_count'), 'completed_count' => (int) $p->getAttribute('completed_count'),
+            'unread_comments' => $comments->unreadCount($p, $user),
+            'decision' => $p->participation_decision,
         ]);
 
         return Inertia::render('Participation', [...$scope->props($user, $team), 'participations' => $rows, 'stage' => $stage, 'counts' => $counts]);
@@ -49,12 +53,20 @@ final class TenderWorkController extends Controller
         $team = $scope->context($request, ! $request->isMethod('get'));
         $work->authorize($user, $tender, $team);
 
+        $participation = $work->participations($user, $team)->where('tender_id', $tender->id)->first();
+        $comments = $participation ? app(ParticipationCommentService::class)->present($participation, $user, $team) : [];
+        if ($participation) {
+            $lastCommentId = $comments === [] ? 0 : max(array_column($comments, 'id'));
+            app(ParticipationCommentService::class)->markRead($participation, $user, $lastCommentId);
+        }
+
         return Inertia::render('TenderWork', [
             ...$scope->props($user, $team),
             'templates' => app(ChecklistTemplateController::class)->templates($user, $team)->with('versions')->orderBy('name')->get(['id', 'name', 'items', 'version']),
             'tender' => ['id' => $tender->id, 'title' => $tender->title, 'canonical_url' => $tender->canonical_url,
                 'deadline_at' => $tender->deadline_at?->toAtomString()],
-            'participation' => $work->present($work->participations($user, $team)->where('tender_id', $tender->id)->first()),
+            'participation' => $work->present($participation),
+            'comments' => $comments,
         ]);
     }
 

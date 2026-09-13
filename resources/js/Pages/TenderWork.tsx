@@ -21,6 +21,11 @@ import {
     ChecklistTemplates,
     type ChecklistTemplate,
 } from '../Components/ChecklistTemplates';
+import { ParticipationEconomics } from '../Components/ParticipationEconomics';
+import {
+    ParticipationComments,
+    type ParticipationComment,
+} from '../Components/ParticipationComments';
 import type { PageProps } from '../types';
 
 type ItemDraft = Omit<ChecklistItem, 'id'>;
@@ -33,6 +38,7 @@ export default function TenderWork() {
         members,
         can_edit,
         templates,
+        comments,
     } = usePage<
         PageProps<
             TeamScope & {
@@ -44,6 +50,7 @@ export default function TenderWork() {
                     deadline_at: string | null;
                 };
                 participation: Participation | null;
+                comments: ParticipationComment[];
             }
         >
     >().props;
@@ -414,6 +421,23 @@ export default function TenderWork() {
                         )}
                     </GlassCard>
                 </div>
+                {participation ? (
+                    <ParticipationEconomics
+                        initial={participation.economics}
+                        root={root}
+                        team={team}
+                        canEdit={can_edit}
+                    />
+                ) : null}
+                {participation ? (
+                    <ParticipationComments
+                        initial={comments}
+                        root={root}
+                        team={team}
+                        members={members}
+                        canEdit={can_edit}
+                    />
+                ) : null}
             </AppShell>
         </>
     );

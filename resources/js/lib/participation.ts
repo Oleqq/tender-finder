@@ -22,6 +22,7 @@ export type Participation = {
     stage: Stage;
     loss_reason: string | null;
     version: number;
+    economics: Economics;
     items: ChecklistItem[];
     history: Array<{
         id: number;
@@ -30,4 +31,21 @@ export type Participation = {
         reason: string | null;
         created_at: string;
     }>;
+};
+
+export type Economics = {
+    planned_revenue: string | null;
+    planned_cost: string | null;
+    security_cost: string | null;
+    commission_cost: string | null;
+    other_cost: string | null;
+    actual_revenue: string | null;
+    actual_cost: string | null;
+    decision: 'go' | 'no_go' | null;
+    decision_note: string | null;
+    version: number;
+    planned_expenses: number;
+    planned_margin: number;
+    planned_margin_percent: number | null;
+    actual_margin: number;
 };
