@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $id
  * @property int $user_id
+ * @property int|null $team_id
+ * @property int|null $assignee_id
  * @property int $tender_id
  * @property ParticipationStage $stage
  * @property string|null $loss_reason

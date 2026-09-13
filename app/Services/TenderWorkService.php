@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Team;
 use App\Models\Tender;
 use App\Models\TenderChecklistItem;
 use App\Models\TenderParticipation;
@@ -26,8 +27,23 @@ final class TenderWorkService
         });
     }
 
-    public function authorize(User $user, Tender $tender): void
+    /** @return Builder<TenderParticipation> */
+    public function participations(User $user, ?Team $team): Builder
     {
+        if ($team) {
+            app(TeamWorkspaceService::class)->authorize($user, $team);
+        }
+
+        return TenderParticipation::query()->when($team,
+            fn (Builder $q) => $q->where('team_id', $team->id),
+            fn (Builder $q) => $q->whereNull('team_id')->where('user_id', $user->id));
+    }
+
+    public function authorize(User $user, Tender $tender, ?Team $team = null): void
+    {
+        if ($team && $this->participations($user, $team)->where('tender_id', $tender->id)->exists()) {
+            return;
+        }
         abort_unless($this->accessible($user)->whereKey($tender->id)->exists(), 404);
     }
 
@@ -40,10 +56,12 @@ final class TenderWorkService
 
         return [
             'stage' => $participation->stage->value,
+            'assignee_id' => $participation->assignee_id,
             'loss_reason' => $participation->loss_reason,
             'version' => $participation->version,
             'items' => $participation->items()->orderBy('id')->get()->map(fn (TenderChecklistItem $item): array => [
                 'id' => $item->id, 'title' => $item->title, 'due_on' => $item->due_on?->format('Y-m-d'),
+                'assignee_id' => $item->assignee_id, 'reminder_enabled' => $item->reminder_enabled,
                 'completed' => $item->completed_at !== null, 'version' => $item->version,
             ])->all(),
             'history' => DB::table('tender_participation_events')->where('participation_id', $participation->id)

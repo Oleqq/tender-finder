@@ -1,8 +1,10 @@
+import { scopedUrl } from '../lib/workspace';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { Badge, Button, GlassCard } from '../Components/ui';
+import { WorkspacePicker, type TeamScope } from '../Components/WorkspacePicker';
 import type { PageProps } from '../types';
 
 type CalendarEvent = {
@@ -24,9 +26,11 @@ const kinds = [
 ];
 
 export default function TenderCalendar() {
-    const { month, timezone, events } =
+    const { month, timezone, events, team } =
         usePage<
-            PageProps<{ month: string; timezone: string; events: CalendarEvent[] }>
+            PageProps<
+                TeamScope & { month: string; timezone: string; events: CalendarEvent[] }
+            >
         >().props;
     const [selected, setSelected] = useState<string | null>(null);
     const [kind, setKind] = useState('all');
@@ -44,13 +48,16 @@ export default function TenderCalendar() {
     }).format(new Date());
     const move = (delta: number): void => {
         const date = new Date(Date.UTC(year, number - 1 + delta, 1));
-        router.get('/calendar', { month: date.toISOString().slice(0, 7) });
+        router.get(scopedUrl('/calendar', team), {
+            month: date.toISOString().slice(0, 7),
+        });
     };
     return (
         <>
             <Head title="Календарь закупок" />
             <AppShell title="Календарь" activeNav="/tenders" className="work-page">
                 <TenderWorkNav active="/calendar" />
+                <WorkspacePicker path="/calendar" />
                 <div className="work-intro">
                     <h2>Сроки под контролем</h2>
                     <p>
@@ -93,7 +100,9 @@ export default function TenderCalendar() {
                             value={month}
                             onChange={(e) => {
                                 if (e.target.value)
-                                    router.get('/calendar', { month: e.target.value });
+                                    router.get(scopedUrl('/calendar', team), {
+                                        month: e.target.value,
+                                    });
                             }}
                         />
                     </label>
@@ -137,7 +146,7 @@ export default function TenderCalendar() {
                         </Button>
                         <a
                             className="button button--secondary"
-                            href={`/calendar/export?month=${month}`}
+                            href={scopedUrl(`/calendar/export?month=${month}`, team)}
                         >
                             Скачать месяц .ics
                         </a>
@@ -192,9 +201,7 @@ export default function TenderCalendar() {
                                     : ` · ${new Date(event.starts_at).toLocaleTimeString('ru-RU', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })}`}
                             </time>
                             <h3>{event.title}</h3>
-                            <Link href={`/tenders/${event.tender_id}/work`}>
-                                {event.tender_title}
-                            </Link>
+                            <Link href={event.url}>{event.tender_title}</Link>
                         </GlassCard>
                     ))}
                 </section>

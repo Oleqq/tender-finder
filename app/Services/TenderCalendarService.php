@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\NotificationPreference;
+use App\Models\Team;
 use App\Models\Tender;
 use App\Models\TenderChecklistItem;
 use App\Models\User;
@@ -20,8 +21,11 @@ final class TenderCalendarService
     }
 
     /** @return list<CalendarEvent> */
-    public function events(User $user, string $month): array
+    public function events(User $user, string $month, ?Team $team = null): array
     {
+        if ($team) {
+            app(TeamWorkspaceService::class)->authorize($user, $team);
+        }
         $timezone = $this->timezone($user);
         $start = Carbon::createFromFormat('!Y-m', $month, $timezone);
         $end = $start->copy()->addMonth();
@@ -30,33 +34,35 @@ final class TenderCalendarService
         $from = $start->copy()->utc();
         $until = $end->copy()->utc();
         $due = fn ($q) => $q->whereNull('completed_at')->whereBetween('due_on', [$first, $last]);
-        $tenders = app(TenderWorkService::class)->accessible($user)
-            ->whereDoesntHave('userStates', fn (Builder $q) => $q->where('user_id', $user->id)->whereIn('status', ['dismissed', 'archived']))
-            ->where(function (Builder $q) use ($user, $first, $last, $from, $until, $due): void {
+        $participations = fn ($q) => $team ? $q->where('team_id', $team->id) : $q->whereNull('team_id')->where('user_id', $user->id);
+        $base = $team ? Tender::query()->whereHas('participations', $participations) : app(TenderWorkService::class)->accessible($user);
+        $tenders = $base
+            ->when(! $team, fn ($q) => $q->whereDoesntHave('userStates', fn (Builder $s) => $s->where('user_id', $user->id)->whereIn('status', ['dismissed', 'archived'])))
+            ->where(function (Builder $q) use ($user, $first, $last, $from, $until, $due, $team, $participations): void {
                 $q->where(fn (Builder $d) => $d->where('deadline_at', '>=', $from)->where('deadline_at', '<', $until))
-                    ->orWhereHas('userStates', fn (Builder $s) => $s->where('user_id', $user->id)->whereBetween('next_action_on', [$first, $last]))
-                    ->orWhereHas('participations', fn (Builder $p) => $p->where('user_id', $user->id)->whereHas('items', $due));
+                    ->when(! $team, fn ($q) => $q->orWhereHas('userStates', fn (Builder $s) => $s->where('user_id', $user->id)->whereBetween('next_action_on', [$first, $last])))
+                    ->orWhereHas('participations', fn (Builder $p) => $participations($p)->whereHas('items', $due));
             })
-            ->with(['userStates' => fn ($q) => $q->where('user_id', $user->id),
-                'participations' => fn ($q) => $q->where('user_id', $user->id)->with(['items' => $due])])
+            ->with(['userStates' => fn ($q) => $q->where('user_id', $user->id)->when($team, fn ($q) => $q->whereRaw('1 = 0')),
+                'participations' => fn ($q) => $participations($q)->with(['items' => $due])])
             ->limit(5001)->get();
         abort_if($tenders->count() > 5000, 422, 'Слишком много закупок для одного месяца.');
         $events = [];
         foreach ($tenders as $tender) {
             if ($tender->deadline_at !== null && $tender->deadline_at->gte($from) && $tender->deadline_at->lt($until)) {
                 $date = $tender->deadline_at->copy()->setTimezone($timezone);
-                $events[] = $this->event($user, $tender, 'deadline', $tender->id, 'Подача заявки', $date->toAtomString(), $date->format('Y-m-d'), false);
+                $events[] = $this->event($user, $tender, 'deadline', $tender->id, 'Подача заявки', $date->toAtomString(), $date->format('Y-m-d'), false, $team);
             }
             $action = $tender->userStates->first()?->next_action_on?->format('Y-m-d');
             if ($action !== null && $action >= $first && $action <= $last) {
-                $events[] = $this->event($user, $tender, 'action', $tender->id, 'Личное действие', $action, $action, true);
+                $events[] = $this->event($user, $tender, 'action', $tender->id, 'Личное действие', $action, $action, true, $team);
             }
             foreach ($tender->participations as $participation) {
                 foreach ($participation->items as $item) {
                     /** @var TenderChecklistItem $item */
                     $date = $item->due_on?->format('Y-m-d');
                     if ($date !== null) {
-                        $events[] = $this->event($user, $tender, 'task', $item->id, $item->title, $date, $date, true);
+                        $events[] = $this->event($user, $tender, 'task', $item->id, $item->title, $date, $date, true, $team);
                     }
                 }
             }
@@ -68,12 +74,12 @@ final class TenderCalendarService
     }
 
     /** @return CalendarEvent */
-    private function event(User $user, Tender $tender, string $kind, int $id, string $title, string $startsAt, string $date, bool $allDay): array
+    private function event(User $user, Tender $tender, string $kind, int $id, string $title, string $startsAt, string $date, bool $allDay, ?Team $team = null): array
     {
-        return ['id' => hash('sha256', $user->id.':'.$kind.':'.$id).'@tenderfinder',
+        return ['id' => hash('sha256', $user->id.':'.($team ? 'team-'.$team->id.':' : '').$kind.':'.$id).'@tenderfinder',
             'tender_id' => $tender->id, 'title' => $title, 'tender_title' => $tender->title,
             'kind' => $kind, 'date' => $date, 'starts_at' => $startsAt, 'all_day' => $allDay,
-            'url' => route('tenders.work', $tender)];
+            'url' => route('tenders.work', ['tender' => $tender->id, ...($team ? ['team_id' => $team->id] : [])])];
     }
 
     /** @param list<CalendarEvent> $events */

@@ -1,13 +1,16 @@
+import { scopedUrl } from '../lib/workspace';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { Badge, GlassCard } from '../Components/ui';
 import { stages, stageLabel, type Stage } from '../lib/participation';
+import { WorkspacePicker, type TeamScope } from '../Components/WorkspacePicker';
 import type { PageProps } from '../types';
 
 type Row = {
     id: number;
     tender_id: number;
+    assignee_id: number | null;
     title: string;
     stage: Stage;
     loss_reason: string | null;
@@ -17,19 +20,21 @@ type Row = {
 };
 
 export default function ParticipationPage() {
-    const { participations, stage, counts } = usePage<
-        PageProps<{
-            participations: {
-                data: Row[];
-                total: number;
-                current_page: number;
-                last_page: number;
-                prev_page_url: string | null;
-                next_page_url: string | null;
-            };
-            stage: Stage | null;
-            counts: Record<string, number>;
-        }>
+    const { participations, stage, counts, team, members } = usePage<
+        PageProps<
+            TeamScope & {
+                participations: {
+                    data: Row[];
+                    total: number;
+                    current_page: number;
+                    last_page: number;
+                    prev_page_url: string | null;
+                    next_page_url: string | null;
+                };
+                stage: Stage | null;
+                counts: Record<string, number>;
+            }
+        >
     >().props;
     return (
         <>
@@ -41,6 +46,7 @@ export default function ParticipationPage() {
                 activeNav="/tenders"
             >
                 <TenderWorkNav active="/participation" />
+                <WorkspacePicker path="/participation" />
                 <div className="work-intro">
                     <h2>Ваши заявки</h2>
                     <p>
@@ -52,7 +58,7 @@ export default function ParticipationPage() {
                     <Link
                         className={!stage ? 'is-active' : ''}
                         aria-current={!stage ? 'page' : undefined}
-                        href="/participation"
+                        href={scopedUrl('/participation', team)}
                     >
                         Все{' '}
                         <strong>
@@ -67,7 +73,7 @@ export default function ParticipationPage() {
                             key={s.value}
                             className={stage === s.value ? 'is-active' : ''}
                             aria-current={stage === s.value ? 'page' : undefined}
-                            href={`/participation?stage=${s.value}`}
+                            href={scopedUrl(`/participation?stage=${s.value}`, team)}
                         >
                             {s.label} <strong>{counts[s.value] ?? 0}</strong>
                         </Link>
@@ -89,6 +95,13 @@ export default function ParticipationPage() {
                 <div className="work-list">
                     {participations.data.map((row) => (
                         <GlassCard key={row.id} as="article" className="work-card">
+                            {team && (
+                                <p>
+                                    Ответственный:{' '}
+                                    {members.find((m) => m.id === row.assignee_id)
+                                        ?.name ?? 'Не назначен'}
+                                </p>
+                            )}
                             <Badge
                                 tone={
                                     row.stage === 'won'
@@ -101,7 +114,12 @@ export default function ParticipationPage() {
                                 {stageLabel(row.stage)}
                             </Badge>
                             <h2>
-                                <Link href={`/tenders/${row.tender_id}/work`}>
+                                <Link
+                                    href={scopedUrl(
+                                        `/tenders/${row.tender_id}/work`,
+                                        team,
+                                    )}
+                                >
                                     {row.title}
                                 </Link>
                             </h2>
@@ -126,7 +144,7 @@ export default function ParticipationPage() {
                                 </p>
                             ) : null}
                             <Link
-                                href={`/tenders/${row.tender_id}/work`}
+                                href={scopedUrl(`/tenders/${row.tender_id}/work`, team)}
                                 className="button button--secondary"
                             >
                                 Открыть заявку

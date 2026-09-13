@@ -7,6 +7,7 @@ use App\Models\NotificationDelivery;
 use App\Models\NotificationPreference;
 use App\Models\TenderUserState;
 use App\Services\AccessService;
+use App\Services\TaskReminderService;
 use App\Services\TelegramBotClient;
 use App\Services\TenderFollowUpService;
 use Illuminate\Bus\Queueable;
@@ -28,7 +29,12 @@ class DeliverTelegramNotification implements ShouldQueue
     {
         $delivery = NotificationDelivery::query()->with('user')->find($this->deliveryId);
 
-        if ($delivery === null || $delivery->status !== NotificationStatus::Queued || $delivery->user->telegram_id === null) {
+        if ($delivery === null || $delivery->user->telegram_id === null) {
+            return;
+        }
+
+        $retryTask = $delivery->type === 'task_reminder' && $delivery->status === NotificationStatus::Failed;
+        if ($delivery->status !== NotificationStatus::Queued && ! $retryTask) {
             return;
         }
 
@@ -47,6 +53,12 @@ class DeliverTelegramNotification implements ShouldQueue
             return;
         }
 
+        if ($delivery->type === 'task_reminder' && ! app(TaskReminderService::class)->stillDue($delivery)) {
+            $delivery->forceFill(['status' => NotificationStatus::Skipped, 'failure_code' => 'task_no_longer_due'])->save();
+
+            return;
+        }
+
         try {
             $payload = $delivery->payload ?? [];
             $text = match ($delivery->type) {
@@ -56,11 +68,12 @@ class DeliverTelegramNotification implements ShouldQueue
                 'tender_action' => "На сегодня запланировано действие по тендеру: {$payload['title']}\n{$payload['url']}",
                 'tender_change' => $this->changesText($payload),
                 'tender_digest' => $this->digestText($payload),
+                'task_reminder' => (($payload['phase'] ?? '') === 'upcoming' ? 'Задача на завтра' : 'Задача просрочена').": {$payload['title']}\nСрок: {$payload['due_on']}\n{$payload['tender_title']}\n{$payload['url']}",
                 default => "Новый подходящий тендер: {$payload['title']}\n{$payload['url']}",
             };
 
             $bot->sendMessage($delivery->user->telegram_id, $text);
-            $delivery->forceFill(['status' => NotificationStatus::Sent, 'sent_at' => now()])->save();
+            $delivery->forceFill(['status' => NotificationStatus::Sent, 'sent_at' => now(), 'failed_at' => null, 'failure_code' => null])->save();
         } catch (Throwable $exception) {
             $delivery->forceFill([
                 'status' => NotificationStatus::Failed,

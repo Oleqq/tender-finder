@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ChecklistTemplateController;
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EisCatalogController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\RemoteMvpOperatorSessionController;
 use App\Http\Controllers\SavedSearchRunController;
 use App\Http\Controllers\SavedSearchRunHistoryController;
 use App\Http\Controllers\SearchQueryController;
+use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderCalendarController;
 use App\Http\Controllers\TenderExportController;
@@ -53,7 +55,19 @@ Route::post('/telegram/session', [TelegramSessionController::class, 'store'])
     ->middleware('throttle:telegram-session')
     ->name('telegram.session.store');
 
+Route::get('/team-invitations/{token}', [TeamController::class, 'invitation']);
+
 Route::middleware('auth')->group(function () {
+    Route::get('/teams', [TeamController::class, 'index'])->name('teams');
+    Route::post('/teams', [TeamController::class, 'store']);
+    Route::post('/teams/{team}/invitations', [TeamController::class, 'invite'])->middleware('throttle:30,1');
+    Route::delete('/teams/{team}/invitations/{invitation}', [TeamController::class, 'revoke']);
+    Route::patch('/teams/{team}/members/{member}', [TeamController::class, 'member']);
+    Route::delete('/teams/{team}/members/{member}', [TeamController::class, 'member']);
+    Route::post('/team-invitations/{token}', [TeamController::class, 'accept'])->middleware('throttle:30,1');
+    Route::post('/checklist-templates', [ChecklistTemplateController::class, 'store']);
+    Route::delete('/checklist-templates/{template}', [ChecklistTemplateController::class, 'destroy']);
+    Route::post('/tenders/{tender}/templates/{template}', [ChecklistTemplateController::class, 'apply']);
     Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');

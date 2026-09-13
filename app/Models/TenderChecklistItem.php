@@ -9,6 +9,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $participation_id
+ * @property int|null $assignee_id
+ * @property bool $reminder_enabled
  * @property string $title
  * @property Carbon|null $due_on
  * @property Carbon|null $completed_at
@@ -21,7 +23,7 @@ class TenderChecklistItem extends Model
 
     protected function casts(): array
     {
-        return ['due_on' => 'date', 'completed_at' => 'datetime', 'version' => 'integer'];
+        return ['reminder_enabled' => 'boolean', 'due_on' => 'date', 'completed_at' => 'datetime', 'version' => 'integer'];
     }
 
     /** @return BelongsTo<TenderParticipation, $this> */

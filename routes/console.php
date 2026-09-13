@@ -15,3 +15,5 @@ Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverl
 
 Schedule::command('notifications:send-tender-reminders')->everyMinute()->withoutOverlapping();
 Schedule::command('tenders:refresh-watched')->hourly()->withoutOverlapping();
+
+Schedule::command('notifications:send-task-reminders')->everyMinute()->withoutOverlapping();

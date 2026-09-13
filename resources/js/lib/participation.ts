@@ -12,10 +12,13 @@ export type ChecklistItem = {
     id: number;
     title: string;
     due_on: string | null;
+    assignee_id: number | null;
+    reminder_enabled: boolean;
     completed: boolean;
     version: number;
 };
 export type Participation = {
+    assignee_id: number | null;
     stage: Stage;
     loss_reason: string | null;
     version: number;

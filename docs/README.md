@@ -12,6 +12,7 @@
 | [LOCAL-TELEGRAM-BOT](LOCAL-TELEGRAM-BOT.md) | Локальная проверка Laravel Telegram webhook, очереди и Mini App. |
 | [RSS-MVP-SOURCE](RSS-MVP-SOURCE.md) | Реальный контракт RSS ЕИС, лимиты и безопасность. |
 | [PARTICIPATION-AND-CALENDAR](PARTICIPATION-AND-CALENDAR.md) | Участие, чек-листы, календарь, экспорт и проверка. |
+| [TEAM-WORKSPACES](TEAM-WORKSPACES.md) | Команды, роли, ответственные, шаблоны и напоминания по задачам. |
 | [DATABASE](DATABASE.md) | Схема данных и правила хранения. |
 | [DEPLOYMENT](DEPLOYMENT.md) | Чек-лист будущего VPS cutover. |
 | [DESIGN-SYSTEM](DESIGN-SYSTEM.md) | Компоненты и правила UI. |

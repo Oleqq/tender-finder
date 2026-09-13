@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\TeamWorkspaceService;
 use App\Services\TenderCalendarService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,7 +18,9 @@ final class TenderCalendarController extends Controller
         $data = $request->validate(['month' => ['nullable', 'date_format:Y-m', 'regex:/^20\d{2}-(0[1-9]|1[0-2])$/']]);
         $timezone = $calendar->timezone($user);
         $month = $data['month'] ?? now($timezone)->format('Y-m');
-        $events = $calendar->events($user, $month);
+        $scope = app(TeamWorkspaceService::class);
+        $team = $scope->context($request);
+        $events = $calendar->events($user, $month, $team);
         if ($request->routeIs('calendar.export')) {
             return response($calendar->ics($events), 200, [
                 'Content-Type' => 'text/calendar; charset=utf-8',
@@ -26,6 +29,6 @@ final class TenderCalendarController extends Controller
             ]);
         }
 
-        return Inertia::render('TenderCalendar', ['month' => $month, 'timezone' => $timezone, 'events' => $events]);
+        return Inertia::render('TenderCalendar', [...$scope->props($user, $team), 'month' => $month, 'timezone' => $timezone, 'events' => $events]);
     }
 }
