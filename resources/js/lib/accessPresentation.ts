@@ -56,8 +56,7 @@ export function presentAccess(access: Access | null): AccessPresentation {
             return {
                 badge: '3 дня бесплатно',
                 title: 'Начните пробный период',
-                description:
-                    'Примите оферту и политику — доступ включится сразу.',
+                description: 'Примите оферту и политику — доступ включится сразу.',
                 detail: '72 часа · до 3 мониторингов',
                 tone: 'accent',
             };

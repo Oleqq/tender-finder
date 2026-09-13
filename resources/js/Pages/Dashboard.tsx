@@ -177,7 +177,9 @@ export default function Dashboard() {
                         </Link>
                     </div>
                     <InlineAlert
-                        title={canStartTrial ? 'Что будет дальше' : 'Как работает поток'}
+                        title={
+                            canStartTrial ? 'Что будет дальше' : 'Как работает поток'
+                        }
                         tone="neutral"
                     >
                         {canUseMonitoring

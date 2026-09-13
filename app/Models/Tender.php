@@ -74,4 +74,10 @@ class Tender extends Model
     {
         return $this->hasMany(TenderUserState::class);
     }
+
+    /** @return HasMany<TenderParticipation, $this> */
+    public function participations(): HasMany
+    {
+        return $this->hasMany(TenderParticipation::class);
+    }
 }

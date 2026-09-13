@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import { useTelegramWebApp } from '../lib/telegram';
 
 export function TelegramSetup() {
-    useTelegramWebApp();
+    const webApp = useTelegramWebApp();
 
     useEffect(() => {
-        const initData = window.Telegram?.WebApp?.initData;
+        const initData = webApp?.initData;
 
         if (!initData) {
             return;
@@ -38,7 +38,7 @@ export function TelegramSetup() {
                 // Regular browser sessions and old Telegram clients remain anonymous.
                 // The server has already recorded no trust in client-side fields.
             });
-    }, []);
+    }, [webApp]);
 
     return null;
 }

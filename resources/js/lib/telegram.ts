@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 type TelegramThemeParams = {
     bg_color?: string;
@@ -88,10 +88,19 @@ const applyTelegramTheme = (webApp: TelegramWebApp): void => {
  * Applies optional Telegram chrome and theme values. The visual layer never
  * treats WebApp values or initData as authenticated user information.
  */
-export const useTelegramWebApp = (): void => {
-    useEffect(() => {
-        const webApp = window.Telegram?.WebApp;
+export const useTelegramWebApp = (): TelegramWebApp | undefined => {
+    const [webApp, setWebApp] = useState(() => window.Telegram?.WebApp);
 
+    useEffect(() => {
+        const sdk = document.getElementById('telegram-web-app-sdk');
+        const loaded = (): void => setWebApp(window.Telegram?.WebApp);
+        sdk?.addEventListener('load', loaded);
+        // Covers a load between the initial render and effect subscription.
+        loaded();
+        return () => sdk?.removeEventListener('load', loaded);
+    }, []);
+
+    useEffect(() => {
         if (!webApp) {
             return;
         }
@@ -115,5 +124,7 @@ export const useTelegramWebApp = (): void => {
             webApp.offEvent?.('themeChanged', sync);
             webApp.offEvent?.('viewportChanged', sync);
         };
-    }, []);
+    }, [webApp]);
+
+    return webApp;
 };

@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Badge, Button, FieldError, GlassCard, InlineAlert } from '../Components/ui';
@@ -159,6 +159,12 @@ export default function MvpTenderDetail() {
                                 <span>ЕИС · госзакупки</span>
                             </div>
                             <h2>{tender.title}</h2>
+                            <Link
+                                href={`/tenders/${tender.id}/work`}
+                                className="button button--secondary"
+                            >
+                                Участие и задачи
+                            </Link>
                             <div
                                 aria-label="Тип закупки"
                                 className="mvp-tender-detail__facts"

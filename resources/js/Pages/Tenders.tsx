@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { type FormEvent, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
+import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { TenderFeedbackActions } from '../Components/TenderFeedbackActions';
 import { Icon } from '../Components/Icon';
 import {
@@ -174,6 +175,7 @@ export default function Tenders() {
                 eyebrow="Мой поток"
                 title="Тендеры"
             >
+                <TenderWorkNav active="/tenders" />
                 <GlassCard className="tenders-summary page-enter" tone="quiet">
                     <span className="tenders-summary__mark">
                         <Icon name="layers" size={19} />
@@ -671,6 +673,7 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                 <a href={match.canonical_url} rel="noreferrer" target="_blank">
                     Первоисточник
                 </a>
+                <Link href={`/tenders/${match.tender_id}/work`}>Участие и задачи</Link>
             </div>
         </GlassCard>
     );

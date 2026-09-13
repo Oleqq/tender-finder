@@ -11,7 +11,7 @@
 
         <!-- Telegram injects the API inside Mini Apps; the script also gives local
              browser sessions the same safe, no-op-capable integration surface. -->
-        <script src="https://telegram.org/js/telegram-web-app.js?56" defer></script>
+        <script id="telegram-web-app-sdk" src="https://telegram.org/js/telegram-web-app.js?56" async></script>
 
         @routes
         @viteReactRefresh

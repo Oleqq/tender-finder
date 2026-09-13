@@ -39,9 +39,22 @@ RUN composer install --no-interaction --no-progress --prefer-dist --no-scripts \
 FROM php:8.3-cli-alpine AS app-base
 
 RUN apk add --no-cache $PHPIZE_DEPS ca-certificates curl libzip-dev libxml2-dev oniguruma-dev openssl postgresql-dev \
-    && docker-php-ext-install mbstring opcache pcntl pdo_pgsql xml zip \
-    && pecl install redis \
-    && docker-php-ext-enable redis
+    && docker-php-ext-install mbstring opcache pcntl pdo_pgsql xml zip
+
+# Pin the official extension source so fresh builds do not depend on PECL discovery.
+ARG PHPREDIS_VERSION=6.3.0
+RUN curl --fail --show-error --location --retry 3 --connect-timeout 15 --max-time 120 \
+        "https://github.com/phpredis/phpredis/archive/refs/tags/${PHPREDIS_VERSION}.tar.gz" \
+        --output /tmp/redis.tgz \
+    && mkdir /tmp/phpredis \
+    && tar -xzf /tmp/redis.tgz -C /tmp/phpredis --strip-components=1 \
+    && cd /tmp/phpredis \
+    && phpize \
+    && ./configure --enable-redis \
+    && make -j2 \
+    && make install \
+    && docker-php-ext-enable redis \
+    && rm -rf /tmp/phpredis /tmp/redis.tgz
 
 WORKDIR /var/www/html
 COPY . .

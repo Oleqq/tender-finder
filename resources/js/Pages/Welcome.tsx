@@ -54,7 +54,15 @@ export default function Welcome() {
                 <div className="welcome-actions page-enter page-enter--later">
                     {auth.user ? (
                         <>
-                            <Badge tone={needsFirstStart ? 'accent' : isSuperAdmin ? 'success' : 'accent'}>
+                            <Badge
+                                tone={
+                                    needsFirstStart
+                                        ? 'accent'
+                                        : isSuperAdmin
+                                          ? 'success'
+                                          : 'accent'
+                                }
+                            >
                                 {needsFirstStart
                                     ? 'Первый запуск'
                                     : isSuperAdmin

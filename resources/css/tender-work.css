@@ -1,0 +1,241 @@
+.work-page {
+    gap: 16px;
+}
+.work-nav {
+    display: flex;
+    gap: 6px;
+    padding: 5px;
+    background: var(--tf-surface-strong);
+    border: 1px solid var(--tf-line);
+    border-radius: var(--radius-md);
+}
+.work-nav a {
+    flex: 1;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-xs);
+    color: var(--app-muted);
+    text-decoration: none;
+    font-weight: 600;
+}
+.work-nav a.is-active {
+    background: var(--tf-accent-soft);
+    color: var(--app-link);
+}
+.work-intro {
+    padding: 12px 0;
+}
+.work-intro h2,
+.work-card h2 {
+    font-size: 20px;
+    font-weight: 700;
+}
+.work-intro p,
+.work-card p,
+.work-help {
+    color: var(--app-muted);
+    line-height: 1.6;
+}
+.work-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.work-list {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+}
+.work-stages {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.work-stages a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--tf-line);
+    border-radius: var(--radius-sm);
+    background: var(--tf-surface-strong);
+}
+.work-stages a.is-active {
+    background: var(--tf-accent-soft);
+    border-color: var(--tf-accent);
+}
+.work-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+.work-progress progress {
+    flex: 1;
+    min-width: 0;
+    height: 10px;
+    accent-color: var(--tf-success);
+}
+.work-progress span {
+    white-space: nowrap;
+    font-size: 13px;
+}
+.work-form {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+}
+.work-form label,
+.work-month-label {
+    display: grid;
+    gap: 6px;
+    font-size: 14px;
+    width: 100%;
+}
+.work-form input,
+.work-form select,
+.work-form textarea,
+.work-month-label input {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    color: var(--app-ink);
+    background: var(--tf-surface-strong);
+    border: 1px solid var(--tf-line);
+    border-radius: var(--radius-xs);
+    padding: 10px;
+}
+.work-form textarea {
+    min-height: 100px;
+}
+.work-form :focus-visible,
+.work-nav :focus-visible,
+.work-calendar :focus-visible {
+    outline: 2px solid var(--tf-accent);
+    outline-offset: 2px;
+}
+.work-detail-grid {
+    display: grid;
+    gap: 20px;
+    align-items: start;
+}
+.work-task {
+    border: 1px solid var(--tf-line);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+}
+.work-task-check {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    cursor: pointer;
+}
+.work-task-check input {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    accent-color: var(--tf-success);
+}
+.work-task.is-complete .work-task-check span {
+    text-decoration: line-through;
+    color: var(--app-muted);
+}
+.work-card > .work-list {
+    width: 100%;
+}
+.work-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.work-new-task {
+    border-top: 1px solid var(--tf-line);
+    padding-top: 16px;
+}
+.work-history ol {
+    display: grid;
+    gap: 16px;
+    width: 100%;
+}
+.work-history li {
+    border-left: 2px solid var(--tf-accent);
+    padding-left: 12px;
+    display: grid;
+    gap: 5px;
+}
+.work-history time {
+    font-size: 12px;
+    color: var(--app-muted);
+}
+.work-reason {
+    white-space: pre-wrap;
+}
+.work-error {
+    color: var(--tf-danger);
+    background: var(--tf-danger-soft);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+}
+.work-success {
+    color: var(--tf-success);
+}
+.work-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+.work-toolbar h2 {
+    font-size: 17px;
+    text-align: center;
+}
+.work-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+    width: 100%;
+}
+.work-weekday {
+    text-align: center;
+    color: var(--app-muted);
+    padding: 6px 0;
+    font-size: 12px;
+}
+.work-calendar button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    border-radius: 8px;
+    border: 1px solid var(--tf-line);
+}
+.work-calendar button small {
+    font-size: 10px;
+    color: var(--app-link);
+}
+.work-calendar button.is-today {
+    border-color: var(--tf-accent);
+}
+.work-calendar button.is-selected {
+    background: var(--tf-accent-soft);
+    outline: 2px solid var(--tf-accent);
+    outline-offset: -2px;
+}
+.work-help {
+    font-size: 12px;
+}
+@media (min-width: 900px) {
+    .work-detail-grid {
+        grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr);
+    }
+}

@@ -247,15 +247,17 @@ export default function Profile() {
     );
 }
 
-function NotificationStatus({
-    preferences,
-}: {
-    preferences: NotificationPreferences;
-}) {
+function NotificationStatus({ preferences }: { preferences: NotificationPreferences }) {
     return (
         <GlassCard className="notification-preview" tone="quiet">
             <div className="notification-preview__heading">
-                <Badge tone={preferences.instant_enabled || preferences.digest_enabled ? 'success' : 'neutral'}>
+                <Badge
+                    tone={
+                        preferences.instant_enabled || preferences.digest_enabled
+                            ? 'success'
+                            : 'neutral'
+                    }
+                >
                     {preferences.instant_enabled || preferences.digest_enabled
                         ? 'Включено'
                         : 'Выключено'}
@@ -265,18 +267,25 @@ function NotificationStatus({
             {preferences.instant_enabled ? (
                 <div className="notification-preview__message">
                     <strong>Мгновенные уведомления включены</strong>
-                    <p>Каждое новое совпадение по активному мониторингу будет отправлено в этот чат Telegram.</p>
+                    <p>
+                        Каждое новое совпадение по активному мониторингу будет
+                        отправлено в этот чат Telegram.
+                    </p>
                 </div>
             ) : null}
             {preferences.digest_enabled ? (
                 <div className="notification-preview__message">
                     <strong>Ежедневный дайджест включён</strong>
-                    <p>В {preferences.digest_time} по выбранному часовому поясу придёт сводка совпадений за сутки.</p>
+                    <p>
+                        В {preferences.digest_time} по выбранному часовому поясу придёт
+                        сводка совпадений за сутки.
+                    </p>
                 </div>
             ) : null}
             {!preferences.instant_enabled && !preferences.digest_enabled ? (
                 <p>
-                    Уведомления выключены. Карточки продолжат появляться в ленте, но Telegram не будет присылать сообщения.
+                    Уведомления выключены. Карточки продолжат появляться в ленте, но
+                    Telegram не будет присылать сообщения.
                 </p>
             ) : null}
         </GlassCard>

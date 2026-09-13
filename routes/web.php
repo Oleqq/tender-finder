@@ -21,11 +21,13 @@ use App\Http\Controllers\SavedSearchRunController;
 use App\Http\Controllers\SavedSearchRunHistoryController;
 use App\Http\Controllers\SearchQueryController;
 use App\Http\Controllers\TelegramSessionController;
+use App\Http\Controllers\TenderCalendarController;
 use App\Http\Controllers\TenderExportController;
 use App\Http\Controllers\TenderFeedbackController;
 use App\Http\Controllers\TenderFeedController;
 use App\Http\Controllers\TenderFeedViewController;
 use App\Http\Controllers\TenderPersonalStateController;
+use App\Http\Controllers\TenderWorkController;
 use App\Http\Controllers\TrialController;
 use App\Services\LocalMvpSubscriberService;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +57,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
+    Route::get('/participation', [TenderWorkController::class, 'index'])->name('participation');
+    Route::get('/calendar', [TenderCalendarController::class, 'index'])->name('calendar');
+    Route::get('/calendar/export', [TenderCalendarController::class, 'index'])->name('calendar.export');
+    Route::get('/tenders/{tender}/work', [TenderWorkController::class, 'show'])->name('tenders.work');
+    Route::put('/tenders/{tender}/participation', [TenderWorkController::class, 'update'])->name('tenders.participation');
+    Route::post('/tenders/{tender}/checklist', [TenderWorkController::class, 'storeItem'])->name('tenders.checklist.store');
+    Route::patch('/tenders/{tender}/checklist/{item}', [TenderWorkController::class, 'updateItem'])->name('tenders.checklist.update');
+    Route::delete('/tenders/{tender}/checklist/{item}', [TenderWorkController::class, 'destroyItem'])->name('tenders.checklist.destroy');
     Route::post('/tender-feed-views', [TenderFeedViewController::class, 'store'])
         ->name('tender-feed-views.store');
     Route::delete('/tender-feed-views/{view}', [TenderFeedViewController::class, 'destroy'])
