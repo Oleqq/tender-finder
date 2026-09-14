@@ -17,3 +17,4 @@ Schedule::command('notifications:send-tender-reminders')->everyMinute()->without
 Schedule::command('tenders:refresh-watched')->hourly()->withoutOverlapping();
 
 Schedule::command('notifications:send-task-reminders')->everyMinute()->withoutOverlapping();
+Schedule::command('teams:process-tender-reviews')->everyMinute()->withoutOverlapping();

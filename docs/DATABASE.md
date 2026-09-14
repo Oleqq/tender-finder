@@ -182,6 +182,12 @@ fail-safe не допускает запуск suite на постоянной d
 - timestamps source run/feed — будущие freshness и Live Ops без client-side
   догадок.
 
+Командный workflow дополнен таблицами `team_workflow_settings` и
+`team_tender_routing_rules`. SLA материализуется в `team_tender_reviews`, а
+командный scope сохранённых фильтров — в `tender_feed_views.team_id`.
+`participation_approval_requests` хранит версию экономики и требуемое число
+решений, `participation_approval_votes` — уникальный голос каждого редактора.
+
 ## Порядок production migration
 
 1. Сделать managed PostgreSQL backup/snapshot и проверить restore-процедуру.

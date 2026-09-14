@@ -43,6 +43,7 @@ final class TeamTenderFeedService
                 'updated_at' => now(),
             ]);
         });
+        app(TeamWorkflowService::class)->sync($team);
     }
 
     public function unshare(User $user, Team $team, SearchQuery $query): void
@@ -66,6 +67,38 @@ final class TeamTenderFeedService
                 ['team_id' => $team->id, 'tender_id' => $tender->id],
                 ['status' => 'new', 'version' => 1],
             );
+        });
+    }
+
+    /** @param array{status:string,assignee_id:?int,rejection_reason:?string,version:int} $data */
+    public function updateReview(User $actor, Team $team, Tender $tender, array $data): TeamTenderReview
+    {
+        return DB::transaction(function () use ($actor, $team, $tender, $data): TeamTenderReview {
+            Team::query()->whereKey($team->id)->lockForUpdate()->firstOrFail();
+            app(TeamWorkspaceService::class)->authorize($actor, $team, true);
+            $this->assertTenderIsShared($team, $tender);
+            $review = TeamTenderReview::query()->where('team_id', $team->id)->where('tender_id', $tender->id)->lockForUpdate()->first();
+            $version = $review === null ? 0 : $review->version;
+            abort_if($version !== $data['version'], 409, 'Карточка изменена другим участником. Обновите страницу.');
+            $review ??= new TeamTenderReview(['team_id' => $team->id, 'tender_id' => $tender->id, 'version' => 0,
+                'due_at' => now()->addHours(app(TeamWorkflowService::class)->settings($team)->review_sla_hours)]);
+            $assignee = app(TeamWorkspaceService::class)->assignee($actor, $team, $data['assignee_id']);
+            $assigneeChanged = $review->assignee_id !== $assignee;
+            $review->fill([
+                'status' => $data['status'], 'assignee_id' => $assignee, 'reviewed_by_id' => $actor->id,
+                'rejection_reason' => $data['status'] === 'rejected' ? trim((string) $data['rejection_reason']) : null,
+                'assigned_at' => $assigneeChanged && $assignee ? now() : $review->assigned_at,
+                'sla_alerted_at' => $assigneeChanged ? null : $review->sla_alerted_at,
+                'version' => $version + 1,
+            ])->save();
+            app(TeamActivityService::class)->record($team, $actor, 'tender_reviewed', [
+                'tender_id' => $tender->id, 'status' => $review->status, 'assignee_id' => $assignee,
+            ]);
+            if ($assigneeChanged && $assignee) {
+                app(TeamWorkflowService::class)->notifyAssignment($review);
+            }
+
+            return $review;
         });
     }
 }

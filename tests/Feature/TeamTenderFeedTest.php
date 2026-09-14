@@ -23,7 +23,7 @@ it('shares only an editors own monitoring and keeps unshared matches private', f
     $this->actingAs($owner)->postJson('/teams/'.$team->id.'/monitorings', ['search_query_id' => $ownerQuery->id])->assertCreated();
     $this->actingAs($viewer)->get('/tenders?team_id='.$team->id)->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('tenderMatches.total', 1)->where('tenderMatches.data.0.tender_id', $tender->id)
-        ->where('tenderMatches.data.0.review.status', 'new')->where('tenderMatches.data.0.review.version', 0));
+        ->where('tenderMatches.data.0.review.status', 'new')->where('tenderMatches.data.0.review.version', 1));
 });
 
 it('deduplicates team matches and supports filtering the shared review queue', function () {

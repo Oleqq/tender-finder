@@ -23,6 +23,7 @@ export type Participation = {
     loss_reason: string | null;
     version: number;
     economics: Economics;
+    approval: ApprovalState;
     items: ChecklistItem[];
     history: Array<{
         id: number;
@@ -31,6 +32,24 @@ export type Participation = {
         reason: string | null;
         created_at: string;
     }>;
+};
+
+export type ApprovalState = {
+    required: boolean;
+    current: {
+        id: number;
+        status: 'pending' | 'approved' | 'rejected' | 'superseded';
+        required_approvals: number;
+        economics_version: number;
+        note: string | null;
+        version: number;
+        votes: Array<{
+            approver_id: number | null;
+            approver_name: string | null;
+            decision: 'approved' | 'rejected';
+            comment: string | null;
+        }>;
+    } | null;
 };
 
 export type Economics = {

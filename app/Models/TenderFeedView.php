@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TenderFeedView extends Model
 {
-    protected $fillable = ['user_id', 'name', 'filters'];
+    protected $fillable = ['user_id', 'team_id', 'name', 'filters'];
 
     protected function casts(): array
     {

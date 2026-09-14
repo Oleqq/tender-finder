@@ -60,6 +60,7 @@ final class TenderWorkService
             'loss_reason' => $participation->loss_reason,
             'version' => $participation->version,
             'economics' => $this->economics($participation),
+            'approval' => app(ParticipationApprovalService::class)->present($participation),
             'items' => $participation->items()->orderBy('id')->get()->map(fn (TenderChecklistItem $item): array => [
                 'id' => $item->id, 'title' => $item->title, 'due_on' => $item->due_on?->format('Y-m-d'),
                 'assignee_id' => $item->assignee_id, 'reminder_enabled' => $item->reminder_enabled,

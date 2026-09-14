@@ -57,6 +57,8 @@ type TeamReview = {
     rejection_reason: string | null;
     version: number;
     comments: TeamReviewComment[];
+    due_at: string | null;
+    overdue: boolean;
 };
 type TeamReviewComment = {
     id: number;
@@ -74,12 +76,40 @@ type FeedFilters = {
     assignee_id?: number | null;
     source: string;
     sort: string;
+    overdue?: boolean;
+};
+
+type WorkflowSettings = {
+    review_sla_hours: number;
+    assignment_mode: 'manual' | 'round_robin' | 'least_loaded';
+    notify_assignments: boolean;
+    notify_sla: boolean;
+    digest_enabled: boolean;
+    digest_time: string;
+    approval_enabled: boolean;
+    approval_min_revenue: string | null;
+    approval_max_margin_percent: string | null;
+    required_approvals: number;
+    version: number;
+};
+
+type RoutingRule = {
+    id: number;
+    name: string;
+    priority: number;
+    source: string | null;
+    search_query_id: number | null;
+    region: string | null;
+    min_budget: string | null;
+    assignee_id: number;
+    enabled: boolean;
 };
 
 type SavedFeedView = {
     id: number;
     name: string;
     filters: Partial<FeedFilters>;
+    can_delete?: boolean;
 };
 
 type PaginationLink = {
@@ -111,6 +141,9 @@ type TendersPageProps = PageProps<
             can_remove: boolean;
         }>;
         availableMonitorings?: Array<{ id: number; name: string }>;
+        workflowSettings?: WorkflowSettings;
+        routingRules?: RoutingRule[];
+        canManageWorkflow?: boolean;
     }
 >;
 
@@ -134,6 +167,7 @@ const teamStatusOptions = [
 
 const sourceOptions = [
     { value: 'all', label: 'Все источники', description: 'Единая лента совпадений' },
+    { value: 'eis_rss', label: 'ЕИС', description: 'Официальная RSS-лента' },
     { value: 'rostender', label: 'RosTender', description: 'Подключённые шаблоны' },
 ];
 
@@ -148,12 +182,20 @@ export default function Tenders() {
         can_edit: canEdit = true,
         sharedMonitorings = [],
         availableMonitorings = [],
+        workflowSettings,
+        routingRules = [],
+        canManageWorkflow = false,
     } = usePage<TendersPageProps>().props;
     const [search, setSearch] = useState(filters.q);
     const [savedViews, setSavedViews] = useState(initialViews);
     const [viewName, setViewName] = useState('');
     const [savingView, setSavingView] = useState(false);
     const [viewError, setViewError] = useState('');
+    const [selected, setSelected] = useState<number[]>([]);
+    const [bulkStatus, setBulkStatus] = useState<TeamReviewStatus>('reviewing');
+    const [bulkAssignee, setBulkAssignee] = useState<number | null>(null);
+    const [bulkBusy, setBulkBusy] = useState(false);
+    const [bulkError, setBulkError] = useState('');
 
     const visit = (next: Partial<FeedFilters>): void => {
         const params = { ...filters, q: search, ...next };
@@ -185,6 +227,7 @@ export default function Tenders() {
                 '/tender-feed-views',
                 {
                     name: viewName.trim(),
+                    team_id: team?.id ?? null,
                     filters: cleanParams({ ...filters, q: search }),
                 },
             );
@@ -201,7 +244,11 @@ export default function Tenders() {
 
     const applyView = (view: SavedFeedView): void => {
         setSearch(view.filters.q ?? '');
-        router.get('/tenders', view.filters, { preserveScroll: true });
+        router.get(
+            '/tenders',
+            { ...view.filters, ...(team ? { team_id: team.id } : {}) },
+            { preserveScroll: true },
+        );
     };
 
     const deleteView = async (view: SavedFeedView): Promise<void> => {
@@ -217,8 +264,37 @@ export default function Tenders() {
             filters.query_id ||
             filters.assignee_id ||
             filters.source !== 'all' ||
-            filters.sort !== 'matched_desc',
+            filters.sort !== 'matched_desc' ||
+            filters.overdue,
     );
+
+    const bulkUpdate = async (): Promise<void> => {
+        if (!team || selected.length === 0) return;
+        setBulkBusy(true);
+        setBulkError('');
+        try {
+            await window.axios.patch(`/teams/${team.id}/tenders/reviews`, {
+                items: tenderMatches.data
+                    .filter((match) => selected.includes(match.tender_id))
+                    .map((match) => ({
+                        tender_id: match.tender_id,
+                        version: match.review?.version ?? 0,
+                    })),
+                status: bulkStatus,
+                assignee_id: bulkAssignee,
+                rejection_reason:
+                    bulkStatus === 'rejected'
+                        ? window.prompt('Укажите общую причину отклонения')
+                        : null,
+            });
+            router.reload();
+            setSelected([]);
+        } catch {
+            setBulkError('Не удалось применить массовое действие. Обновите страницу.');
+        } finally {
+            setBulkBusy(false);
+        }
+    };
 
     const visibleStatusOptions = team ? teamStatusOptions : statusOptions;
 
@@ -234,12 +310,24 @@ export default function Tenders() {
                 <TenderWorkNav active="/tenders" />
                 <WorkspacePicker path="/tenders" />
                 {team ? (
-                    <TeamMonitoringPanel
-                        teamId={team.id}
-                        canEdit={canEdit}
-                        shared={sharedMonitorings}
-                        available={availableMonitorings}
-                    />
+                    <>
+                        <TeamMonitoringPanel
+                            teamId={team.id}
+                            canEdit={canEdit}
+                            shared={sharedMonitorings}
+                            available={availableMonitorings}
+                        />
+                        {workflowSettings ? (
+                            <TeamWorkflowPanel
+                                teamId={team.id}
+                                settings={workflowSettings}
+                                rules={routingRules}
+                                members={members}
+                                queries={filterOptions.queries}
+                                canManage={canManageWorkflow}
+                            />
+                        ) : null}
+                    </>
                 ) : null}
                 <GlassCard className="tenders-summary page-enter" tone="quiet">
                     <span className="tenders-summary__mark">
@@ -311,6 +399,14 @@ export default function Tenders() {
                             </FilterChip>
                         ))}
                     </div>
+                    {team ? (
+                        <FilterChip
+                            active={Boolean(filters.overdue)}
+                            onClick={() => visit({ overdue: !filters.overdue })}
+                        >
+                            Просроченные SLA
+                        </FilterChip>
+                    ) : null}
 
                     <div className="tender-feed-selects">
                         <SelectField
@@ -397,7 +493,7 @@ export default function Tenders() {
                         </button>
                     ) : null}
 
-                    {!team ? (
+                    {!team || canEdit ? (
                         <div className="tender-feed-views">
                             <div className="tender-feed-views__heading">
                                 <div>
@@ -416,13 +512,15 @@ export default function Tenders() {
                                             >
                                                 {view.name}
                                             </button>
-                                            <button
-                                                aria-label={`Удалить ${view.name}`}
-                                                onClick={() => deleteView(view)}
-                                                type="button"
-                                            >
-                                                ×
-                                            </button>
+                                            {view.can_delete !== false ? (
+                                                <button
+                                                    aria-label={`Удалить ${view.name}`}
+                                                    onClick={() => deleteView(view)}
+                                                    type="button"
+                                                >
+                                                    ×
+                                                </button>
+                                            ) : null}
                                         </span>
                                     ))}
                                 </div>
@@ -458,6 +556,50 @@ export default function Tenders() {
                     ) : null}
                 </GlassCard>
 
+                {team && canEdit && tenderMatches.data.length ? (
+                    <GlassCard className="team-feed-bulk" tone="quiet">
+                        <label>
+                            <input
+                                checked={selected.length === tenderMatches.data.length}
+                                onChange={(event) =>
+                                    setSelected(
+                                        event.target.checked
+                                            ? tenderMatches.data.map(
+                                                  (item) => item.tender_id,
+                                              )
+                                            : [],
+                                    )
+                                }
+                                type="checkbox"
+                            />{' '}
+                            Выбрать страницу
+                        </label>
+                        <SelectField
+                            label="Массовый статус"
+                            value={bulkStatus}
+                            onChange={(event) =>
+                                setBulkStatus(event.target.value as TeamReviewStatus)
+                            }
+                            options={teamStatusOptions.filter(
+                                (item) => item.value !== 'all',
+                            )}
+                        />
+                        <AssigneeSelect
+                            label="Назначить"
+                            value={bulkAssignee}
+                            onChange={setBulkAssignee}
+                            members={members}
+                        />
+                        <Button
+                            disabled={bulkBusy || selected.length === 0}
+                            onClick={bulkUpdate}
+                        >
+                            Применить к {selected.length}
+                        </Button>
+                        {bulkError ? <p className="field-error">{bulkError}</p> : null}
+                    </GlassCard>
+                ) : null}
+
                 {tenderMatches.data.length > 0 ? (
                     <>
                         <section
@@ -472,6 +614,22 @@ export default function Tenders() {
                                         teamId={team.id}
                                         members={members}
                                         canEdit={canEdit}
+                                        selected={selected.includes(match.tender_id)}
+                                        onSelect={(checked) =>
+                                            setSelected((current) =>
+                                                checked
+                                                    ? [
+                                                          ...new Set([
+                                                              ...current,
+                                                              match.tender_id,
+                                                          ]),
+                                                      ]
+                                                    : current.filter(
+                                                          (id) =>
+                                                              id !== match.tender_id,
+                                                      ),
+                                            )
+                                        }
                                     />
                                 ) : (
                                     <FeedTenderCard key={match.id} match={match} />
@@ -669,16 +827,363 @@ function TeamMonitoringPanel({
     );
 }
 
+function TeamWorkflowPanel({
+    teamId,
+    settings: initial,
+    rules: initialRules,
+    members,
+    queries,
+    canManage,
+}: {
+    teamId: number;
+    settings: WorkflowSettings;
+    rules: RoutingRule[];
+    members: TeamScope['members'];
+    queries: Array<{ id: number; name: string }>;
+    canManage: boolean;
+}) {
+    const [settings, setSettings] = useState(initial);
+    const [rules, setRules] = useState(initialRules);
+    const [busy, setBusy] = useState(false);
+    const [message, setMessage] = useState('');
+    const editors = members.filter((member) => member.role !== 'viewer');
+    const [rule, setRule] = useState({
+        name: '',
+        priority: 100,
+        source: '',
+        search_query_id: '',
+        region: '',
+        min_budget: '',
+        assignee_id: editors[0]?.id ?? 0,
+    });
+
+    const saveSettings = async (event: FormEvent): Promise<void> => {
+        event.preventDefault();
+        setBusy(true);
+        setMessage('');
+        try {
+            const response = await window.axios.patch<{ settings: WorkflowSettings }>(
+                `/teams/${teamId}/workflow-settings`,
+                {
+                    ...settings,
+                    digest_time: settings.digest_time.slice(0, 5),
+                    approval_min_revenue: settings.approval_min_revenue || null,
+                    approval_max_margin_percent:
+                        settings.approval_max_margin_percent || null,
+                },
+            );
+            setSettings(response.data.settings);
+            setMessage('Регламент команды сохранён.');
+        } catch {
+            setMessage('Не удалось сохранить регламент. Проверьте данные и версию.');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const addRule = async (event: FormEvent): Promise<void> => {
+        event.preventDefault();
+        if (!rule.name.trim() || !rule.assignee_id) return;
+        setBusy(true);
+        setMessage('');
+        try {
+            const response = await window.axios.post<{ rule: RoutingRule }>(
+                `/teams/${teamId}/routing-rules`,
+                {
+                    ...rule,
+                    source: rule.source || null,
+                    search_query_id: rule.search_query_id
+                        ? Number(rule.search_query_id)
+                        : null,
+                    region: rule.region || null,
+                    min_budget: rule.min_budget || null,
+                    enabled: true,
+                },
+            );
+            setRules((current) => [...current, response.data.rule]);
+            setRule({ ...rule, name: '', region: '', min_budget: '' });
+        } catch {
+            setMessage('Не удалось создать правило маршрутизации.');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const removeRule = async (id: number): Promise<void> => {
+        if (!window.confirm('Удалить правило маршрутизации?')) return;
+        await window.axios.delete(`/teams/${teamId}/routing-rules/${id}`);
+        setRules((current) => current.filter((item) => item.id !== id));
+    };
+
+    return (
+        <GlassCard className="team-workflow-panel page-enter" tone="quiet">
+            <div className="section-heading">
+                <div>
+                    <p>Автоматизация</p>
+                    <h2>Регламент разбора и согласования</h2>
+                </div>
+                <Badge tone={settings.approval_enabled ? 'accent' : 'neutral'}>
+                    SLA {settings.review_sla_hours} ч
+                </Badge>
+            </div>
+            <form className="work-form" onSubmit={saveSettings}>
+                <div className="team-workflow-grid">
+                    <label>
+                        SLA первичного разбора
+                        <select
+                            disabled={!canManage || busy}
+                            value={settings.review_sla_hours}
+                            onChange={(event) =>
+                                setSettings({
+                                    ...settings,
+                                    review_sla_hours: Number(event.target.value),
+                                })
+                            }
+                        >
+                            {[1, 2, 4, 8, 12, 24, 48, 72, 168].map((hours) => (
+                                <option key={hours} value={hours}>
+                                    {hours} ч
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <label>
+                        Автоназначение
+                        <select
+                            disabled={!canManage || busy}
+                            value={settings.assignment_mode}
+                            onChange={(event) =>
+                                setSettings({
+                                    ...settings,
+                                    assignment_mode: event.target
+                                        .value as WorkflowSettings['assignment_mode'],
+                                })
+                            }
+                        >
+                            <option value="manual">Вручную</option>
+                            <option value="round_robin">По кругу</option>
+                            <option value="least_loaded">
+                                По минимальной нагрузке
+                            </option>
+                        </select>
+                    </label>
+                    <label>
+                        Время дайджеста
+                        <input
+                            disabled={!canManage || busy}
+                            type="time"
+                            value={settings.digest_time.slice(0, 5)}
+                            onChange={(event) =>
+                                setSettings({
+                                    ...settings,
+                                    digest_time: event.target.value,
+                                })
+                            }
+                        />
+                    </label>
+                    <label>
+                        Нужно одобрений
+                        <input
+                            disabled={!canManage || busy}
+                            min="1"
+                            max={Math.max(editors.length, 1)}
+                            type="number"
+                            value={settings.required_approvals}
+                            onChange={(event) =>
+                                setSettings({
+                                    ...settings,
+                                    required_approvals: Number(event.target.value),
+                                })
+                            }
+                        />
+                    </label>
+                    <label>
+                        Согласование при выручке от, ₽
+                        <input
+                            disabled={!canManage || busy}
+                            min="0"
+                            type="number"
+                            value={settings.approval_min_revenue ?? ''}
+                            onChange={(event) =>
+                                setSettings({
+                                    ...settings,
+                                    approval_min_revenue: event.target.value,
+                                })
+                            }
+                        />
+                    </label>
+                    <label>
+                        Или при марже не выше, %
+                        <input
+                            disabled={!canManage || busy}
+                            step="0.01"
+                            type="number"
+                            value={settings.approval_max_margin_percent ?? ''}
+                            onChange={(event) =>
+                                setSettings({
+                                    ...settings,
+                                    approval_max_margin_percent: event.target.value,
+                                })
+                            }
+                        />
+                    </label>
+                </div>
+                {[
+                    ['notify_assignments', 'Уведомлять о назначении'],
+                    ['notify_sla', 'Напоминать о нарушении SLA'],
+                    ['digest_enabled', 'Ежедневный дайджест владельцу'],
+                    ['approval_enabled', 'Требовать согласование go/no-go'],
+                ].map(([key, label]) => (
+                    <label className="work-toggle" key={key}>
+                        <input
+                            checked={Boolean(settings[key as keyof WorkflowSettings])}
+                            disabled={!canManage || busy}
+                            onChange={(event) =>
+                                setSettings({
+                                    ...settings,
+                                    [key]: event.target.checked,
+                                })
+                            }
+                            type="checkbox"
+                        />
+                        {label}
+                    </label>
+                ))}
+                {canManage ? (
+                    <Button disabled={busy} size="sm" type="submit">
+                        Сохранить регламент
+                    </Button>
+                ) : null}
+            </form>
+
+            <div className="team-routing-rules">
+                <strong>Правила маршрутизации · {rules.length}</strong>
+                {rules.map((item) => (
+                    <div key={item.id}>
+                        <span>
+                            <b>
+                                {item.priority}. {item.name}
+                            </b>
+                            <small>
+                                →{' '}
+                                {editors.find(
+                                    (member) => member.id === item.assignee_id,
+                                )?.name ?? 'Участник'}
+                            </small>
+                        </span>
+                        {canManage ? (
+                            <button onClick={() => removeRule(item.id)} type="button">
+                                Удалить
+                            </button>
+                        ) : null}
+                    </div>
+                ))}
+                {canManage ? (
+                    <form
+                        className="work-form team-routing-rule-form"
+                        onSubmit={addRule}
+                    >
+                        <input
+                            maxLength={120}
+                            placeholder="Название правила"
+                            required
+                            value={rule.name}
+                            onChange={(event) =>
+                                setRule({ ...rule, name: event.target.value })
+                            }
+                        />
+                        <select
+                            value={rule.source}
+                            onChange={(event) =>
+                                setRule({ ...rule, source: event.target.value })
+                            }
+                        >
+                            <option value="">Любой источник</option>
+                            <option value="eis_rss">ЕИС</option>
+                            <option value="rostender">RosTender</option>
+                        </select>
+                        <select
+                            value={rule.search_query_id}
+                            onChange={(event) =>
+                                setRule({
+                                    ...rule,
+                                    search_query_id: event.target.value,
+                                })
+                            }
+                        >
+                            <option value="">Любой мониторинг</option>
+                            {queries.map((query) => (
+                                <option key={query.id} value={query.id}>
+                                    {query.name}
+                                </option>
+                            ))}
+                        </select>
+                        <input
+                            maxLength={160}
+                            placeholder="Регион содержит…"
+                            value={rule.region}
+                            onChange={(event) =>
+                                setRule({ ...rule, region: event.target.value })
+                            }
+                        />
+                        <input
+                            min="0"
+                            placeholder="Минимальная сумма"
+                            type="number"
+                            value={rule.min_budget}
+                            onChange={(event) =>
+                                setRule({ ...rule, min_budget: event.target.value })
+                            }
+                        />
+                        <select
+                            value={rule.assignee_id}
+                            onChange={(event) =>
+                                setRule({
+                                    ...rule,
+                                    assignee_id: Number(event.target.value),
+                                })
+                            }
+                        >
+                            {editors.map((member) => (
+                                <option key={member.id} value={member.id}>
+                                    {member.name}
+                                </option>
+                            ))}
+                        </select>
+                        <Button
+                            disabled={busy || rules.length >= 50}
+                            size="sm"
+                            type="submit"
+                            variant="secondary"
+                        >
+                            Добавить правило
+                        </Button>
+                    </form>
+                ) : null}
+            </div>
+            {message ? (
+                <p className="work-help" role="status">
+                    {message}
+                </p>
+            ) : null}
+        </GlassCard>
+    );
+}
+
 function TeamFeedTenderCard({
     match,
     teamId,
     members,
     canEdit,
+    selected,
+    onSelect,
 }: {
     match: TenderMatch;
     teamId: number;
     members: TeamScope['members'];
     canEdit: boolean;
+    selected: boolean;
+    onSelect: (checked: boolean) => void;
 }) {
     const initial = match.review ?? {
         status: 'new' as const,
@@ -686,6 +1191,8 @@ function TeamFeedTenderCard({
         rejection_reason: null,
         version: 0,
         comments: [],
+        due_at: null,
+        overdue: false,
     };
     const [review, setReview] = useState(initial);
     const [status, setStatus] = useState<TeamReviewStatus>(initial.status);
@@ -765,11 +1272,22 @@ function TeamFeedTenderCard({
 
     return (
         <GlassCard as="article" className="tender-card tender-feed-card team-feed-card">
+            {canEdit ? (
+                <label className="team-feed-card__select">
+                    <input
+                        checked={selected}
+                        onChange={(event) => onSelect(event.target.checked)}
+                        type="checkbox"
+                    />{' '}
+                    Выбрать
+                </label>
+            ) : null}
             <div className="tender-card__meta">
                 <Badge tone={teamReviewTone(status)}>{teamReviewLabel(status)}</Badge>
                 {match.source === 'rostender' ? (
                     <Badge tone="accent">RosTender</Badge>
                 ) : null}
+                {review.overdue ? <Badge tone="warning">SLA просрочен</Badge> : null}
                 <span>
                     <Icon name="spark" size={14} /> {match.match_reasons.join(', ')}
                 </span>
@@ -784,6 +1302,11 @@ function TeamFeedTenderCard({
                 <span>{formatDeadline(match.deadline_at)}</span>
             </div>
             <div className="team-feed-card__review">
+                {review.due_at ? (
+                    <p className="work-help">
+                        Разобрать до {new Date(review.due_at).toLocaleString('ru-RU')}
+                    </p>
+                ) : null}
                 <SelectField
                     label="Решение команды"
                     disabled={!canEdit || saving}

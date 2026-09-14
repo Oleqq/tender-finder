@@ -7,6 +7,7 @@ use App\Models\Tender;
 use App\Models\TenderChecklistItem;
 use App\Models\TenderParticipation;
 use App\Models\User;
+use App\Services\ParticipationApprovalService;
 use App\Services\ParticipationCommentService;
 use App\Services\TeamActivityService;
 use App\Services\TeamWorkspaceService;
@@ -95,6 +96,9 @@ final class TenderWorkController extends Controller
                 return $p;
             }
             $p ??= new TenderParticipation(['user_id' => $user->id, 'team_id' => $team?->id, 'tender_id' => $tender->id, 'version' => 0]);
+            if ($team) {
+                app(ParticipationApprovalService::class)->assertMayAdvance($p, $data['stage']);
+            }
             $p->fill(['assignee_id' => $assignee, 'stage' => $data['stage'], 'loss_reason' => $reason, 'version' => $p->version + 1])->save();
             DB::table('tender_participation_events')->insert(['participation_id' => $p->id, 'from_stage' => $old,
                 'actor_id' => $user->id, 'to_stage' => $p->stage->value, 'reason' => $reason, 'created_at' => now()]);

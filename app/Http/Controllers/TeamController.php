@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ParticipationApprovalRequest;
 use App\Models\Team;
 use App\Models\TenderChecklistItem;
 use App\Models\TenderParticipation;
@@ -134,6 +135,21 @@ final class TeamController extends Controller
                 TenderParticipation::query()->where('team_id', $team->id)->where('assignee_id', $member)->update(['assignee_id' => null, 'version' => DB::raw('version + 1')]);
                 DB::table('team_tender_reviews')->where('team_id', $team->id)->where('assignee_id', $member)
                     ->update(['assignee_id' => null, 'version' => DB::raw('version + 1'), 'updated_at' => now()]);
+                DB::table('team_tender_routing_rules')->where('team_id', $team->id)->where('assignee_id', $member)->delete();
+                $approvalIds = DB::table('participation_approval_requests')->join('tender_participations',
+                    'tender_participations.id', '=', 'participation_approval_requests.participation_id')
+                    ->where('tender_participations.team_id', $team->id)->where('participation_approval_requests.status', 'pending')
+                    ->pluck('participation_approval_requests.id');
+                DB::table('participation_approval_votes')->whereIn('approval_request_id', $approvalIds)->where('approver_id', $member)->delete();
+                $editors = $work->editorCount($team);
+                DB::table('team_workflow_settings')->where('team_id', $team->id)->where('required_approvals', '>', $editors)
+                    ->update(['required_approvals' => max(1, $editors), 'version' => DB::raw('version + 1'), 'updated_at' => now()]);
+                foreach ($approvalIds as $approvalId) {
+                    $approval = ParticipationApprovalRequest::query()->find($approvalId);
+                    if ($approval && $approval->required_approvals > $editors) {
+                        $approval->forceFill(['required_approvals' => max(1, $editors), 'version' => $approval->version + 1])->save();
+                    }
+                }
             }
         });
 

@@ -46,28 +46,37 @@ final class TeamTenderFeedController extends Controller
             'version' => ['required', 'integer', 'min:0'],
         ]);
 
-        $review = DB::transaction(function () use ($request, $team, $tender, $data): TeamTenderReview {
-            Team::query()->whereKey($team->id)->lockForUpdate()->firstOrFail();
-            $review = TeamTenderReview::query()->where('team_id', $team->id)->where('tender_id', $tender->id)->lockForUpdate()->first();
-            $version = $review === null ? 0 : $review->version;
-            abort_if($version !== (int) $data['version'], 409, 'Карточка изменена другим участником. Обновите страницу.');
-            $review ??= new TeamTenderReview(['team_id' => $team->id, 'tender_id' => $tender->id, 'version' => 0]);
-            $assignee = app(TeamWorkspaceService::class)->assignee($request->user(), $team, $data['assignee_id'] ?? null);
-            $review->fill([
-                'status' => $data['status'],
-                'assignee_id' => $assignee,
-                'reviewed_by_id' => $request->user()->id,
-                'rejection_reason' => $data['status'] === 'rejected' ? trim((string) $data['rejection_reason']) : null,
-                'version' => $version + 1,
-            ])->save();
-            app(TeamActivityService::class)->record($team, $request->user(), 'tender_reviewed', [
-                'tender_id' => $tender->id, 'status' => $review->status, 'assignee_id' => $assignee,
-            ]);
-
-            return $review;
-        });
+        $review = $feed->updateReview($request->user(), $team, $tender, [
+            ...$data, 'assignee_id' => $data['assignee_id'] ?? null, 'rejection_reason' => $data['rejection_reason'] ?? null,
+        ]);
 
         return response()->json(['review' => $this->present($review)]);
+    }
+
+    public function bulkUpdate(Request $request, Team $team, TeamTenderFeedService $feed): JsonResponse
+    {
+        app(TeamWorkspaceService::class)->authorize($request->user(), $team, true);
+        $data = $request->validate([
+            'items' => ['required', 'array', 'min:1', 'max:100'], 'items.*.tender_id' => ['required', 'integer', 'distinct'],
+            'items.*.version' => ['required', 'integer', 'min:0'],
+            'status' => ['required', Rule::in(['new', 'reviewing', 'qualified', 'deferred', 'rejected'])],
+            'assignee_id' => ['nullable', 'integer'],
+            'rejection_reason' => ['required_if:status,rejected', 'nullable', 'string', 'max:2000'],
+        ]);
+        $reviews = DB::transaction(function () use ($request, $team, $feed, $data): array {
+            $result = [];
+            foreach ($data['items'] as $item) {
+                $tender = Tender::query()->findOrFail($item['tender_id']);
+                $result[] = $this->present($feed->updateReview($request->user(), $team, $tender, [
+                    'status' => $data['status'], 'assignee_id' => $data['assignee_id'] ?? null,
+                    'rejection_reason' => $data['rejection_reason'] ?? null, 'version' => (int) $item['version'],
+                ]));
+            }
+
+            return $result;
+        });
+
+        return response()->json(['reviews' => $reviews]);
     }
 
     public function comment(Request $request, Team $team, Tender $tender, TeamTenderFeedService $feed): JsonResponse
@@ -133,6 +142,8 @@ final class TeamTenderFeedController extends Controller
             'assignee_id' => $review->assignee_id,
             'rejection_reason' => $review->rejection_reason,
             'version' => $review->version,
+            'due_at' => $review->due_at?->toAtomString(),
+            'overdue' => $review->due_at?->isPast() && in_array($review->status, ['new', 'reviewing', 'deferred'], true),
         ];
     }
 }

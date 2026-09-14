@@ -424,6 +424,7 @@ export default function TenderWork() {
                 {participation ? (
                     <ParticipationEconomics
                         initial={participation.economics}
+                        initialApproval={participation.approval}
                         root={root}
                         team={team}
                         canEdit={can_edit}

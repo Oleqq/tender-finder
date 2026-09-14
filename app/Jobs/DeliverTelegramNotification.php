@@ -7,8 +7,10 @@ use App\Models\NotificationDelivery;
 use App\Models\NotificationPreference;
 use App\Models\TenderUserState;
 use App\Services\AccessService;
+use App\Services\ParticipationApprovalService;
 use App\Services\ParticipationCommentService;
 use App\Services\TaskReminderService;
+use App\Services\TeamWorkflowService;
 use App\Services\TelegramBotClient;
 use App\Services\TenderFollowUpService;
 use Illuminate\Bus\Queueable;
@@ -34,7 +36,8 @@ class DeliverTelegramNotification implements ShouldQueue
             return;
         }
 
-        $retryableFailure = in_array($delivery->type, ['task_reminder', 'team_mention'], true) && $delivery->status === NotificationStatus::Failed;
+        $retryableFailure = in_array($delivery->type, ['task_reminder', 'team_mention', 'team_review_assignment', 'team_review_sla', 'team_review_digest', 'participation_approval'], true)
+            && $delivery->status === NotificationStatus::Failed;
         if ($delivery->status !== NotificationStatus::Queued && ! $retryableFailure) {
             return;
         }
@@ -66,6 +69,19 @@ class DeliverTelegramNotification implements ShouldQueue
             return;
         }
 
+        if (in_array($delivery->type, ['team_review_assignment', 'team_review_sla', 'team_review_digest'], true)
+            && ! app(TeamWorkflowService::class)->stillDue($delivery)) {
+            $delivery->forceFill(['status' => NotificationStatus::Skipped, 'failure_code' => 'team_review_no_longer_due'])->save();
+
+            return;
+        }
+
+        if ($delivery->type === 'participation_approval' && ! app(ParticipationApprovalService::class)->stillDue($delivery)) {
+            $delivery->forceFill(['status' => NotificationStatus::Skipped, 'failure_code' => 'approval_no_longer_due'])->save();
+
+            return;
+        }
+
         try {
             $payload = $delivery->payload ?? [];
             $text = match ($delivery->type) {
@@ -77,6 +93,10 @@ class DeliverTelegramNotification implements ShouldQueue
                 'tender_digest' => $this->digestText($payload),
                 'task_reminder' => (($payload['phase'] ?? '') === 'upcoming' ? 'Задача на завтра' : 'Задача просрочена').": {$payload['title']}\nСрок: {$payload['due_on']}\n{$payload['tender_title']}\n{$payload['url']}",
                 'team_mention' => "{$payload['author']} упомянул вас в заявке «{$payload['title']}»\n{$payload['excerpt']}\n{$payload['url']}",
+                'team_review_assignment' => "Вам назначен разбор тендера: {$payload['title']}\nСрок: {$payload['due_at']}\n{$payload['url']}",
+                'team_review_sla' => "Просрочен разбор тендера: {$payload['title']}\n{$payload['url']}",
+                'team_review_digest' => "Командная очередь «{$payload['team_name']}»: открыто {$payload['open']}, просрочено {$payload['overdue']}.\n{$payload['url']}",
+                'participation_approval' => $this->approvalText($payload),
                 default => "Новый подходящий тендер: {$payload['title']}\n{$payload['url']}",
             };
 
@@ -145,5 +165,17 @@ class DeliverTelegramNotification implements ShouldQueue
         $header = "Дайджест Tender Finder: {$count} новых совпадений за сутки.";
 
         return mb_substr($header.($cards !== '' ? "\n\n{$cards}" : ''), 0, 3900);
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function approvalText(array $payload): string
+    {
+        $event = match ($payload['event'] ?? '') {
+            'approved' => 'Согласование одобрено',
+            'rejected' => 'Согласование отклонено',
+            default => 'Требуется решение по go/no-go',
+        };
+
+        return "{$event}: {$payload['title']}\n{$payload['url']}";
     }
 }

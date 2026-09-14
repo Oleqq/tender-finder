@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useState, type FormEvent } from 'react';
 import { Badge, Button, GlassCard } from './ui';
 import type { TeamScope } from './WorkspacePicker';
-import type { Economics } from '../lib/participation';
+import type { ApprovalState, Economics } from '../lib/participation';
 
 const fields = [
     ['planned_revenue', 'Цена предложения'],
@@ -22,16 +22,19 @@ const money = (value: number): string =>
 
 export function ParticipationEconomics({
     initial,
+    initialApproval,
     root,
     team,
     canEdit,
 }: {
     initial: Economics;
+    initialApproval: ApprovalState;
     root: string;
     team: TeamScope['team'];
     canEdit: boolean;
 }) {
     const [economics, setEconomics] = useState(initial);
+    const [approval, setApproval] = useState(initialApproval);
     const [draft, setDraft] = useState(
         () =>
             Object.fromEntries(
@@ -42,33 +45,91 @@ export function ParticipationEconomics({
     const [note, setNote] = useState(initial.decision_note ?? '');
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState('');
+    const [approvalNote, setApprovalNote] = useState('');
+    const [voteComment, setVoteComment] = useState('');
 
     const save = async (event: FormEvent): Promise<void> => {
         event.preventDefault();
         setBusy(true);
         setMessage('');
         try {
-            const response = await window.axios.patch<{ economics: Economics }>(
-                scopedUrl(`${root}/economics`, team),
-                {
-                    ...Object.fromEntries(
-                        Object.entries(draft).map(([key, value]) => [
-                            key,
-                            value === '' ? null : value,
-                        ]),
-                    ),
-                    decision,
-                    decision_note: note || null,
-                    version: economics.version,
-                },
-            );
+            const response = await window.axios.patch<{
+                economics: Economics;
+                approval: ApprovalState;
+            }>(scopedUrl(`${root}/economics`, team), {
+                ...Object.fromEntries(
+                    Object.entries(draft).map(([key, value]) => [
+                        key,
+                        value === '' ? null : value,
+                    ]),
+                ),
+                decision,
+                decision_note: note || null,
+                version: economics.version,
+            });
             setEconomics(response.data.economics);
+            setApproval(response.data.approval);
             setMessage('Экономика заявки сохранена.');
         } catch (error) {
             setMessage(
                 axios.isAxiosError<{ message?: string }>(error)
                     ? (error.response?.data.message ?? 'Не удалось сохранить расчёт.')
                     : 'Не удалось сохранить расчёт.',
+            );
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const requestApproval = async (): Promise<void> => {
+        setBusy(true);
+        setMessage('');
+        try {
+            const response = await window.axios.post<{ approval: ApprovalState }>(
+                scopedUrl(`${root}/approval-requests`, team),
+                { note: approvalNote || null },
+            );
+            setApproval(response.data.approval);
+            setApprovalNote('');
+            setMessage('Запрос на согласование отправлен.');
+        } catch (error) {
+            setMessage(
+                axios.isAxiosError<{ message?: string }>(error)
+                    ? (error.response?.data.message ??
+                          'Не удалось запросить согласование.')
+                    : 'Не удалось запросить согласование.',
+            );
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const vote = async (decision: 'approved' | 'rejected'): Promise<void> => {
+        if (!approval.current) return;
+        setBusy(true);
+        setMessage('');
+        try {
+            const response = await window.axios.patch<{ approval: ApprovalState }>(
+                scopedUrl(
+                    `${root}/approval-requests/${approval.current.id}/vote`,
+                    team,
+                ),
+                {
+                    decision,
+                    comment: voteComment || null,
+                    version: approval.current.version,
+                },
+            );
+            setApproval(response.data.approval);
+            setVoteComment('');
+            setMessage(
+                decision === 'approved' ? 'Решение одобрено.' : 'Решение отклонено.',
+            );
+        } catch (error) {
+            setMessage(
+                axios.isAxiosError<{ message?: string }>(error)
+                    ? (error.response?.data.message ?? 'Не удалось сохранить голос.')
+                    : 'Не удалось сохранить голос.',
             );
         } finally {
             setBusy(false);
@@ -161,6 +222,115 @@ export function ParticipationEconomics({
                     </p>
                 ) : null}
             </form>
+            {team && approval.required ? (
+                <div className="approval-panel">
+                    <div className="economics-heading">
+                        <div>
+                            <h3>Согласование go/no-go</h3>
+                            <p>
+                                После изменения экономики потребуется новое одобрение.
+                            </p>
+                        </div>
+                        <Badge
+                            tone={
+                                approval.current?.status === 'approved'
+                                    ? 'success'
+                                    : approval.current?.status === 'rejected'
+                                      ? 'danger'
+                                      : 'warning'
+                            }
+                        >
+                            {approvalStatus(approval.current?.status)}
+                        </Badge>
+                    </div>
+                    {approval.current ? (
+                        <>
+                            <p>
+                                Голосов за:{' '}
+                                {
+                                    approval.current.votes.filter(
+                                        (item) => item.decision === 'approved',
+                                    ).length
+                                }{' '}
+                                из {approval.current.required_approvals}
+                            </p>
+                            {approval.current.note ? (
+                                <p>{approval.current.note}</p>
+                            ) : null}
+                            {approval.current.votes.map((item) => (
+                                <p key={`${item.approver_id}-${item.decision}`}>
+                                    <b>{item.approver_name ?? 'Удалённый участник'}:</b>{' '}
+                                    {item.decision === 'approved'
+                                        ? 'одобрил'
+                                        : 'отклонил'}
+                                    {item.comment ? ` — ${item.comment}` : ''}
+                                </p>
+                            ))}
+                        </>
+                    ) : null}
+                    {canEdit &&
+                    (!approval.current ||
+                        ['rejected', 'superseded'].includes(
+                            approval.current.status,
+                        )) ? (
+                        <div className="work-form">
+                            <textarea
+                                maxLength={2000}
+                                placeholder="Что необходимо согласовать"
+                                value={approvalNote}
+                                onChange={(event) =>
+                                    setApprovalNote(event.target.value)
+                                }
+                            />
+                            <Button
+                                disabled={busy || economics.decision !== 'go'}
+                                onClick={requestApproval}
+                                type="button"
+                            >
+                                Запросить согласование
+                            </Button>
+                        </div>
+                    ) : null}
+                    {canEdit && approval.current?.status === 'pending' ? (
+                        <div className="work-form">
+                            <textarea
+                                maxLength={2000}
+                                placeholder="Комментарий согласующего"
+                                value={voteComment}
+                                onChange={(event) => setVoteComment(event.target.value)}
+                            />
+                            <div className="approval-actions">
+                                <Button
+                                    disabled={busy}
+                                    onClick={() => vote('approved')}
+                                    type="button"
+                                >
+                                    Одобрить
+                                </Button>
+                                <Button
+                                    disabled={busy}
+                                    onClick={() => vote('rejected')}
+                                    type="button"
+                                    variant="secondary"
+                                >
+                                    Отклонить
+                                </Button>
+                            </div>
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
         </GlassCard>
+    );
+}
+
+function approvalStatus(status?: string): string {
+    return (
+        {
+            pending: 'На согласовании',
+            approved: 'Одобрено',
+            rejected: 'Отклонено',
+            superseded: 'Расчёт изменён',
+        }[status ?? ''] ?? 'Не запрошено'
     );
 }

@@ -27,6 +27,11 @@ final class TeamWorkspaceService
         return DB::table('team_members')->where('team_id', $team->id)->where('user_id', $user->id)->value('role');
     }
 
+    public function editorCount(Team $team): int
+    {
+        return DB::table('team_members')->where('team_id', $team->id)->whereIn('role', ['owner', 'member'])->count();
+    }
+
     public function authorize(User $user, Team $team, bool $write = false, bool $owner = false): void
     {
         $role = $this->role($user, $team);

@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\TenderUserStatus;
 use App\Models\SearchQuery;
 use App\Models\Team;
+use App\Models\TeamTenderRoutingRule;
 use App\Models\Tender;
+use App\Models\TenderFeedView;
 use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
+use App\Services\TeamWorkflowService;
 use App\Services\TeamWorkspaceService;
 use App\Services\TenderFacts;
 use Illuminate\Database\Eloquent\Builder;
@@ -178,6 +181,7 @@ class TenderFeedController extends Controller
             'assignee_id' => ['nullable', 'integer'],
             'source' => ['nullable', Rule::in(['all', 'rostender', 'eis_rss'])],
             'sort' => ['nullable', Rule::in(['matched_desc', 'deadline_asc', 'budget_desc', 'budget_asc'])],
+            'overdue' => ['nullable', 'boolean'],
         ]);
         $search = trim((string) ($filters['q'] ?? ''));
         $status = (string) ($filters['status'] ?? 'all');
@@ -185,6 +189,7 @@ class TenderFeedController extends Controller
         $assigneeId = isset($filters['assignee_id']) ? (int) $filters['assignee_id'] : null;
         $source = (string) ($filters['source'] ?? 'all');
         $sort = (string) ($filters['sort'] ?? 'matched_desc');
+        $overdue = (bool) ($filters['overdue'] ?? false);
 
         $sharedQueryIds = DB::table('team_search_queries')
             ->join('search_queries', 'search_queries.id', '=', 'team_search_queries.search_query_id')
@@ -220,6 +225,10 @@ class TenderFeedController extends Controller
         }
         if ($assigneeId !== null) {
             $tenders->whereHas('teamReviews', fn (Builder $query) => $query->where('team_id', $team->id)->where('assignee_id', $assigneeId));
+        }
+        if ($overdue) {
+            $tenders->whereHas('teamReviews', fn (Builder $query) => $query->where('team_id', $team->id)
+                ->whereIn('status', ['new', 'reviewing', 'deferred'])->where('due_at', '<', now()));
         }
         if ($source !== 'all') {
             $tenders->where('source', $source);
@@ -258,6 +267,8 @@ class TenderFeedController extends Controller
                     'assignee_id' => $review?->assignee_id,
                     'rejection_reason' => $review?->rejection_reason,
                     'version' => $review === null ? 0 : $review->version,
+                    'due_at' => $review?->due_at?->toAtomString(),
+                    'overdue' => $review?->due_at?->isPast() && in_array($review->status, ['new', 'reviewing', 'deferred'], true),
                     'comments' => $review?->comments->map(fn ($comment): array => [
                         'id' => $comment->id, 'author_id' => $comment->author_id,
                         'author_name' => $comment->author?->name, 'body' => $comment->body,
@@ -276,16 +287,23 @@ class TenderFeedController extends Controller
         $available = SearchQuery::query()->where('user_id', $request->user()->id)->where('status', '!=', 'deleted')
             ->whereNotIn('id', DB::table('team_search_queries')->where('team_id', $team->id)->select('search_query_id'))
             ->orderBy('name')->get(['id', 'name']);
+        $settings = app(TeamWorkflowService::class)->settings($team);
+        $rules = TeamTenderRoutingRule::query()->where('team_id', $team->id)->orderBy('priority')->orderBy('id')->get();
 
         return Inertia::render('Tenders', [
             ...$scope->props($request->user(), $team),
             'tenderMatches' => $paginator,
             'filters' => ['q' => $search, 'status' => $status, 'tag' => '', 'query_id' => $queryId,
-                'assignee_id' => $assigneeId, 'source' => $source, 'sort' => $sort],
+                'assignee_id' => $assigneeId, 'source' => $source, 'sort' => $sort, 'overdue' => $overdue],
             'filterOptions' => ['queries' => $shared->map(fn ($query) => ['id' => $query['id'], 'name' => $query['name']])->values(), 'tags' => []],
-            'savedViews' => [],
+            'savedViews' => TenderFeedView::query()->where('team_id', $team->id)->latest()->get(['id', 'user_id', 'name', 'filters'])
+                ->map(fn (TenderFeedView $view): array => ['id' => $view->id, 'name' => $view->name, 'filters' => $view->filters,
+                    'can_delete' => $view->user_id === $request->user()->id || $team->owner_id === $request->user()->id]),
             'sharedMonitorings' => $shared,
             'availableMonitorings' => $available,
+            'workflowSettings' => $settings,
+            'routingRules' => $rules,
+            'canManageWorkflow' => $team->owner_id === $request->user()->id && $team->archived_at === null,
         ]);
     }
 

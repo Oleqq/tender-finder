@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Tender;
 use App\Models\TenderParticipation;
+use App\Services\ParticipationApprovalService;
 use App\Services\TeamActivityService;
 use App\Services\TeamWorkspaceService;
 use App\Services\TenderWorkService;
@@ -46,6 +47,9 @@ final class ParticipationEconomicsController extends Controller
             return $participation;
         });
 
-        return response()->json(['economics' => $work->economics($participation)]);
+        return response()->json([
+            'economics' => $work->economics($participation),
+            'approval' => app(ParticipationApprovalService::class)->present($participation),
+        ]);
     }
 }

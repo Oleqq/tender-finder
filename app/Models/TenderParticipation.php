@@ -50,4 +50,10 @@ class TenderParticipation extends Model
     {
         return $this->hasMany(TenderChecklistItem::class, 'participation_id');
     }
+
+    /** @return HasMany<ParticipationApprovalRequest, $this> */
+    public function approvalRequests(): HasMany
+    {
+        return $this->hasMany(ParticipationApprovalRequest::class, 'participation_id');
+    }
 }
