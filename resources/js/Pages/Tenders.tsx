@@ -3,6 +3,11 @@ import { type FormEvent, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { TenderFeedbackActions } from '../Components/TenderFeedbackActions';
+import {
+    AssigneeSelect,
+    type TeamScope,
+    WorkspacePicker,
+} from '../Components/WorkspacePicker';
 import { Icon } from '../Components/Icon';
 import {
     Badge,
@@ -20,11 +25,11 @@ type TenderStatus = 'new' | 'favorite' | 'potential' | 'dismissed' | 'archived';
 type TenderMatch = {
     id: number;
     tender_id: number;
-    search_query_id: number;
+    search_query_id?: number;
     customer: string | null;
-    deadline_reminders_enabled: boolean;
-    action_reminder_enabled: boolean;
-    watch_changes: boolean;
+    deadline_reminders_enabled?: boolean;
+    action_reminder_enabled?: boolean;
+    watch_changes?: boolean;
     title: string;
     description: string | null;
     canonical_url: string;
@@ -34,12 +39,31 @@ type TenderMatch = {
     currency: string;
     deadline_at: string | null;
     matched_at: string;
-    query_name: string;
+    query_name?: string;
+    query_names?: string[];
     source: string;
-    status: TenderStatus;
-    tags: string[];
-    next_action_on: string | null;
+    status?: TenderStatus;
+    tags?: string[];
+    next_action_on?: string | null;
     match_reasons: string[];
+    participation_exists?: boolean;
+    review?: TeamReview;
+};
+
+type TeamReviewStatus = 'new' | 'reviewing' | 'qualified' | 'deferred' | 'rejected';
+type TeamReview = {
+    status: TeamReviewStatus;
+    assignee_id: number | null;
+    rejection_reason: string | null;
+    version: number;
+    comments: TeamReviewComment[];
+};
+type TeamReviewComment = {
+    id: number;
+    author_id: number | null;
+    author_name: string | null;
+    body: string;
+    created_at: string;
 };
 
 type FeedFilters = {
@@ -47,6 +71,7 @@ type FeedFilters = {
     status: string;
     tag: string;
     query_id: number | null;
+    assignee_id?: number | null;
     source: string;
     sort: string;
 };
@@ -63,21 +88,31 @@ type PaginationLink = {
     active: boolean;
 };
 
-type TendersPageProps = PageProps<{
-    tenderMatches: {
-        data: TenderMatch[];
-        current_page: number;
-        last_page: number;
-        total: number;
-        links: PaginationLink[];
-    };
-    filters: FeedFilters;
-    filterOptions: {
-        queries: Array<{ id: number; name: string }>;
-        tags: string[];
-    };
-    savedViews: SavedFeedView[];
-}>;
+type TendersPageProps = PageProps<
+    Partial<TeamScope> & {
+        tenderMatches: {
+            data: TenderMatch[];
+            current_page: number;
+            last_page: number;
+            total: number;
+            links: PaginationLink[];
+        };
+        filters: FeedFilters;
+        filterOptions: {
+            queries: Array<{ id: number; name: string }>;
+            tags: string[];
+        };
+        savedViews: SavedFeedView[];
+        sharedMonitorings?: Array<{
+            id: number;
+            name: string;
+            shared_by_id: number | null;
+            shared_by_name: string | null;
+            can_remove: boolean;
+        }>;
+        availableMonitorings?: Array<{ id: number; name: string }>;
+    }
+>;
 
 const statusOptions = [
     { value: 'all', label: 'Все' },
@@ -86,6 +121,15 @@ const statusOptions = [
     { value: 'potential', label: 'Потенциальные' },
     { value: 'dismissed', label: 'Скрытые' },
     { value: 'archived', label: 'Убраны' },
+];
+
+const teamStatusOptions = [
+    { value: 'all', label: 'Все' },
+    { value: 'new', label: 'Новые' },
+    { value: 'reviewing', label: 'На рассмотрении' },
+    { value: 'qualified', label: 'Подходит' },
+    { value: 'deferred', label: 'Отложено' },
+    { value: 'rejected', label: 'Отклонено' },
 ];
 
 const sourceOptions = [
@@ -99,6 +143,11 @@ export default function Tenders() {
         filters,
         filterOptions,
         savedViews: initialViews,
+        team = null,
+        members = [],
+        can_edit: canEdit = true,
+        sharedMonitorings = [],
+        availableMonitorings = [],
     } = usePage<TendersPageProps>().props;
     const [search, setSearch] = useState(filters.q);
     const [savedViews, setSavedViews] = useState(initialViews);
@@ -109,11 +158,15 @@ export default function Tenders() {
     const visit = (next: Partial<FeedFilters>): void => {
         const params = { ...filters, q: search, ...next };
 
-        router.get('/tenders', cleanParams(params), {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        });
+        router.get(
+            '/tenders',
+            { ...cleanParams(params), ...(team ? { team_id: team.id } : {}) },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
     };
 
     const submitSearch = (event: FormEvent): void => {
@@ -162,26 +215,42 @@ export default function Tenders() {
             filters.status !== 'all' ||
             filters.tag ||
             filters.query_id ||
+            filters.assignee_id ||
             filters.source !== 'all' ||
             filters.sort !== 'matched_desc',
     );
 
+    const visibleStatusOptions = team ? teamStatusOptions : statusOptions;
+
     return (
         <>
-            <Head title="Мои тендеры" />
+            <Head title={team ? `Лента · ${team.name}` : 'Мои тендеры'} />
             <AppShell
                 activeNav="/tenders"
                 className="tenders-page"
-                eyebrow="Мой поток"
-                title="Тендеры"
+                eyebrow={team ? 'Командный поток' : 'Мой поток'}
+                title={team ? `Лента · ${team.name}` : 'Тендеры'}
             >
                 <TenderWorkNav active="/tenders" />
+                <WorkspacePicker path="/tenders" />
+                {team ? (
+                    <TeamMonitoringPanel
+                        teamId={team.id}
+                        canEdit={canEdit}
+                        shared={sharedMonitorings}
+                        available={availableMonitorings}
+                    />
+                ) : null}
                 <GlassCard className="tenders-summary page-enter" tone="quiet">
                     <span className="tenders-summary__mark">
                         <Icon name="layers" size={19} />
                     </span>
                     <div>
-                        <p>Совпадения по мониторингам</p>
+                        <p>
+                            {team
+                                ? 'Общая очередь разбора'
+                                : 'Совпадения по мониторингам'}
+                        </p>
                         <strong>
                             {tenderMatches.total === 0
                                 ? 'Карточек по выбранным условиям нет'
@@ -232,7 +301,7 @@ export default function Tenders() {
                     </form>
 
                     <div aria-label="Личный статус" className="tender-feed-statuses">
-                        {statusOptions.map((option) => (
+                        {visibleStatusOptions.map((option) => (
                             <FilterChip
                                 active={filters.status === option.value}
                                 key={option.value}
@@ -262,18 +331,42 @@ export default function Tenders() {
                             ]}
                             value={filters.query_id ?? ''}
                         />
-                        <SelectField
-                            label="Личный тег"
-                            onChange={(event) => visit({ tag: event.target.value })}
-                            options={[
-                                { value: '', label: 'Все теги' },
-                                ...filterOptions.tags.map((tag) => ({
-                                    value: tag,
-                                    label: tag,
-                                })),
-                            ]}
-                            value={filters.tag}
-                        />
+                        {team ? (
+                            <SelectField
+                                label="Ответственный"
+                                onChange={(event) =>
+                                    visit({
+                                        assignee_id: event.target.value
+                                            ? Number(event.target.value)
+                                            : null,
+                                    })
+                                }
+                                options={[
+                                    { value: '', label: 'Все сотрудники' },
+                                    ...members
+                                        .filter((member) => member.role !== 'viewer')
+                                        .map((member) => ({
+                                            value: String(member.id),
+                                            label:
+                                                member.name || `Участник ${member.id}`,
+                                        })),
+                                ]}
+                                value={filters.assignee_id ?? ''}
+                            />
+                        ) : (
+                            <SelectField
+                                label="Личный тег"
+                                onChange={(event) => visit({ tag: event.target.value })}
+                                options={[
+                                    { value: '', label: 'Все теги' },
+                                    ...filterOptions.tags.map((tag) => ({
+                                        value: tag,
+                                        label: tag,
+                                    })),
+                                ]}
+                                value={filters.tag}
+                            />
+                        )}
                         <SelectField
                             label="Сортировка"
                             onChange={(event) => visit({ sort: event.target.value })}
@@ -292,7 +385,11 @@ export default function Tenders() {
                             className="tender-feed-reset"
                             onClick={() => {
                                 setSearch('');
-                                router.get('/tenders', {}, { replace: true });
+                                router.get(
+                                    '/tenders',
+                                    team ? { team_id: team.id } : {},
+                                    { replace: true },
+                                );
                             }}
                             type="button"
                         >
@@ -300,58 +397,65 @@ export default function Tenders() {
                         </button>
                     ) : null}
 
-                    <div className="tender-feed-views">
-                        <div className="tender-feed-views__heading">
-                            <div>
-                                <strong>Сохранённые представления</strong>
-                                <small>До 10 наборов фильтров и сортировки</small>
+                    {!team ? (
+                        <div className="tender-feed-views">
+                            <div className="tender-feed-views__heading">
+                                <div>
+                                    <strong>Сохранённые представления</strong>
+                                    <small>До 10 наборов фильтров и сортировки</small>
+                                </div>
+                                <Badge tone="neutral">{savedViews.length}/10</Badge>
                             </div>
-                            <Badge tone="neutral">{savedViews.length}/10</Badge>
-                        </div>
-                        {savedViews.length > 0 ? (
-                            <div className="tender-feed-views__list">
-                                {savedViews.map((view) => (
-                                    <span key={view.id}>
-                                        <button
-                                            onClick={() => applyView(view)}
-                                            type="button"
-                                        >
-                                            {view.name}
-                                        </button>
-                                        <button
-                                            aria-label={`Удалить ${view.name}`}
-                                            onClick={() => deleteView(view)}
-                                            type="button"
-                                        >
-                                            ×
-                                        </button>
-                                    </span>
-                                ))}
-                            </div>
-                        ) : null}
-                        <form className="tender-feed-views__form" onSubmit={saveView}>
-                            <label className="form-field">
-                                <span>Название текущего набора</span>
-                                <input
-                                    maxLength={60}
-                                    onChange={(event) =>
-                                        setViewName(event.target.value)
-                                    }
-                                    placeholder="Например, срочные избранные"
-                                    value={viewName}
-                                />
-                            </label>
-                            <Button
-                                disabled={savingView || savedViews.length >= 10}
-                                size="sm"
-                                type="submit"
-                                variant="secondary"
+                            {savedViews.length > 0 ? (
+                                <div className="tender-feed-views__list">
+                                    {savedViews.map((view) => (
+                                        <span key={view.id}>
+                                            <button
+                                                onClick={() => applyView(view)}
+                                                type="button"
+                                            >
+                                                {view.name}
+                                            </button>
+                                            <button
+                                                aria-label={`Удалить ${view.name}`}
+                                                onClick={() => deleteView(view)}
+                                                type="button"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : null}
+                            <form
+                                className="tender-feed-views__form"
+                                onSubmit={saveView}
                             >
-                                {savingView ? 'Сохраняем…' : 'Сохранить вид'}
-                            </Button>
-                        </form>
-                        {viewError ? <p className="field-error">{viewError}</p> : null}
-                    </div>
+                                <label className="form-field">
+                                    <span>Название текущего набора</span>
+                                    <input
+                                        maxLength={60}
+                                        onChange={(event) =>
+                                            setViewName(event.target.value)
+                                        }
+                                        placeholder="Например, срочные избранные"
+                                        value={viewName}
+                                    />
+                                </label>
+                                <Button
+                                    disabled={savingView || savedViews.length >= 10}
+                                    size="sm"
+                                    type="submit"
+                                    variant="secondary"
+                                >
+                                    {savingView ? 'Сохраняем…' : 'Сохранить вид'}
+                                </Button>
+                            </form>
+                            {viewError ? (
+                                <p className="field-error">{viewError}</p>
+                            ) : null}
+                        </div>
+                    ) : null}
                 </GlassCard>
 
                 {tenderMatches.data.length > 0 ? (
@@ -360,9 +464,19 @@ export default function Tenders() {
                             aria-label="Совпавшие тендеры"
                             className="tenders-preview page-enter page-enter--later"
                         >
-                            {tenderMatches.data.map((match) => (
-                                <FeedTenderCard key={match.id} match={match} />
-                            ))}
+                            {tenderMatches.data.map((match) =>
+                                team ? (
+                                    <TeamFeedTenderCard
+                                        key={match.id}
+                                        match={match}
+                                        teamId={team.id}
+                                        members={members}
+                                        canEdit={canEdit}
+                                    />
+                                ) : (
+                                    <FeedTenderCard key={match.id} match={match} />
+                                ),
+                            )}
                         </section>
                         <FeedPagination
                             currentPage={tenderMatches.current_page}
@@ -381,7 +495,7 @@ export default function Tenders() {
                                             setSearch('');
                                             router.get(
                                                 '/tenders',
-                                                {},
+                                                team ? { team_id: team.id } : {},
                                                 { replace: true },
                                             );
                                         }}
@@ -425,8 +539,9 @@ export default function Tenders() {
                 <section className="empty-hint page-enter page-enter--later">
                     <Icon name="spark" size={17} />
                     <p>
-                        Фильтры и сортировка записаны в адрес страницы. Карточки
-                        принадлежат только вашей ленте и не являются рейтингом.
+                        {team
+                            ? 'Лента содержит только явно подключённые мониторинги. Личные отметки участников остаются приватными.'
+                            : 'Фильтры и сортировка записаны в адрес страницы. Карточки принадлежат только вашей ленте и не являются рейтингом.'}
                     </p>
                 </section>
             </AppShell>
@@ -434,23 +549,376 @@ export default function Tenders() {
     );
 }
 
+function TeamMonitoringPanel({
+    teamId,
+    canEdit,
+    shared,
+    available,
+}: {
+    teamId: number;
+    canEdit: boolean;
+    shared: NonNullable<TendersPageProps['sharedMonitorings']>;
+    available: NonNullable<TendersPageProps['availableMonitorings']>;
+}) {
+    const [selected, setSelected] = useState(available[0]?.id ?? 0);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+
+    const connect = async (): Promise<void> => {
+        if (!selected) return;
+        setBusy(true);
+        setError('');
+        try {
+            await window.axios.post(`/teams/${teamId}/monitorings`, {
+                search_query_id: selected,
+            });
+            router.reload();
+        } catch {
+            setError('Не удалось подключить мониторинг к команде.');
+            setBusy(false);
+        }
+    };
+
+    const disconnect = async (id: number): Promise<void> => {
+        if (
+            !window.confirm(
+                'Отключить мониторинг от командной ленты? Уже созданные заявки сохранятся.',
+            )
+        )
+            return;
+        setBusy(true);
+        setError('');
+        try {
+            await window.axios.delete(`/teams/${teamId}/monitorings/${id}`);
+            router.reload();
+        } catch {
+            setError('Не удалось отключить мониторинг.');
+            setBusy(false);
+        }
+    };
+
+    return (
+        <GlassCard className="team-feed-monitorings page-enter" tone="quiet">
+            <div className="section-heading">
+                <div>
+                    <p>Источники общей очереди</p>
+                    <h2>Подключённые мониторинги</h2>
+                </div>
+                <Badge tone="neutral">{shared.length}</Badge>
+            </div>
+            {shared.length ? (
+                <div className="team-feed-monitorings__list">
+                    {shared.map((query) => (
+                        <span key={query.id}>
+                            <strong>{query.name}</strong>
+                            <small>
+                                {query.shared_by_name
+                                    ? `Подключил: ${query.shared_by_name}`
+                                    : 'Автор удалён'}
+                            </small>
+                            {canEdit && query.can_remove ? (
+                                <button
+                                    disabled={busy}
+                                    onClick={() => disconnect(query.id)}
+                                    type="button"
+                                >
+                                    Отключить
+                                </button>
+                            ) : null}
+                        </span>
+                    ))}
+                </div>
+            ) : (
+                <p className="work-help">
+                    Подключите личный мониторинг — его совпадения станут видны
+                    участникам команды.
+                </p>
+            )}
+            {canEdit && available.length ? (
+                <div className="team-feed-monitorings__connect">
+                    <label>
+                        Мой мониторинг
+                        <select
+                            value={selected}
+                            onChange={(event) =>
+                                setSelected(Number(event.target.value))
+                            }
+                        >
+                            {available.map((query) => (
+                                <option key={query.id} value={query.id}>
+                                    {query.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <Button
+                        disabled={busy || !selected}
+                        onClick={connect}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        {busy ? 'Подключаем…' : 'Подключить'}
+                    </Button>
+                </div>
+            ) : null}
+            {canEdit && !available.length ? (
+                <Link href="/queries">Создать личный мониторинг</Link>
+            ) : null}
+            {error ? <p className="field-error">{error}</p> : null}
+        </GlassCard>
+    );
+}
+
+function TeamFeedTenderCard({
+    match,
+    teamId,
+    members,
+    canEdit,
+}: {
+    match: TenderMatch;
+    teamId: number;
+    members: TeamScope['members'];
+    canEdit: boolean;
+}) {
+    const initial = match.review ?? {
+        status: 'new' as const,
+        assignee_id: null,
+        rejection_reason: null,
+        version: 0,
+        comments: [],
+    };
+    const [review, setReview] = useState(initial);
+    const [status, setStatus] = useState<TeamReviewStatus>(initial.status);
+    const [assignee, setAssignee] = useState<number | null>(initial.assignee_id);
+    const [reason, setReason] = useState(initial.rejection_reason ?? '');
+    const [comments, setComments] = useState(initial.comments);
+    const [comment, setComment] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [participating, setParticipating] = useState(
+        Boolean(match.participation_exists),
+    );
+    const [error, setError] = useState('');
+
+    const save = async (): Promise<void> => {
+        setSaving(true);
+        setError('');
+        try {
+            const response = await window.axios.patch<{
+                review: Omit<TeamReview, 'comments'>;
+            }>(`/teams/${teamId}/tenders/${match.tender_id}/review`, {
+                status,
+                assignee_id: assignee,
+                rejection_reason: status === 'rejected' ? reason : null,
+                version: review.version,
+            });
+            setReview((current) => ({ ...current, ...response.data.review }));
+        } catch (requestError: unknown) {
+            const code = (requestError as { response?: { status?: number } }).response
+                ?.status;
+            setError(
+                code === 409
+                    ? 'Карточка уже изменена коллегой. Обновите страницу.'
+                    : 'Не удалось сохранить разбор карточки.',
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const addComment = async (event: FormEvent): Promise<void> => {
+        event.preventDefault();
+        if (!comment.trim()) return;
+        setSaving(true);
+        setError('');
+        try {
+            const response = await window.axios.post<{ comment: TeamReviewComment }>(
+                `/teams/${teamId}/tenders/${match.tender_id}/comments`,
+                { body: comment.trim() },
+            );
+            setComments((current) => [...current, response.data.comment]);
+            setComment('');
+            if (review.version === 0)
+                setReview((current) => ({ ...current, version: 1 }));
+        } catch {
+            setError('Не удалось добавить комментарий.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const promote = async (): Promise<void> => {
+        setSaving(true);
+        setError('');
+        try {
+            await window.axios.post(
+                `/teams/${teamId}/tenders/${match.tender_id}/promote`,
+                { assignee_id: assignee },
+            );
+            setParticipating(true);
+            setStatus('qualified');
+            router.visit(`/tenders/${match.tender_id}/work?team_id=${teamId}`);
+        } catch {
+            setError('Не удалось передать тендер в участие.');
+            setSaving(false);
+        }
+    };
+
+    return (
+        <GlassCard as="article" className="tender-card tender-feed-card team-feed-card">
+            <div className="tender-card__meta">
+                <Badge tone={teamReviewTone(status)}>{teamReviewLabel(status)}</Badge>
+                {match.source === 'rostender' ? (
+                    <Badge tone="accent">RosTender</Badge>
+                ) : null}
+                <span>
+                    <Icon name="spark" size={14} /> {match.match_reasons.join(', ')}
+                </span>
+            </div>
+            <h3>{match.title}</h3>
+            <p>Мониторинги: {(match.query_names ?? []).join(' · ')}</p>
+            {match.description ? (
+                <p className="tender-card__description">{match.description}</p>
+            ) : null}
+            <div className="tender-card__footer">
+                <strong>{formatBudget(match.budget_amount, match.currency)}</strong>
+                <span>{formatDeadline(match.deadline_at)}</span>
+            </div>
+            <div className="team-feed-card__review">
+                <SelectField
+                    label="Решение команды"
+                    disabled={!canEdit || saving}
+                    value={status}
+                    onChange={(event) =>
+                        setStatus(event.target.value as TeamReviewStatus)
+                    }
+                    options={teamStatusOptions.filter(
+                        (option) => option.value !== 'all',
+                    )}
+                />
+                <AssigneeSelect
+                    label="Ответственный за разбор"
+                    disabled={!canEdit || saving}
+                    value={assignee}
+                    onChange={setAssignee}
+                    members={members}
+                />
+                {status === 'rejected' ? (
+                    <label className="form-field">
+                        <span>Причина отклонения</span>
+                        <textarea
+                            disabled={!canEdit || saving}
+                            maxLength={2000}
+                            value={reason}
+                            onChange={(event) => setReason(event.target.value)}
+                        />
+                    </label>
+                ) : null}
+                {canEdit ? (
+                    <Button
+                        disabled={saving || (status === 'rejected' && !reason.trim())}
+                        onClick={save}
+                        size="sm"
+                    >
+                        {saving ? 'Сохраняем…' : 'Сохранить разбор'}
+                    </Button>
+                ) : null}
+                {review.rejection_reason && status === review.status ? (
+                    <p className="work-help">Причина: {review.rejection_reason}</p>
+                ) : null}
+            </div>
+            <div className="team-feed-card__discussion">
+                <strong>Обсуждение · {comments.length}</strong>
+                {comments.map((item) => (
+                    <p key={item.id}>
+                        <b>{item.author_name || 'Удалённый участник'}:</b> {item.body}
+                    </p>
+                ))}
+                {canEdit ? (
+                    <form onSubmit={addComment}>
+                        <input
+                            maxLength={4000}
+                            placeholder="Комментарий для команды"
+                            value={comment}
+                            onChange={(event) => setComment(event.target.value)}
+                        />
+                        <Button
+                            disabled={saving || !comment.trim()}
+                            size="sm"
+                            type="submit"
+                            variant="secondary"
+                        >
+                            Добавить
+                        </Button>
+                    </form>
+                ) : null}
+            </div>
+            {error ? <p className="field-error">{error}</p> : null}
+            <div className="tender-feed-card__links">
+                <a href={match.canonical_url} rel="noreferrer" target="_blank">
+                    Первоисточник
+                </a>
+                {participating ? (
+                    <Link href={`/tenders/${match.tender_id}/work?team_id=${teamId}`}>
+                        Открыть участие
+                    </Link>
+                ) : canEdit ? (
+                    <button disabled={saving} onClick={promote} type="button">
+                        Передать в участие
+                    </button>
+                ) : null}
+            </div>
+        </GlassCard>
+    );
+}
+
+function teamReviewLabel(status: TeamReviewStatus): string {
+    return {
+        new: 'Новый',
+        reviewing: 'На рассмотрении',
+        qualified: 'Подходит',
+        deferred: 'Отложено',
+        rejected: 'Отклонено',
+    }[status];
+}
+
+function teamReviewTone(
+    status: TeamReviewStatus,
+): 'neutral' | 'accent' | 'success' | 'warning' {
+    const tones: Record<
+        TeamReviewStatus,
+        'neutral' | 'accent' | 'success' | 'warning'
+    > = {
+        new: 'accent',
+        reviewing: 'warning',
+        qualified: 'success',
+        deferred: 'neutral',
+        rejected: 'neutral',
+    };
+
+    return tones[status];
+}
+
 function FeedTenderCard({ match }: { match: TenderMatch }) {
     const [editing, setEditing] = useState(false);
-    const [status, setStatus] = useState<TenderStatus>(match.status);
-    const [persistedStatus, setPersistedStatus] = useState<TenderStatus>(match.status);
-    const [tags, setTags] = useState(match.tags.join(', '));
+    const [status, setStatus] = useState<TenderStatus>(match.status ?? 'new');
+    const [persistedStatus, setPersistedStatus] = useState<TenderStatus>(
+        match.status ?? 'new',
+    );
+    const [tags, setTags] = useState((match.tags ?? []).join(', '));
     const [nextActionOn, setNextActionOn] = useState(match.next_action_on ?? '');
     const [deadlineReminder, setDeadlineReminder] = useState(
-        match.deadline_reminders_enabled,
+        Boolean(match.deadline_reminders_enabled),
     );
-    const [actionReminder, setActionReminder] = useState(match.action_reminder_enabled);
-    const [watchChanges, setWatchChanges] = useState(match.watch_changes);
+    const [actionReminder, setActionReminder] = useState(
+        Boolean(match.action_reminder_enabled),
+    );
+    const [watchChanges, setWatchChanges] = useState(Boolean(match.watch_changes));
     const [savedFollowUp, setSavedFollowUp] = useState({
-        deadline: match.deadline_reminders_enabled,
-        action: match.action_reminder_enabled,
-        watch: match.watch_changes,
+        deadline: Boolean(match.deadline_reminders_enabled),
+        action: Boolean(match.action_reminder_enabled),
+        watch: Boolean(match.watch_changes),
     });
-    const [savedTags, setSavedTags] = useState(match.tags.join(', '));
+    const [savedTags, setSavedTags] = useState((match.tags ?? []).join(', '));
     const [savedAction, setSavedAction] = useState(match.next_action_on ?? '');
     const cancelEdit = () => {
         setStatus(persistedStatus);
@@ -649,8 +1117,8 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
             ) : null}
             <TenderFeedbackActions
                 tenderId={match.tender_id}
-                queryId={match.search_query_id}
-                queryName={match.query_name}
+                queryId={match.search_query_id ?? 0}
+                queryName={match.query_name ?? ''}
                 customer={match.customer}
                 onDismiss={() => {
                     setStatus('dismissed');

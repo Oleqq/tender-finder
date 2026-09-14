@@ -16,7 +16,7 @@ export function TenderWorkNav({ active }: { active: string }) {
             ].map(([href, label]) => (
                 <Link
                     key={href}
-                    href={href === '/tenders' ? href : scopedUrl(href, team ?? null)}
+                    href={scopedUrl(href, team ?? null)}
                     aria-current={active === href ? 'page' : undefined}
                     className={active === href ? 'is-active' : ''}
                 >

@@ -80,4 +80,10 @@ class Tender extends Model
     {
         return $this->hasMany(TenderParticipation::class);
     }
+
+    /** @return HasMany<TeamTenderReview, $this> */
+    public function teamReviews(): HasMany
+    {
+        return $this->hasMany(TeamTenderReview::class);
+    }
 }

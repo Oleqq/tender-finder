@@ -128,9 +128,12 @@ final class TeamController extends Controller
                 $activity->record($team, $request->user(), 'member_role_changed', ['member_id' => $member, 'role' => $data['role']]);
             }
             if ($request->isMethod('delete') || $data['role'] === 'viewer') {
+                DB::table('team_search_queries')->where('team_id', $team->id)->where('shared_by_id', $member)->delete();
                 $ids = TenderParticipation::query()->where('team_id', $team->id)->select('id');
                 TenderChecklistItem::query()->whereIn('participation_id', $ids)->where('assignee_id', $member)->update(['assignee_id' => null, 'version' => DB::raw('version + 1')]);
                 TenderParticipation::query()->where('team_id', $team->id)->where('assignee_id', $member)->update(['assignee_id' => null, 'version' => DB::raw('version + 1')]);
+                DB::table('team_tender_reviews')->where('team_id', $team->id)->where('assignee_id', $member)
+                    ->update(['assignee_id' => null, 'version' => DB::raw('version + 1'), 'updated_at' => now()]);
             }
         });
 

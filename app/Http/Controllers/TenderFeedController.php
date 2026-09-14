@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Enums\TenderUserStatus;
 use App\Models\SearchQuery;
+use App\Models\Team;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
+use App\Services\TeamWorkspaceService;
 use App\Services\TenderFacts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,6 +25,12 @@ class TenderFeedController extends Controller
 
         if ($user === null) {
             abort(401);
+        }
+
+        $scope = app(TeamWorkspaceService::class);
+        $team = $scope->context($request);
+        if ($team !== null) {
+            return $this->teamIndex($request, $scope, $team);
         }
 
         $filters = $request->validate([
@@ -156,6 +165,127 @@ class TenderFeedController extends Controller
             'savedViews' => $user->tenderFeedViews()
                 ->latest()
                 ->get(['id', 'name', 'filters']),
+        ]);
+    }
+
+    private function teamIndex(Request $request, TeamWorkspaceService $scope, Team $team): Response
+    {
+        $filters = $request->validate([
+            'team_id' => ['required', 'integer'],
+            'q' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', Rule::in(['all', 'new', 'reviewing', 'qualified', 'deferred', 'rejected'])],
+            'query_id' => ['nullable', 'integer'],
+            'assignee_id' => ['nullable', 'integer'],
+            'source' => ['nullable', Rule::in(['all', 'rostender', 'eis_rss'])],
+            'sort' => ['nullable', Rule::in(['matched_desc', 'deadline_asc', 'budget_desc', 'budget_asc'])],
+        ]);
+        $search = trim((string) ($filters['q'] ?? ''));
+        $status = (string) ($filters['status'] ?? 'all');
+        $queryId = isset($filters['query_id']) ? (int) $filters['query_id'] : null;
+        $assigneeId = isset($filters['assignee_id']) ? (int) $filters['assignee_id'] : null;
+        $source = (string) ($filters['source'] ?? 'all');
+        $sort = (string) ($filters['sort'] ?? 'matched_desc');
+
+        $sharedQueryIds = DB::table('team_search_queries')
+            ->join('search_queries', 'search_queries.id', '=', 'team_search_queries.search_query_id')
+            ->where('team_id', $team->id)
+            ->where('search_queries.status', '!=', 'deleted')
+            ->when($queryId !== null, fn ($query) => $query->where('search_query_id', $queryId))
+            ->select('search_query_id');
+        $tenders = Tender::query()
+            ->whereHas('matches', fn (Builder $query) => $query->whereIn('search_query_id', clone $sharedQueryIds))
+            ->with([
+                'matches' => fn ($query) => $query->whereIn('search_query_id', clone $sharedQueryIds)->with('searchQuery:id,name'),
+                'teamReviews' => fn ($query) => $query->where('team_id', $team->id)->with('comments.author:id,name'),
+            ])
+            ->withExists(['participations as team_participation_exists' => fn ($query) => $query->where('team_id', $team->id)]);
+
+        if ($search !== '') {
+            $needle = '%'.mb_strtolower($search).'%';
+            $customerExpression = config('database.default') === 'pgsql' ? "metadata->>'customer'" : "json_extract(metadata, '$.customer')";
+            $tenders->where(function (Builder $query) use ($needle, $customerExpression): void {
+                $query->whereRaw('LOWER(title) LIKE ?', [$needle])
+                    ->orWhereRaw('LOWER(COALESCE(description, ?)) LIKE ?', ['', $needle])
+                    ->orWhereRaw('LOWER(COALESCE(reg_number, ?)) LIKE ?', ['', $needle])
+                    ->orWhereRaw("LOWER(COALESCE({$customerExpression}, ?)) LIKE ?", ['', $needle]);
+            });
+        }
+        if ($status !== 'all') {
+            $tenders->where(function (Builder $query) use ($status, $team): void {
+                $query->whereHas('teamReviews', fn (Builder $review) => $review->where('team_id', $team->id)->where('status', $status));
+                if ($status === 'new') {
+                    $query->orWhereDoesntHave('teamReviews', fn (Builder $review) => $review->where('team_id', $team->id));
+                }
+            });
+        }
+        if ($assigneeId !== null) {
+            $tenders->whereHas('teamReviews', fn (Builder $query) => $query->where('team_id', $team->id)->where('assignee_id', $assigneeId));
+        }
+        if ($source !== 'all') {
+            $tenders->where('source', $source);
+        }
+        match ($sort) {
+            'deadline_asc' => $tenders->orderByRaw('deadline_at IS NULL')->orderBy('deadline_at'),
+            'budget_desc' => $tenders->orderByRaw('budget_amount IS NULL')->orderByDesc('budget_amount'),
+            'budget_asc' => $tenders->orderByRaw('budget_amount IS NULL')->orderBy('budget_amount'),
+            default => $tenders->orderByDesc(TenderQueryMatch::query()->select('matched_at')
+                ->whereColumn('tender_query_matches.tender_id', 'tenders.id')
+                ->whereIn('search_query_id', clone $sharedQueryIds)->latest('matched_at')->limit(1)),
+        };
+        $paginator = $tenders->orderByDesc('tenders.id')->paginate(12)->withQueryString();
+        $paginator->through(function (Tender $tender): array {
+            $review = $tender->teamReviews->first();
+            $matches = $tender->matches;
+
+            return [
+                'id' => $tender->id,
+                'tender_id' => $tender->id,
+                'title' => $tender->title,
+                'description' => $tender->description,
+                'canonical_url' => $tender->canonical_url,
+                'reg_number' => $tender->reg_number,
+                'region' => $tender->region,
+                'budget_amount' => $tender->budget_amount,
+                'currency' => $tender->currency,
+                'deadline_at' => $tender->deadline_at?->toAtomString(),
+                'matched_at' => $matches->max('matched_at')?->toAtomString(),
+                'customer' => TenderFacts::customer($tender),
+                'query_names' => $matches->pluck('searchQuery.name')->unique()->values()->all(),
+                'source' => $tender->source,
+                'match_reasons' => $matches->flatMap(fn (TenderQueryMatch $match) => $this->reasonLabels($match->match_reasons ?? []))->unique()->values()->all(),
+                'review' => [
+                    'status' => $review === null ? 'new' : $review->status,
+                    'assignee_id' => $review?->assignee_id,
+                    'rejection_reason' => $review?->rejection_reason,
+                    'version' => $review === null ? 0 : $review->version,
+                    'comments' => $review?->comments->map(fn ($comment): array => [
+                        'id' => $comment->id, 'author_id' => $comment->author_id,
+                        'author_name' => $comment->author?->name, 'body' => $comment->body,
+                        'created_at' => $comment->created_at?->toAtomString(),
+                    ])->all() ?? [],
+                ],
+                'participation_exists' => (bool) $tender->getAttribute('team_participation_exists'),
+            ];
+        });
+
+        $shared = DB::table('team_search_queries')->join('search_queries', 'search_queries.id', '=', 'team_search_queries.search_query_id')
+            ->leftJoin('users', 'users.id', '=', 'team_search_queries.shared_by_id')->where('team_search_queries.team_id', $team->id)
+            ->where('search_queries.status', '!=', 'deleted')
+            ->orderBy('search_queries.name')->get(['search_queries.id', 'search_queries.name', 'team_search_queries.shared_by_id', 'users.name as shared_by_name'])
+            ->map(fn ($query): array => [...(array) $query, 'can_remove' => $team->owner_id === $request->user()->id || (int) $query->shared_by_id === $request->user()->id]);
+        $available = SearchQuery::query()->where('user_id', $request->user()->id)->where('status', '!=', 'deleted')
+            ->whereNotIn('id', DB::table('team_search_queries')->where('team_id', $team->id)->select('search_query_id'))
+            ->orderBy('name')->get(['id', 'name']);
+
+        return Inertia::render('Tenders', [
+            ...$scope->props($request->user(), $team),
+            'tenderMatches' => $paginator,
+            'filters' => ['q' => $search, 'status' => $status, 'tag' => '', 'query_id' => $queryId,
+                'assignee_id' => $assigneeId, 'source' => $source, 'sort' => $sort],
+            'filterOptions' => ['queries' => $shared->map(fn ($query) => ['id' => $query['id'], 'name' => $query['name']])->values(), 'tags' => []],
+            'savedViews' => [],
+            'sharedMonitorings' => $shared,
+            'availableMonitorings' => $available,
         ]);
     }
 
