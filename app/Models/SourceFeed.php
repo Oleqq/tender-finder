@@ -4,6 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property Carbon|null $next_poll_at
+ * @property Carbon|null $initialized_at
+ * @property Carbon|null $last_attempt_at
+ * @property Carbon|null $last_success_at
+ */
 
 class SourceFeed extends Model
 {

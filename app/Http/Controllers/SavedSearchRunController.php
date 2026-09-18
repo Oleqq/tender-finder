@@ -7,6 +7,7 @@ use App\Enums\QueryStatus;
 use App\Models\RostenderFeedSearchQuery;
 use App\Models\SearchQuery;
 use App\Services\AccessService;
+use App\Services\EisSourceFeedLinkService;
 use App\Services\LocalMvpEisRssSearchService;
 use App\Services\RostenderManualCheckService;
 use App\Services\SearchQueryPresenter;
@@ -32,6 +33,7 @@ final class SavedSearchRunController extends Controller
         LocalMvpEisRssSearchService $search,
         SearchQueryPresenter $presenter,
         SourceFeedService $feeds,
+        EisSourceFeedLinkService $eisLinks,
         EisRssSearchUrlFactory $searchUrls,
         RostenderManualCheckService $rostender,
     ): JsonResponse {
@@ -114,10 +116,11 @@ final class SavedSearchRunController extends Controller
                 $criteria,
                 $query,
             );
-            $feeds->findOrCreate(
+            $feed = $feeds->findOrCreate(
                 $this->nullableString($source['rss_url'] ?? null)
                     ?? $searchUrls->forPhrase($relevance->phrase, $criteria),
             );
+            $eisLinks->attach($query, $feed);
         } catch (RssSourceException $exception) {
             throw ValidationException::withMessages([
                 'query' => $this->errorMessage($exception->codeName),

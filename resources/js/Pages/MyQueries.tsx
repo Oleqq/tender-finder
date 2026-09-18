@@ -36,6 +36,17 @@ type QueryDto = {
     last_run_at: string | null;
     last_run: QueryRunSummary | null;
     filters: Record<string, unknown> | null;
+    source_statuses?: SourceStatus[];
+};
+
+type SourceStatus = {
+    source: 'eis_rss' | 'rostender';
+    state: 'ok' | 'empty' | 'error' | 'queued' | 'paused' | 'pending';
+    message: string;
+    last_success_at: string | null;
+    last_success_items_seen: number | null;
+    last_failure_at: string | null;
+    next_attempt_at: string | null;
 };
 
 type QueryRunSummary = {
@@ -486,6 +497,9 @@ export default function MyQueries() {
                                         {details ? <p>{details}</p> : null}
                                     </div>
                                     <QueryRunSummaryCard query={query} />
+                                    <SourceStatusCards
+                                        statuses={query.source_statuses ?? []}
+                                    />
                                     <div className="query-card__actions">
                                         {canRunManually ? (
                                             <>
@@ -741,6 +755,92 @@ function QueryRunSummaryCard({ query }: { query: QueryDto }) {
             ) : null}
         </div>
     );
+}
+
+function SourceStatusCards({ statuses }: { statuses: SourceStatus[] }) {
+    if (statuses.length === 0) {
+        return (
+            <div className="source-status source-status--pending">
+                <strong>Состояние источника появится после первого запуска.</strong>
+                <p>
+                    Пока нельзя делать вывод, есть ли новые совпадения: источник ещё не
+                    подтвердил ответ для этого мониторинга.
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="source-statuses">
+            {statuses.map((status) => (
+                <section
+                    className={`source-status source-status--${status.state}`}
+                    key={status.source}
+                >
+                    <div className="source-status__heading">
+                        <strong>{sourceLabel(status.source)}</strong>
+                        <Badge tone={sourceTone(status.state)}>
+                            {sourceStateLabel(status.state)}
+                        </Badge>
+                    </div>
+                    <p>{status.message}</p>
+                    <dl className="source-status__times">
+                        <div>
+                            <dt>Последний успех</dt>
+                            <dd>
+                                {status.last_success_at
+                                    ? formatDateTime(status.last_success_at)
+                                    : 'ещё не было'}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Последняя ошибка</dt>
+                            <dd>
+                                {status.last_failure_at
+                                    ? formatDateTime(status.last_failure_at)
+                                    : 'не было'}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Следующая попытка</dt>
+                            <dd>
+                                {status.next_attempt_at
+                                    ? formatDateTime(status.next_attempt_at)
+                                    : 'не запланирована'}
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
+            ))}
+        </div>
+    );
+}
+
+function sourceLabel(source: SourceStatus['source']): string {
+    return source === 'rostender' ? 'RosTender' : 'ЕИС';
+}
+
+function sourceStateLabel(state: SourceStatus['state']): string {
+    return {
+        ok: 'Ответ получен',
+        empty: 'Новых записей нет',
+        error: 'Источник недоступен',
+        queued: 'Ожидает очереди',
+        paused: 'Остановлен',
+        pending: 'Первый опрос',
+    }[state];
+}
+
+function sourceTone(
+    state: SourceStatus['state'],
+): 'neutral' | 'success' | 'warning' | 'danger' {
+    return state === 'ok' || state === 'empty'
+        ? 'success'
+        : state === 'error'
+          ? 'danger'
+          : state === 'queued' || state === 'pending'
+            ? 'warning'
+            : 'neutral';
 }
 
 function QueryRunResults({ run, onClose }: { run: QueryRunView; onClose: () => void }) {

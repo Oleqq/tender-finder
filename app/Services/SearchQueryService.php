@@ -13,6 +13,7 @@ class SearchQueryService
     public function __construct(
         private readonly AccessService $access,
         private readonly RostenderTemplateFeedService $rostenderFeeds,
+        private readonly EisSourceFeedLinkService $eisFeeds,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -45,7 +46,15 @@ class SearchQueryService
             if (isset($attributes['filters'])) {
                 $attributes['filters'] = array_replace($query->filters ?? [], $attributes['filters']);
             }
-            $query->fill($attributes)->save();
+            $query->fill($attributes);
+            $eisSourceChanged = $query->isDirty([
+                'keywords', 'minus_keywords', 'region', 'budget_min', 'budget_max',
+                'deadline_from', 'deadline_to', 'filters',
+            ]);
+            $query->save();
+            if ($eisSourceChanged) {
+                $this->eisFeeds->detach($query);
+            }
             $this->rostenderFeeds->synchronize($query, $this->rostenderTemplateId($query));
 
             return $query->refresh();
@@ -89,6 +98,7 @@ class SearchQueryService
     public function delete(SearchQuery $query): void
     {
         $query->forceFill(['status' => QueryStatus::Deleted])->save();
+        $this->eisFeeds->detach($query);
         $this->rostenderFeeds->detach($query);
     }
 

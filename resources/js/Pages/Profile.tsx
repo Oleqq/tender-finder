@@ -13,12 +13,22 @@ type NotificationPreferences = {
     timezone: string;
 };
 
+type NotificationDelivery = {
+    type: string;
+    status: 'queued' | 'sent' | 'skipped' | 'failed';
+    message: string;
+    scheduled_at: string | null;
+    completed_at: string | null;
+};
+
 type ProfilePageProps = PageProps<{
     notificationPreferences: NotificationPreferences;
+    notificationDeliveries: NotificationDelivery[];
 }>;
 
 export default function Profile() {
-    const { auth, notificationPreferences } = usePage<ProfilePageProps>().props;
+    const { auth, notificationPreferences, notificationDeliveries } =
+        usePage<ProfilePageProps>().props;
     const [preferences, setPreferences] = useState(notificationPreferences);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
@@ -172,6 +182,16 @@ export default function Profile() {
                     <NotificationStatus preferences={preferences} />
                 </section>
 
+                <section className="profile-section page-enter page-enter--later">
+                    <div className="section-heading">
+                        <div>
+                            <p>Доставка</p>
+                            <h2>История уведомлений</h2>
+                        </div>
+                    </div>
+                    <NotificationDeliveryHistory deliveries={notificationDeliveries} />
+                </section>
+
                 <GlassCard
                     className="profile-plan page-enter page-enter--delay"
                     tone="accent"
@@ -245,6 +265,80 @@ export default function Profile() {
             </AppShell>
         </>
     );
+}
+
+function NotificationDeliveryHistory({
+    deliveries,
+}: {
+    deliveries: NotificationDelivery[];
+}) {
+    if (deliveries.length === 0) {
+        return (
+            <GlassCard className="delivery-history" tone="quiet">
+                <p>Отправленных или ожидающих уведомлений пока нет.</p>
+            </GlassCard>
+        );
+    }
+
+    return (
+        <GlassCard className="delivery-history" tone="quiet">
+            {deliveries.map((delivery, index) => (
+                <article
+                    className="delivery-history__item"
+                    key={`${delivery.type}-${index}`}
+                >
+                    <div>
+                        <strong>{delivery.type}</strong>
+                        <p>{delivery.message}</p>
+                        <time
+                            dateTime={
+                                delivery.completed_at ??
+                                delivery.scheduled_at ??
+                                undefined
+                            }
+                        >
+                            {delivery.completed_at
+                                ? `Статус обновлён ${formatDateTime(delivery.completed_at)}`
+                                : delivery.scheduled_at
+                                  ? `Поставлено в очередь ${formatDateTime(delivery.scheduled_at)}`
+                                  : 'Время не указано'}
+                        </time>
+                    </div>
+                    <Badge tone={deliveryTone(delivery.status)}>
+                        {deliveryStatusLabel(delivery.status)}
+                    </Badge>
+                </article>
+            ))}
+        </GlassCard>
+    );
+}
+
+function deliveryStatusLabel(status: NotificationDelivery['status']): string {
+    return {
+        queued: 'Ожидает',
+        sent: 'Отправлено',
+        skipped: 'Пропущено',
+        failed: 'Ошибка',
+    }[status];
+}
+
+function deliveryTone(
+    status: NotificationDelivery['status'],
+): 'neutral' | 'success' | 'warning' | 'danger' {
+    return status === 'sent'
+        ? 'success'
+        : status === 'failed'
+          ? 'danger'
+          : status === 'queued'
+            ? 'warning'
+            : 'neutral';
+}
+
+function formatDateTime(value: string): string {
+    return new Intl.DateTimeFormat('ru-RU', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(new Date(value));
 }
 
 function NotificationStatus({ preferences }: { preferences: NotificationPreferences }) {

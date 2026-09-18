@@ -123,6 +123,7 @@ Railway scheduler service, а не HTTP-процессом web-приложен�
 |---|---|---|
 | `search_queries` | название, keywords/minus words, region, money/deadline range, условия источника и status | active/paused/frozen/deleted; максимум 3 active при Basic/trial; ручной запуск сам не включает polling |
 | `source_feeds` | канонический RSS URL и SHA-256 hash, расписание, freshness/error | ручные страницы ЕИС имеют `manual_preview`; active polling не включён |
+| `source_feed_search_queries` | явная связь личного мониторинга с RSS-лентой ЕИС | позволяет показать состояние только тому пользователю, чей мониторинг подключён к ленте; уникальна по паре лента/мониторинг |
 | `source_feed_items` | отдельная RSS-запись, URL hash, `reg_number`, content hash | уникальны на ленту по URL hash |
 | `tenders` | каноническая карточка, source + external ID, поля для фильтра и проверенные metadata явного обогащения ЕИС | уникальны по `(source, external_id)`; RSS refresh не стирает обогащение |
 | `tender_user_states` | личный статус, заметка, JSON-теги и дата следующего действия | уникальна по `(user_id, tender_id)`; строка с аннотацией сохраняется и при статусе `new` |
@@ -179,8 +180,9 @@ fail-safe не допускает запуск suite на постоянной d
 - SHA-256 URL hashes и `(source, external_id)` — дедупликация лент и тендеров;
 - unique `(tender_id, search_query_id)` и `notification_deliveries.idempotency_key`
   — повтор очереди не создаёт второй match/сообщение;
-- timestamps source run/feed — будущие freshness и Live Ops без client-side
-  догадок.
+- timestamps source run/feed и связь `source_feed_search_queries` —
+  пользовательский статус свежести без client-side догадок и без раскрытия
+  пользователей общей ленты.
 
 Командный workflow дополнен таблицами `team_workflow_settings` и
 `team_tender_routing_rules`. SLA материализуется в `team_tender_reviews`, а

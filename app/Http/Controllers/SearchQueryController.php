@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SearchQuery;
 use App\Services\AccessService;
 use App\Services\MonitoringPreviewService;
+use App\Services\MonitoringStatusService;
 use App\Services\QueryAccessDeniedException;
 use App\Services\QueryLimitReachedException;
 use App\Services\RostenderTemplateCatalog;
@@ -32,16 +33,22 @@ class SearchQueryController extends Controller
         private readonly RostenderTemplateCatalog $rostenderTemplates,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request, MonitoringStatusService $statuses): Response
     {
+        $queries = $request->user()
+            ->searchQueries()
+            ->where('status', '!=', 'deleted')
+            ->with('latestManualRun')
+            ->latest()
+            ->get();
+        $sourceStatuses = $statuses->forQueries($queries);
+
         return Inertia::render('MyQueries', [
-            'queries' => $request->user()
-                ->searchQueries()
-                ->where('status', '!=', 'deleted')
-                ->with('latestManualRun')
-                ->latest()
-                ->get()
-                ->map(fn (SearchQuery $query): array => $this->presenter->toArray($query))
+            'queries' => $queries
+                ->map(fn (SearchQuery $query): array => [
+                    ...$this->presenter->toArray($query),
+                    'source_statuses' => $sourceStatuses[$query->id],
+                ])
                 ->values(),
             'rostenderTemplates' => collect($this->rostenderTemplates->available())
                 ->map(fn ($template): array => ['id' => $template->id, 'name' => $template->name])

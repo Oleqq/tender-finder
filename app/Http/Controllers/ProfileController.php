@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\NotificationPreference;
+use App\Services\NotificationDeliveryPresenter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProfileController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, NotificationDeliveryPresenter $deliveries): Response
     {
         $user = $request->user();
         abort_if($user === null, 401);
@@ -30,6 +31,7 @@ class ProfileController extends Controller
                 'digest_time' => substr((string) $preference->digest_time, 0, 5),
                 'timezone' => $preference->timezone,
             ],
+            'notificationDeliveries' => $deliveries->recentFor($user),
         ]);
     }
 }

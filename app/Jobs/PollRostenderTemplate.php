@@ -14,6 +14,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 class PollRostenderTemplate implements ShouldQueue
 {
@@ -70,6 +71,15 @@ class PollRostenderTemplate implements ShouldQueue
             $importer->fail($feed, $exception->codeName, 'rostender');
         } catch (RostenderApiException $exception) {
             $importer->fail($feed, $exception->codeName, 'rostender');
+        }
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        $feed = SourceFeed::query()->find($this->feedId);
+
+        if ($feed !== null && $feed->source === 'rostender' && $feed->status === 'active') {
+            app(TenderSourceImportService::class)->fail($feed, 'poll_job_failed', 'rostender');
         }
     }
 }

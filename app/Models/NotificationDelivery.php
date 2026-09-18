@@ -5,12 +5,16 @@ namespace App\Models;
 use App\Enums\NotificationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property NotificationStatus $status
  * @property string $type
  * @property array<string, mixed>|null $payload
  * @property User $user
+ * @property Carbon|null $scheduled_at
+ * @property Carbon|null $sent_at
+ * @property Carbon|null $failed_at
  */
 class NotificationDelivery extends Model
 {

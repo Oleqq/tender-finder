@@ -29,6 +29,7 @@ class RostenderManualCheckService
         }
 
         Cache::put($key, $used + 1, now('Europe/Moscow')->endOfDay());
+        $feed->forceFill(['last_attempt_at' => now()])->save();
         PollRostenderTemplate::dispatch($feed->id);
     }
 

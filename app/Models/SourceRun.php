@@ -4,6 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property Carbon|null $started_at
+ * @property Carbon|null $finished_at
+ * @property int $items_seen
+ */
 
 class SourceRun extends Model
 {

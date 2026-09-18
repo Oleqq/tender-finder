@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 class PollEisRssFeed implements ShouldQueue
 {
@@ -32,6 +33,15 @@ class PollEisRssFeed implements ShouldQueue
             $importer->import($feed, $source->fetch($feed), 'eis_rss');
         } catch (RssSourceException $exception) {
             $importer->fail($feed, $exception->codeName, 'eis_rss');
+        }
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        $feed = SourceFeed::query()->find($this->feedId);
+
+        if ($feed !== null && $feed->status === 'active') {
+            app(TenderSourceImportService::class)->fail($feed, 'poll_job_failed', 'eis_rss');
         }
     }
 }
