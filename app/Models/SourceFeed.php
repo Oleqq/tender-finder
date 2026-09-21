@@ -12,7 +12,6 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $last_attempt_at
  * @property Carbon|null $last_success_at
  */
-
 class SourceFeed extends Model
 {
     protected $fillable = [

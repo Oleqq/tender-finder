@@ -10,6 +10,8 @@ use App\Tenders\EisRssMatchMode;
 
 class TenderMatchingService
 {
+    public function __construct(private readonly TenderRuleScore $ruleScore) {}
+
     public function evaluate(SearchQuery $query, Tender $tender): TenderMatchResult
     {
         $customer = TenderFacts::customer($tender);
@@ -80,6 +82,8 @@ class TenderMatchingService
                 $reasons['deadline'] = 'matched';
             }
         }
+
+        $reasons['rule_score'] = $this->ruleScore->forMatch($query, $matchedKeywords, $reasons);
 
         return new TenderMatchResult(true, $reasons);
     }

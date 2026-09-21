@@ -28,7 +28,7 @@ final class NotificationDeliveryPresenter
             NotificationStatus::Sent => ['sent', 'Отправлено в Telegram.'],
             NotificationStatus::Queued => ['queued', 'Ожидает обработки очередью.'],
             NotificationStatus::Skipped => ['skipped', 'Не отправлено: уведомление больше не актуально.'],
-            NotificationStatus::Failed => ['failed', 'Не удалось передать уведомление в Telegram. Попробуйте проверить позже.'],
+            NotificationStatus::Failed => ['failed', 'Не удалось доставить уведомление. Следующие уведомления будут отправляться автоматически.'],
         };
 
         return [

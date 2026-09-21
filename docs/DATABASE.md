@@ -4,10 +4,11 @@
 словами, что и зачем хранит сервис. Вторая нужна разработке и эксплуатации:
 она описывает таблицы, связи, индексы, состояния и безопасный порядок миграций.
 
-Статус на 2026-08-27: схема, migrations и автоматические тесты готовы.
-Локальный Docker MVP уже хранит результаты ручного поиска ЕИС и личные
-операторские отметки. Production-база и публичный пользовательский режим ещё
-не запущены: для них нужны managed PostgreSQL, Redis и отдельный cutover.
+Статус на 2026-09-21: production использует PostgreSQL 16 и Redis в Docker
+Compose на VPS. Forward-only миграции по
+`2026_09_18_100000_link_eis_feeds_to_monitorings` включительно применены;
+локальные тесты используют SQLite `:memory:`. Ни этот документ, ни миграции
+не содержат секретов production-окружения.
 
 ## Простая карта: что происходит с данными
 
@@ -128,7 +129,7 @@ Railway scheduler service, а не HTTP-процессом web-приложен�
 | `tenders` | каноническая карточка, source + external ID, поля для фильтра и проверенные metadata явного обогащения ЕИС | уникальны по `(source, external_id)`; RSS refresh не стирает обогащение |
 | `tender_user_states` | личный статус, заметка, JSON-теги и дата следующего действия | уникальна по `(user_id, tender_id)`; строка с аннотацией сохраняется и при статусе `new` |
 | `local_mvp_search_snapshots` | nullable ссылка на сохранённый запрос, фраза, режим релевантности, минус-слова, причины совпадения, счётчики и IDs карточек одной ручной выдачи ЕИС | пользователь владеет снимком; ссылка позволяет показать последние 20 запусков запроса; «только новые» вычисляется относительно непосредственно предыдущего снимка того же запроса; разовые поиски остаются без ссылки; история переживает refresh/restart и не смешивается между пользователями |
-| `tender_query_matches` | связь тендер ↔ запрос и JSON причин | уникальна по `(tender_id, search_query_id)` |
+| `tender_query_matches` | связь тендер ↔ запрос, JSON причин и объяснимый локальный score | уникальна по `(tender_id, search_query_id)`; score не является решением ИИ и не влияет на match |
 | `notification_deliveries` | тип, idempotency key, status и безопасный payload | повторный job не пошлёт одну карточку дважды |
 | `source_runs` | start/end, status, счётчики, error class | материал для будущего Live Ops |
 
@@ -192,17 +193,16 @@ fail-safe не допускает запуск suite на постоянной d
 
 ## Порядок production migration
 
-1. Сделать managed PostgreSQL backup/snapshot и проверить restore-процедуру.
-2. Заполнить Railway Variables: DB/Redis reference variables, Telegram,
-   legal URLs/versions и readiness token.
-3. Запустить web service с Railway Pre-Deploy Command
-   `sh railway/migrate.sh`; worker и scheduler не должны запускать миграции.
-4. Проверить authenticated `GET /ops/readiness` и public `GET /health`.
-5. Выполнить smoke-test подписанной Telegram session, consent и trial на
-   отдельном тестовом пользователе. Не включать webhook или live RSS раньше.
-6. После проверки установить Railway HTTPS URL как Mini App URL и Telegram
-   webhook. Откат выполняется на предыдущий Railway deployment после backup и
-   проверки совместимости migration.
+1. Проверить свежую резервную копию PostgreSQL и возможность восстановления.
+2. Загрузить проверенный архив исходного кода на VPS; на production нет `.git`,
+   поэтому `git pull` не используется.
+3. Не заменяя и не печатая `.env`, выполнить `sh deploy/vps-deploy.sh` из
+   корня приложения. Миграции остаются только forward-only.
+4. Проверить `/health`, `web`, `queue`, `scheduler`, PostgreSQL, Redis и
+   `php artisan migrate:status`; отдельно записать внешний блокер ЕИС, если
+   TCP к источнику не восстановлен.
+5. Сделать закрытый Telegram smoke-test только после выпуска. Откат требует
+   совместимости с уже применёнными миграциями, а не удаления schema.
 
 Миграции намеренно не включают будущие `payments`, `billing_events`,
 `campaigns`, `campaign_deliveries`, `admin_audit_logs` и aggregated

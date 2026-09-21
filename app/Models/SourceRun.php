@@ -11,7 +11,6 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $finished_at
  * @property int $items_seen
  */
-
 class SourceRun extends Model
 {
     protected $fillable = [

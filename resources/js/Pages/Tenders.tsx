@@ -46,6 +46,7 @@ type TenderMatch = {
     tags?: string[];
     next_action_on?: string | null;
     match_reasons: string[];
+    rule_score?: number | null;
     participation_exists?: boolean;
     review?: TeamReview;
 };
@@ -1291,6 +1292,9 @@ function TeamFeedTenderCard({
                 <span>
                     <Icon name="spark" size={14} /> {match.match_reasons.join(', ')}
                 </span>
+                {match.rule_score !== null && match.rule_score !== undefined ? (
+                    <span>Соответствие правилам: {match.rule_score}/100</span>
+                ) : null}
             </div>
             <h3>{match.title}</h3>
             <p>Мониторинги: {(match.query_names ?? []).join(' · ')}</p>
@@ -1515,6 +1519,9 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                 <span>
                     <Icon name="spark" size={14} /> {match.match_reasons.join(', ')}
                 </span>
+                {match.rule_score !== null && match.rule_score !== undefined ? (
+                    <span>Соответствие правилам: {match.rule_score}/100</span>
+                ) : null}
             </div>
             <h3>{match.title}</h3>
             <p>Мониторинг: {match.query_name}</p>

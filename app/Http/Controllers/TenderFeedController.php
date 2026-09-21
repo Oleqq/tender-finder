@@ -138,6 +138,7 @@ class TenderFeedController extends Controller
                 'tags' => $this->tags($state),
                 'next_action_on' => $state?->next_action_on?->format('Y-m-d'),
                 'match_reasons' => $this->reasonLabels($match->match_reasons ?? []),
+                'rule_score' => $this->ruleScore($match->match_reasons ?? []),
             ];
         });
 
@@ -262,6 +263,10 @@ class TenderFeedController extends Controller
                 'query_names' => $matches->pluck('searchQuery.name')->unique()->values()->all(),
                 'source' => $tender->source,
                 'match_reasons' => $matches->flatMap(fn (TenderQueryMatch $match) => $this->reasonLabels($match->match_reasons ?? []))->unique()->values()->all(),
+                'rule_score' => $matches
+                    ->map(fn (TenderQueryMatch $match) => $this->ruleScore($match->match_reasons ?? []))
+                    ->filter(fn (?int $score): bool => $score !== null)
+                    ->max(),
                 'review' => [
                     'status' => $review === null ? 'new' : $review->status,
                     'assignee_id' => $review?->assignee_id,
@@ -355,5 +360,17 @@ class TenderFeedController extends Controller
         }
 
         return $labels === [] ? ['настройки мониторинга'] : $labels;
+    }
+
+    /** @param array<string, mixed> $reasons */
+    private function ruleScore(array $reasons): ?int
+    {
+        $score = $reasons['rule_score'] ?? null;
+
+        if (! is_int($score) && ! is_numeric($score)) {
+            return null;
+        }
+
+        return min(100, max(0, (int) $score));
     }
 }

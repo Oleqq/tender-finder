@@ -76,13 +76,27 @@ it('matches deterministic filters with explainable reasons and minus words', fun
 
     $result = app(TenderMatchingService::class)->evaluate($query, $tender);
     expect($result->matches)->toBeTrue()
-        ->and($result->reasons['region'])->toBe('matched');
+        ->and($result->reasons['region'])->toBe('matched')
+        ->and($result->reasons['rule_score'])->toBe(60);
 
     app(TenderMatchingService::class)->matchTender($tender);
     expect(TenderQueryMatch::query()->count())->toBe(1);
 
     $tender->forceFill(['title' => 'Строительство и поддержка сайта'])->save();
     expect(app(TenderMatchingService::class)->evaluate($query, $tender)->matches)->toBeFalse();
+});
+
+it('scores partial any-word matches without changing the deterministic match decision', function () {
+    $query = new SearchQuery([
+        'keywords' => ['поддержка', 'сайта'],
+        'filters' => ['relevance' => ['match_mode' => 'any']],
+    ]);
+    $tender = new Tender(['title' => 'Техническая поддержка серверов']);
+
+    $result = app(TenderMatchingService::class)->evaluate($query, $tender);
+
+    expect($result->matches)->toBeTrue()
+        ->and($result->reasons['rule_score'])->toBe(20);
 });
 
 it('uses the saved any-word and exact-phrase matching modes', function () {
