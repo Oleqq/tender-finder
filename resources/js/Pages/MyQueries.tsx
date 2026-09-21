@@ -402,7 +402,6 @@ export default function MyQueries() {
                 activeNav="/tenders"
                 className="queries-page"
                 eyebrow="Защищённый раздел"
-                role={auth.user?.role ?? 'subscriber'}
                 title="Мониторинги"
             >
                 <GlassCard className="query-access page-enter" tone="quiet">
@@ -496,96 +495,105 @@ export default function MyQueries() {
                                         <p>{query.keywords.join(' · ')}</p>
                                         {details ? <p>{details}</p> : null}
                                     </div>
-                                    <QueryRunSummaryCard query={query} />
-                                    <SourceStatusCards
-                                        statuses={query.source_statuses ?? []}
-                                    />
+                                    <MonitoringHealth query={query} />
                                     <div className="query-card__actions">
                                         {canRunManually ? (
-                                            <>
+                                            <Button
+                                                disabled={runningQueryId !== null}
+                                                onClick={() => runQuery(query)}
+                                                size="sm"
+                                            >
+                                                {runningQueryId === query.id
+                                                    ? 'Запускаем…'
+                                                    : 'Проверить сейчас'}
+                                            </Button>
+                                        ) : null}
+                                        <details className="query-card__manage">
+                                            <summary>Управление</summary>
+                                            <div>
+                                                {canRunManually ? (
+                                                    <Button
+                                                        onClick={() =>
+                                                            setHistoryQueryId(
+                                                                (current) =>
+                                                                    current === query.id
+                                                                        ? null
+                                                                        : query.id,
+                                                            )
+                                                        }
+                                                        size="sm"
+                                                        variant="secondary"
+                                                    >
+                                                        {historyQueryId === query.id
+                                                            ? 'Скрыть историю'
+                                                            : 'История запусков'}
+                                                    </Button>
+                                                ) : null}
+                                                {query.status === 'active' ? (
+                                                    <Button
+                                                        onClick={() =>
+                                                            changeStatus(query, 'pause')
+                                                        }
+                                                        size="sm"
+                                                        variant="secondary"
+                                                    >
+                                                        Пауза
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        onClick={() =>
+                                                            changeStatus(
+                                                                query,
+                                                                'resume',
+                                                            )
+                                                        }
+                                                        size="sm"
+                                                        variant="secondary"
+                                                    >
+                                                        Возобновить
+                                                    </Button>
+                                                )}
                                                 <Button
-                                                    disabled={runningQueryId !== null}
-                                                    onClick={() => runQuery(query)}
-                                                    size="sm"
-                                                >
-                                                    {runningQueryId === query.id
-                                                        ? 'Запускаем…'
-                                                        : 'Проверить сейчас'}
-                                                </Button>
-                                                <Button
-                                                    onClick={() =>
-                                                        setHistoryQueryId((current) =>
-                                                            current === query.id
-                                                                ? null
-                                                                : query.id,
-                                                        )
-                                                    }
+                                                    onClick={() => openEdit(query)}
                                                     size="sm"
                                                     variant="secondary"
                                                 >
-                                                    {historyQueryId === query.id
-                                                        ? 'Скрыть историю'
-                                                        : 'История запусков'}
+                                                    Изменить
                                                 </Button>
-                                            </>
-                                        ) : null}
-                                        {query.status === 'active' ? (
-                                            <Button
-                                                onClick={() =>
-                                                    changeStatus(query, 'pause')
-                                                }
-                                                size="sm"
-                                                variant="secondary"
-                                            >
-                                                Пауза
-                                            </Button>
-                                        ) : (
-                                            <Button
-                                                onClick={() =>
-                                                    changeStatus(query, 'resume')
-                                                }
-                                                size="sm"
-                                                variant="secondary"
-                                            >
-                                                Возобновить
-                                            </Button>
-                                        )}
-                                        <Button
-                                            onClick={() => openEdit(query)}
-                                            size="sm"
-                                            variant="secondary"
-                                        >
-                                            Изменить
-                                        </Button>
-                                        <Button
-                                            disabled={!canCreate}
-                                            onClick={() => openDuplicate(query)}
-                                            size="sm"
-                                            variant="secondary"
-                                        >
-                                            Создать копию
-                                        </Button>
-                                        {query.status !== 'frozen' ? (
-                                            <Button
-                                                onClick={() =>
-                                                    changeStatus(query, 'freeze')
-                                                }
-                                                size="sm"
-                                                variant="ghost"
-                                            >
-                                                Заморозить
-                                            </Button>
-                                        ) : null}
-                                        <Button
-                                            onClick={() => {
-                                                setActionError('');
-                                                setDeleteCandidate(query);
-                                            }}
-                                            size="sm"
-                                            variant="danger"
-                                        >
-                                            Удалить
-                                        </Button>
+                                                <Button
+                                                    disabled={!canCreate}
+                                                    onClick={() => openDuplicate(query)}
+                                                    size="sm"
+                                                    variant="secondary"
+                                                >
+                                                    Создать копию
+                                                </Button>
+                                                {query.status !== 'frozen' ? (
+                                                    <Button
+                                                        onClick={() =>
+                                                            changeStatus(
+                                                                query,
+                                                                'freeze',
+                                                            )
+                                                        }
+                                                        size="sm"
+                                                        variant="ghost"
+                                                    >
+                                                        Заморозить
+                                                    </Button>
+                                                ) : null}
+                                                <Button
+                                                    onClick={() => {
+                                                        setActionError('');
+                                                        setDeleteCandidate(query);
+                                                    }}
+                                                    size="sm"
+                                                    variant="danger"
+                                                >
+                                                    Удалить
+                                                </Button>
+                                            </div>
+                                        </details>
                                     </div>
                                     {historyQueryId === query.id ? (
                                         <SavedSearchRunHistory<TenderDto>
@@ -755,6 +763,50 @@ function QueryRunSummaryCard({ query }: { query: QueryDto }) {
             ) : null}
         </div>
     );
+}
+
+function MonitoringHealth({ query }: { query: QueryDto }) {
+    const statuses = query.source_statuses ?? [];
+    const requiresAttention =
+        statuses.length === 0 ||
+        statuses.some((status) =>
+            ['error', 'queued', 'paused', 'pending'].includes(status.state),
+        );
+    const summary = monitoringHealthSummary(statuses);
+
+    return (
+        <details className="query-card__health" open={requiresAttention}>
+            <summary>
+                <span>Работа мониторинга</span>
+                <Badge tone={summary.tone}>{summary.label}</Badge>
+            </summary>
+            <div className="query-card__health-content">
+                <QueryRunSummaryCard query={query} />
+                <SourceStatusCards statuses={statuses} />
+            </div>
+        </details>
+    );
+}
+
+function monitoringHealthSummary(statuses: SourceStatus[]): {
+    label: string;
+    tone: 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
+} {
+    if (statuses.length === 0) {
+        return { label: 'Первый запуск ожидается', tone: 'neutral' };
+    }
+
+    const state =
+        statuses.find((status) => status.state === 'error')?.state ??
+        statuses.find((status) => status.state === 'queued')?.state ??
+        statuses.find((status) => status.state === 'pending')?.state ??
+        statuses.find((status) => status.state === 'paused')?.state ??
+        statuses[0].state;
+
+    return {
+        label: sourceStateLabel(state),
+        tone: sourceTone(state),
+    };
 }
 
 function SourceStatusCards({ statuses }: { statuses: SourceStatus[] }) {

@@ -353,30 +353,6 @@ export default function Tenders() {
                 </GlassCard>
 
                 <GlassCard className="tender-feed-controls page-enter page-enter--delay">
-                    <div aria-label="Источник тендеров" className="tender-feed-sources">
-                        <div>
-                            <p>Источник</p>
-                            <strong>С чего собрать вашу ленту?</strong>
-                        </div>
-                        <div className="tender-feed-sources__options">
-                            {sourceOptions.map((option) => (
-                                <button
-                                    aria-pressed={filters.source === option.value}
-                                    className={
-                                        filters.source === option.value
-                                            ? 'is-active'
-                                            : ''
-                                    }
-                                    key={option.value}
-                                    onClick={() => visit({ source: option.value })}
-                                    type="button"
-                                >
-                                    <strong>{option.label}</strong>
-                                    <span>{option.description}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
                     <form className="tender-feed-search" onSubmit={submitSearch}>
                         <SearchInput
                             aria-label="Поиск по ленте"
@@ -409,152 +385,221 @@ export default function Tenders() {
                         </FilterChip>
                     ) : null}
 
-                    <div className="tender-feed-selects">
-                        <SelectField
-                            label="Мониторинг"
-                            onChange={(event) =>
-                                visit({
-                                    query_id: event.target.value
-                                        ? Number(event.target.value)
-                                        : null,
-                                })
-                            }
-                            options={[
-                                { value: '', label: 'Все мониторинги' },
-                                ...filterOptions.queries.map((query) => ({
-                                    value: String(query.id),
-                                    label: query.name,
-                                })),
-                            ]}
-                            value={filters.query_id ?? ''}
-                        />
-                        {team ? (
-                            <SelectField
-                                label="Ответственный"
-                                onChange={(event) =>
-                                    visit({
-                                        assignee_id: event.target.value
-                                            ? Number(event.target.value)
-                                            : null,
-                                    })
-                                }
-                                options={[
-                                    { value: '', label: 'Все сотрудники' },
-                                    ...members
-                                        .filter((member) => member.role !== 'viewer')
-                                        .map((member) => ({
-                                            value: String(member.id),
-                                            label:
-                                                member.name || `Участник ${member.id}`,
-                                        })),
-                                ]}
-                                value={filters.assignee_id ?? ''}
-                            />
-                        ) : (
-                            <SelectField
-                                label="Личный тег"
-                                onChange={(event) => visit({ tag: event.target.value })}
-                                options={[
-                                    { value: '', label: 'Все теги' },
-                                    ...filterOptions.tags.map((tag) => ({
-                                        value: tag,
-                                        label: tag,
-                                    })),
-                                ]}
-                                value={filters.tag}
-                            />
-                        )}
-                        <SelectField
-                            label="Сортировка"
-                            onChange={(event) => visit({ sort: event.target.value })}
-                            options={[
-                                { value: 'matched_desc', label: 'Сначала новые' },
-                                { value: 'deadline_asc', label: 'Ближайший срок' },
-                                { value: 'budget_desc', label: 'Сначала дороже' },
-                                { value: 'budget_asc', label: 'Сначала дешевле' },
-                            ]}
-                            value={filters.sort}
-                        />
-                    </div>
-
-                    {hasFilters ? (
-                        <button
-                            className="tender-feed-reset"
-                            onClick={() => {
-                                setSearch('');
-                                router.get(
-                                    '/tenders',
-                                    team ? { team_id: team.id } : {},
-                                    { replace: true },
-                                );
-                            }}
-                            type="button"
-                        >
-                            Сбросить все фильтры
-                        </button>
-                    ) : null}
-
-                    {!team || canEdit ? (
-                        <div className="tender-feed-views">
-                            <div className="tender-feed-views__heading">
+                    <details className="tender-feed-advanced" open={hasFilters}>
+                        <summary>
+                            <span>Фильтры и представления</span>
+                            {hasFilters ? <Badge tone="accent">Настроены</Badge> : null}
+                        </summary>
+                        <div className="tender-feed-advanced__content">
+                            <div
+                                aria-label="Источник тендеров"
+                                className="tender-feed-sources"
+                            >
                                 <div>
-                                    <strong>Сохранённые представления</strong>
-                                    <small>До 10 наборов фильтров и сортировки</small>
+                                    <p>Источник</p>
+                                    <strong>Показывать совпадения источника</strong>
                                 </div>
-                                <Badge tone="neutral">{savedViews.length}/10</Badge>
-                            </div>
-                            {savedViews.length > 0 ? (
-                                <div className="tender-feed-views__list">
-                                    {savedViews.map((view) => (
-                                        <span key={view.id}>
-                                            <button
-                                                onClick={() => applyView(view)}
-                                                type="button"
-                                            >
-                                                {view.name}
-                                            </button>
-                                            {view.can_delete !== false ? (
-                                                <button
-                                                    aria-label={`Удалить ${view.name}`}
-                                                    onClick={() => deleteView(view)}
-                                                    type="button"
-                                                >
-                                                    ×
-                                                </button>
-                                            ) : null}
-                                        </span>
+                                <div className="tender-feed-sources__options">
+                                    {sourceOptions.map((option) => (
+                                        <button
+                                            aria-pressed={
+                                                filters.source === option.value
+                                            }
+                                            className={
+                                                filters.source === option.value
+                                                    ? 'is-active'
+                                                    : ''
+                                            }
+                                            key={option.value}
+                                            onClick={() =>
+                                                visit({ source: option.value })
+                                            }
+                                            type="button"
+                                        >
+                                            <strong>{option.label}</strong>
+                                            <span>{option.description}</span>
+                                        </button>
                                     ))}
                                 </div>
-                            ) : null}
-                            <form
-                                className="tender-feed-views__form"
-                                onSubmit={saveView}
-                            >
-                                <label className="form-field">
-                                    <span>Название текущего набора</span>
-                                    <input
-                                        maxLength={60}
+                            </div>
+                            <div className="tender-feed-selects">
+                                <SelectField
+                                    label="Мониторинг"
+                                    onChange={(event) =>
+                                        visit({
+                                            query_id: event.target.value
+                                                ? Number(event.target.value)
+                                                : null,
+                                        })
+                                    }
+                                    options={[
+                                        { value: '', label: 'Все мониторинги' },
+                                        ...filterOptions.queries.map((query) => ({
+                                            value: String(query.id),
+                                            label: query.name,
+                                        })),
+                                    ]}
+                                    value={filters.query_id ?? ''}
+                                />
+                                {team ? (
+                                    <SelectField
+                                        label="Ответственный"
                                         onChange={(event) =>
-                                            setViewName(event.target.value)
+                                            visit({
+                                                assignee_id: event.target.value
+                                                    ? Number(event.target.value)
+                                                    : null,
+                                            })
                                         }
-                                        placeholder="Например, срочные избранные"
-                                        value={viewName}
+                                        options={[
+                                            { value: '', label: 'Все сотрудники' },
+                                            ...members
+                                                .filter(
+                                                    (member) =>
+                                                        member.role !== 'viewer',
+                                                )
+                                                .map((member) => ({
+                                                    value: String(member.id),
+                                                    label:
+                                                        member.name ||
+                                                        `Участник ${member.id}`,
+                                                })),
+                                        ]}
+                                        value={filters.assignee_id ?? ''}
                                     />
-                                </label>
-                                <Button
-                                    disabled={savingView || savedViews.length >= 10}
-                                    size="sm"
-                                    type="submit"
-                                    variant="secondary"
+                                ) : (
+                                    <SelectField
+                                        label="Личный тег"
+                                        onChange={(event) =>
+                                            visit({ tag: event.target.value })
+                                        }
+                                        options={[
+                                            { value: '', label: 'Все теги' },
+                                            ...filterOptions.tags.map((tag) => ({
+                                                value: tag,
+                                                label: tag,
+                                            })),
+                                        ]}
+                                        value={filters.tag}
+                                    />
+                                )}
+                                <SelectField
+                                    label="Сортировка"
+                                    onChange={(event) =>
+                                        visit({ sort: event.target.value })
+                                    }
+                                    options={[
+                                        {
+                                            value: 'matched_desc',
+                                            label: 'Сначала новые',
+                                        },
+                                        {
+                                            value: 'deadline_asc',
+                                            label: 'Ближайший срок',
+                                        },
+                                        {
+                                            value: 'budget_desc',
+                                            label: 'Сначала дороже',
+                                        },
+                                        {
+                                            value: 'budget_asc',
+                                            label: 'Сначала дешевле',
+                                        },
+                                    ]}
+                                    value={filters.sort}
+                                />
+                            </div>
+
+                            {hasFilters ? (
+                                <button
+                                    className="tender-feed-reset"
+                                    onClick={() => {
+                                        setSearch('');
+                                        router.get(
+                                            '/tenders',
+                                            team ? { team_id: team.id } : {},
+                                            { replace: true },
+                                        );
+                                    }}
+                                    type="button"
                                 >
-                                    {savingView ? 'Сохраняем…' : 'Сохранить вид'}
-                                </Button>
-                            </form>
-                            {viewError ? (
-                                <p className="field-error">{viewError}</p>
+                                    Сбросить все фильтры
+                                </button>
+                            ) : null}
+
+                            {!team || canEdit ? (
+                                <div className="tender-feed-views">
+                                    <div className="tender-feed-views__heading">
+                                        <div>
+                                            <strong>Сохранённые представления</strong>
+                                            <small>
+                                                До 10 наборов фильтров и сортировки
+                                            </small>
+                                        </div>
+                                        <Badge tone="neutral">
+                                            {savedViews.length}/10
+                                        </Badge>
+                                    </div>
+                                    {savedViews.length > 0 ? (
+                                        <div className="tender-feed-views__list">
+                                            {savedViews.map((view) => (
+                                                <span key={view.id}>
+                                                    <button
+                                                        onClick={() => applyView(view)}
+                                                        type="button"
+                                                    >
+                                                        {view.name}
+                                                    </button>
+                                                    {view.can_delete !== false ? (
+                                                        <button
+                                                            aria-label={`Удалить ${view.name}`}
+                                                            onClick={() =>
+                                                                deleteView(view)
+                                                            }
+                                                            type="button"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    ) : null}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : null}
+                                    <form
+                                        className="tender-feed-views__form"
+                                        onSubmit={saveView}
+                                    >
+                                        <label className="form-field">
+                                            <span>Название текущего набора</span>
+                                            <input
+                                                maxLength={60}
+                                                onChange={(event) =>
+                                                    setViewName(event.target.value)
+                                                }
+                                                placeholder="Например, срочные избранные"
+                                                value={viewName}
+                                            />
+                                        </label>
+                                        <Button
+                                            disabled={
+                                                savingView || savedViews.length >= 10
+                                            }
+                                            size="sm"
+                                            type="submit"
+                                            variant="secondary"
+                                        >
+                                            {savingView
+                                                ? 'Сохраняем…'
+                                                : 'Сохранить вид'}
+                                        </Button>
+                                    </form>
+                                    {viewError ? (
+                                        <p className="field-error">{viewError}</p>
+                                    ) : null}
+                                </div>
                             ) : null}
                         </div>
-                    ) : null}
+                    </details>
                 </GlassCard>
 
                 {team && canEdit && tenderMatches.data.length ? (
@@ -1517,17 +1562,11 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                     <Badge tone="accent">RosTender</Badge>
                 ) : null}
                 <span>
-                    <Icon name="spark" size={14} /> {match.match_reasons.join(', ')}
+                    <Icon name="spark" size={14} /> Подходит:{' '}
+                    {match.match_reasons.join(', ')}
                 </span>
-                {match.rule_score !== null && match.rule_score !== undefined ? (
-                    <span>Соответствие правилам: {match.rule_score}/100</span>
-                ) : null}
             </div>
             <h3>{match.title}</h3>
-            <p>Мониторинг: {match.query_name}</p>
-            {match.description ? (
-                <p className="tender-card__description">{match.description}</p>
-            ) : null}
             {!editing && tags ? (
                 <div className="tender-feed-card__tags">
                     {splitTags(tags).map((tag) => (
@@ -1544,6 +1583,18 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                     Следующее действие: {formatDate(nextActionOn)}
                 </p>
             ) : null}
+            <details className="tender-feed-card__details">
+                <summary>Подробнее о совпадении</summary>
+                <div>
+                    <p>Мониторинг: {match.query_name}</p>
+                    {match.rule_score !== null && match.rule_score !== undefined ? (
+                        <p>Соответствие вашим условиям: {match.rule_score}/100</p>
+                    ) : null}
+                    {match.description ? (
+                        <p className="tender-card__description">{match.description}</p>
+                    ) : null}
+                </div>
+            </details>
             {editing ? (
                 <div className="tender-feed-card__editor">
                     <SelectField

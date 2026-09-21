@@ -1,7 +1,6 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
-import type { PageProps } from '../types';
 
 type NavigationItem = {
     href: string;
@@ -17,14 +16,6 @@ const subscriberNavigation: NavigationItem[] = [
     { href: '/profile', label: 'Профиль', icon: 'user' },
 ];
 
-const superAdminNavigation: NavigationItem[] = [
-    { href: '/dashboard', label: 'Обзор', icon: 'home' },
-    { href: '/tenders', label: 'Тендеры', icon: 'tenders' },
-    { href: '/mvp/workspace', label: 'Поиск ЕИС', icon: 'search' },
-    { href: '/operations', label: 'Аналитика', icon: 'shield' },
-    { href: '/profile', label: 'Профиль', icon: 'user' },
-];
-
 type AppShellProps = {
     children: ReactNode;
     title: string;
@@ -34,6 +25,7 @@ type AppShellProps = {
     action?: ReactNode;
     navigationVisible?: boolean;
     className?: string;
+    /** Kept for specialized pages; primary navigation is intentionally role-neutral. */
     role?: AppRole;
     wide?: boolean;
 };
@@ -47,12 +39,8 @@ export function AppShell({
     action,
     navigationVisible = true,
     className,
-    role,
     wide = false,
 }: AppShellProps) {
-    const authenticatedRole = usePage<PageProps>().props.auth.user?.role;
-    const resolvedRole = role ?? authenticatedRole ?? 'subscriber';
-
     return (
         <main className="mini-app">
             <div className="ambient ambient--one" />
@@ -82,28 +70,18 @@ export function AppShell({
                 </header>
                 <div className={`page-content ${className ?? ''}`}>{children}</div>
                 {navigationVisible ? (
-                    <BottomNavigation
-                        activeNav={activeNav}
-                        role={resolvedRole}
-                        wide={wide}
-                    />
+                    <BottomNavigation activeNav={activeNav} wide={wide} />
                 ) : null}
             </div>
         </main>
     );
 }
 
-function BottomNavigation({
-    activeNav,
-    role,
-    wide,
-}: {
-    activeNav?: string;
-    role: AppRole;
-    wide: boolean;
-}) {
-    const navigation =
-        role === 'super_admin' ? superAdminNavigation : subscriberNavigation;
+function BottomNavigation({ activeNav, wide }: { activeNav?: string; wide: boolean }) {
+    // Administrative tools are deliberately kept out of the primary user flow.
+    // They remain reachable from the profile for a verified owner, without making
+    // every subscriber-facing screen look like an operator console.
+    const navigation = subscriberNavigation;
 
     return (
         <nav

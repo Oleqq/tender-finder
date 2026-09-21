@@ -2,7 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { type FormEvent, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
-import { Badge, Button, GlassCard, SelectField } from '../Components/ui';
+import { Badge, Button, GlassCard, InlineAlert, SelectField } from '../Components/ui';
 import { presentAccess } from '../lib/accessPresentation';
 import type { PageProps } from '../types';
 
@@ -189,6 +189,18 @@ export default function Profile() {
                             <h2>История уведомлений</h2>
                         </div>
                     </div>
+                    {notificationDeliveries.some(
+                        (delivery) => delivery.status === 'failed',
+                    ) ? (
+                        <InlineAlert
+                            title="Мониторинги продолжают работать"
+                            tone="neutral"
+                        >
+                            Недоставленное сообщение не отменяет новые проверки.
+                            Следующая попытка или новое уведомление будут обработаны
+                            автоматически.
+                        </InlineAlert>
+                    ) : null}
                     <NotificationDeliveryHistory deliveries={notificationDeliveries} />
                 </section>
 
@@ -240,24 +252,26 @@ export default function Profile() {
                 </section>
 
                 {isSuperAdmin ? (
-                    <GlassCard className="profile-admin" tone="quiet">
-                        <span>
-                            <Icon name="shield" size={18} /> Инструменты владельца
-                        </span>
-                        <p>
-                            Поиск ЕИС и агрегированная аналитика продукта без
-                            персональных данных.
-                        </p>
-                        <div>
-                            <Link href="/mvp/workspace">
-                                Поиск ЕИС <Icon name="chevron-right" size={16} />
-                            </Link>
-                            <Link href="/operations">
-                                Открыть аналитику{' '}
-                                <Icon name="chevron-right" size={16} />
-                            </Link>
-                        </div>
-                    </GlassCard>
+                    <details className="profile-admin">
+                        <summary>
+                            <Icon name="shield" size={18} /> Системные инструменты
+                        </summary>
+                        <GlassCard tone="quiet">
+                            <p>
+                                Поиск ЕИС и агрегированная аналитика продукта без
+                                персональных данных.
+                            </p>
+                            <div>
+                                <Link href="/mvp/workspace">
+                                    Поиск ЕИС <Icon name="chevron-right" size={16} />
+                                </Link>
+                                <Link href="/operations">
+                                    Открыть аналитику{' '}
+                                    <Icon name="chevron-right" size={16} />
+                                </Link>
+                            </div>
+                        </GlassCard>
+                    </details>
                 ) : null}
                 <Link className="profile-plans-link" href="/plans">
                     Подробнее о доступе <Icon name="chevron-right" size={17} />
@@ -318,7 +332,7 @@ function deliveryStatusLabel(status: NotificationDelivery['status']): string {
         queued: 'Ожидает',
         sent: 'Отправлено',
         skipped: 'Пропущено',
-        failed: 'Ошибка',
+        failed: 'Не доставлено',
     }[status];
 }
 

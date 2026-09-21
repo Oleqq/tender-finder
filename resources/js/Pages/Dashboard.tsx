@@ -25,7 +25,6 @@ type DashboardProps = {
 export default function Dashboard() {
     const { auth, nextActions } = usePage<PageProps<DashboardProps>>().props;
     const access = presentAccess(auth.access);
-    const isSuperAdmin = auth.user?.role === 'super_admin';
     const canUseMonitoring = ['trialing', 'active'].includes(auth.access?.state ?? '');
     const canStartTrial = auth.access?.state === 'preview';
     const accessHref = canStartTrial ? '/consents' : '/plans';
@@ -60,63 +59,32 @@ export default function Dashboard() {
                     </span>
                 </section>
 
-                <GlassCard
-                    className="workspace-card page-enter page-enter--delay"
-                    tone="accent"
-                >
-                    <div className="workspace-card__icon">
-                        <Icon name="tenders" size={21} />
-                    </div>
-                    <div>
-                        <p>Ваш поток</p>
-                        <h3>Совпадения по мониторингам</h3>
-                        <span>
-                            {canUseMonitoring
-                                ? 'Когда сервер найдёт подходящую закупку, карточка появится в ленте с причиной совпадения.'
-                                : canStartTrial
-                                  ? 'Начните 3 дня бесплатно — затем добавьте первый мониторинг, и здесь появится лента.'
-                                  : 'Здесь появится ваша лента после продления доступа и первого мониторинга.'}
-                        </span>
-                    </div>
-                    <Link
-                        aria-label={
-                            canUseMonitoring
-                                ? 'Открыть мои тендеры'
-                                : canStartTrial
-                                  ? 'Начать 3 дня бесплатно'
-                                  : 'Открыть информацию о доступе'
-                        }
-                        className="icon-button icon-button--soft"
-                        href={canUseMonitoring ? '/tenders' : accessHref}
-                    >
-                        <Icon name="chevron-right" size={20} />
-                    </Link>
-                </GlassCard>
-
                 <section className="dashboard-section next-actions page-enter page-enter--later">
                     <div className="section-heading">
                         <div>
-                            <p>Личный план</p>
-                            <h2>Ближайшие действия</h2>
+                            <p>Сегодня</p>
+                            <h2>Что требует внимания</h2>
                         </div>
                         <Link href="/tenders?sort=deadline_asc">
                             Вся лента <Icon name="chevron-right" size={16} />
                         </Link>
                     </div>
-                    <div className="next-actions__summary">
-                        <GlassCard
-                            tone={nextActions.overdue_count > 0 ? 'danger' : 'quiet'}
-                        >
-                            <span>Просрочено</span>
-                            <strong>{nextActions.overdue_count}</strong>
-                        </GlassCard>
-                        <GlassCard
-                            tone={nextActions.today_count > 0 ? 'accent' : 'quiet'}
-                        >
-                            <span>На сегодня</span>
-                            <strong>{nextActions.today_count}</strong>
-                        </GlassCard>
-                    </div>
+                    {nextActions.overdue_count > 0 || nextActions.today_count > 0 ? (
+                        <div className="next-actions__summary">
+                            {nextActions.overdue_count > 0 ? (
+                                <GlassCard tone="danger">
+                                    <span>Просрочено</span>
+                                    <strong>{nextActions.overdue_count}</strong>
+                                </GlassCard>
+                            ) : null}
+                            {nextActions.today_count > 0 ? (
+                                <GlassCard tone="accent">
+                                    <span>На сегодня</span>
+                                    <strong>{nextActions.today_count}</strong>
+                                </GlassCard>
+                            ) : null}
+                        </div>
+                    ) : null}
                     {nextActions.items.length > 0 ? (
                         <div className="next-actions__list">
                             {nextActions.items.map((action) => (
@@ -148,9 +116,8 @@ export default function Dashboard() {
                             ))}
                         </div>
                     ) : (
-                        <InlineAlert title="Действия пока не назначены" tone="neutral">
-                            Откройте карточку тендера и укажите дату следующего действия
-                            — она появится здесь.
+                        <InlineAlert title="Срочных действий нет" tone="neutral">
+                            Новые совпадения и назначенные действия появятся здесь.
                         </InlineAlert>
                     )}
                 </section>
@@ -176,43 +143,17 @@ export default function Dashboard() {
                             <Icon name="chevron-right" size={16} />
                         </Link>
                     </div>
-                    <InlineAlert
-                        title={
-                            canStartTrial ? 'Что будет дальше' : 'Как работает поток'
-                        }
-                        tone="neutral"
+                    <Link
+                        className="button button--primary button--md"
+                        href={canUseMonitoring ? '/queries' : accessHref}
                     >
                         {canUseMonitoring
-                            ? 'Мониторинг хранит ваши условия. В ленту попадают только серверные совпадения, а не рекомендации или примерные карточки.'
+                            ? 'Настроить мониторинг'
                             : canStartTrial
-                              ? 'После принятия документов trial включится автоматически. Никакую заявку, код или оплату вводить не нужно.'
-                              : 'Мы не показываем форму мониторинга, пока нет доступа, и не создаём тестовые данные.'}
-                    </InlineAlert>
+                              ? 'Начать 3 дня бесплатно'
+                              : 'Посмотреть доступ'}
+                    </Link>
                 </section>
-
-                {isSuperAdmin ? (
-                    <GlassCard
-                        className="workspace-admin page-enter page-enter--later"
-                        tone="quiet"
-                    >
-                        <div>
-                            <p>Дополнительные инструменты</p>
-                            <h3>Поиск ЕИС и аналитика продукта</h3>
-                            <span>
-                                Они доступны только в роли владельца и не меняют ваш
-                                пользовательский поток.
-                            </span>
-                        </div>
-                        <div className="workspace-admin__actions">
-                            <Link href="/mvp/workspace">
-                                Поиск ЕИС <Icon name="chevron-right" size={16} />
-                            </Link>
-                            <Link href="/operations">
-                                Аналитика <Icon name="chevron-right" size={16} />
-                            </Link>
-                        </div>
-                    </GlassCard>
-                ) : null}
             </AppShell>
         </>
     );
