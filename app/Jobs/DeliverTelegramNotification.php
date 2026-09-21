@@ -13,6 +13,7 @@ use App\Services\TaskReminderService;
 use App\Services\TeamWorkflowService;
 use App\Services\TelegramBotClient;
 use App\Services\TenderFollowUpService;
+use App\Telegram\TelegramDeliveryException;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -24,7 +25,10 @@ class DeliverTelegramNotification implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
+    public int $tries = 4;
+
+    /** @var list<int> */
+    public array $backoff = [60, 300, 900];
 
     public function __construct(public readonly int $deliveryId) {}
 
@@ -36,8 +40,13 @@ class DeliverTelegramNotification implements ShouldQueue
             return;
         }
 
-        $retryableFailure = in_array($delivery->type, ['task_reminder', 'team_mention', 'team_review_assignment', 'team_review_sla', 'team_review_digest', 'participation_approval'], true)
-            && $delivery->status === NotificationStatus::Failed;
+        $retryableFailure = $delivery->status === NotificationStatus::Failed
+            && in_array($delivery->failure_code, [
+                'telegram_network_unavailable',
+                'telegram_rate_limited',
+                'telegram_api_unavailable',
+                'telegram_delivery_failed',
+            ], true);
         if ($delivery->status !== NotificationStatus::Queued && ! $retryableFailure) {
             return;
         }
@@ -100,14 +109,21 @@ class DeliverTelegramNotification implements ShouldQueue
                 default => "Новый подходящий тендер: {$payload['title']}\n{$payload['url']}",
             };
 
-            $bot->sendMessage($delivery->user->telegram_id, $text);
+            $bot->sendNotification($delivery->user->telegram_id, $text);
             $delivery->forceFill(['status' => NotificationStatus::Sent, 'sent_at' => now(), 'failed_at' => null, 'failure_code' => null])->save();
         } catch (Throwable $exception) {
+            $failureCode = $exception instanceof TelegramDeliveryException
+                ? $exception->failureCode
+                : 'telegram_delivery_failed';
             $delivery->forceFill([
                 'status' => NotificationStatus::Failed,
                 'failed_at' => now(),
-                'failure_code' => 'telegram_delivery_failed',
+                'failure_code' => $failureCode,
             ])->save();
+
+            if ($exception instanceof TelegramDeliveryException && ! $exception->retryable) {
+                return;
+            }
 
             throw $exception;
         }

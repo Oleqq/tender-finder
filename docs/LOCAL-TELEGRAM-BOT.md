@@ -12,11 +12,19 @@ Telegraph нет. Путь сообщения выглядит так:
 ```text
 Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликация)
                  → Redis queue → ProcessTelegramUpdate → Bot API sendMessage
+
+Совпадение / напоминание / дайджест → notification_deliveries
+                                      → Redis queue → Bot API sendMessage
 ```
 
 - webhook принимает только `/start` и `/help`;
 - `TelegramBotClient` вызывает официальный Bot API через Laravel HTTP client;
 - `queue` отправляет ответ асинхронно;
+- каждое пользовательское уведомление приходит обычным текстом в личный чат
+  и содержит кнопку «Открыть Tender Finder» для возврата в Mini App;
+- временные ошибки Bot API повторяются с возрастающей паузой; если пользователь
+  заблокировал бота или не открыл личный чат, интерфейс показывает понятное
+  действие без технического текста;
 - повтор одного `update_id` не создаёт повторное сообщение;
 - Mini App создаёт web-сессию только после серверной проверки подписанного
   `Telegram.WebApp.initData`;
@@ -52,8 +60,10 @@ Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликац
 
    ```dotenv
    TELEGRAM_BOT_TOKEN=<токен тестового бота>
-   TELEGRAM_WEBHOOK_SECRET=<случайная длинная строка>
-   TELEGRAM_SUPERADMIN_IDS=<личный ID владельца,ID второго администратора>
+TELEGRAM_WEBHOOK_SECRET=<случайная длинная строка>
+TELEGRAM_SUPERADMIN_IDS=<личный ID владельца,ID второго администратора>
+# необязательно: HTTPS URL для кнопки возврата; по умолчанию APP_URL
+TELEGRAM_MINI_APP_URL=https://<домен-mini-app>
    ```
 
 3. Поднимите контур:

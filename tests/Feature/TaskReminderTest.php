@@ -63,7 +63,7 @@ it('delivers an assigned task with a team link and does not send a queued messag
     app(TaskReminderService::class)->queueDue();
     $delivery = NotificationDelivery::query()->sole();
     $bot = Mockery::mock(TelegramBotClient::class);
-    $bot->shouldReceive('sendMessage')->once()->with('task-recipient', Mockery::on(fn ($text) => str_contains($text, 'Задача на завтра') && str_contains($text, 'team_id='.$team->id)));
+    $bot->shouldReceive('sendNotification')->once()->with('task-recipient', Mockery::on(fn ($text) => str_contains($text, 'Задача на завтра') && str_contains($text, 'team_id='.$team->id)));
     $job = new DeliverTelegramNotification($delivery->id);
     $job->handle($bot, app(AccessService::class));
     $job->handle($bot, app(AccessService::class));
@@ -85,7 +85,7 @@ it('revalidates completion deadline assignment opt out membership and access at 
         'finished' => $p->update(['stage' => 'won']),
     };
     $bot = Mockery::mock(TelegramBotClient::class);
-    $bot->shouldNotReceive('sendMessage');
+    $bot->shouldNotReceive('sendNotification');
     (new DeliverTelegramNotification($delivery->id))->handle($bot, app(AccessService::class));
     expect($delivery->fresh()->status->value)->toBe('skipped');
 })->with(['complete', 'date', 'assignee', 'optout', 'member', 'access', 'deleted', 'finished']);
@@ -103,12 +103,12 @@ it('retries failed task deliveries and clears failure metadata after success', f
     app(TaskReminderService::class)->queueDue();
     $delivery = NotificationDelivery::query()->sole();
     $bot = Mockery::mock(TelegramBotClient::class);
-    $bot->shouldReceive('sendMessage')->once()->andThrow(new RuntimeException('Temporary failure'));
+    $bot->shouldReceive('sendNotification')->once()->andThrow(new RuntimeException('Temporary failure'));
     $job = new DeliverTelegramNotification($delivery->id);
     expect(fn () => $job->handle($bot, app(AccessService::class)))->toThrow(RuntimeException::class);
     expect($delivery->fresh()->status->value)->toBe('failed');
     $retryBot = Mockery::mock(TelegramBotClient::class);
-    $retryBot->shouldReceive('sendMessage')->once();
+    $retryBot->shouldReceive('sendNotification')->once();
     $job->handle($retryBot, app(AccessService::class));
     expect($delivery->fresh()->status->value)->toBe('sent')->and($delivery->fresh()->failure_code)->toBeNull();
 });

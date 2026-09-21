@@ -9,6 +9,9 @@ return [
         // backward-compatible single-owner deployments.
         'superadmin_ids' => env('TELEGRAM_SUPERADMIN_IDS'),
         'owner_id' => env('TELEGRAM_OWNER_ID'),
+        // Used only for a private-chat button in transactional notifications.
+        // APP_URL remains the safe default when no override is configured.
+        'mini_app_url' => env('TELEGRAM_MINI_APP_URL') ?: env('APP_URL'),
         'init_data_max_age_seconds' => (int) env('TELEGRAM_INIT_DATA_MAX_AGE_SECONDS', 300),
         'bot_request_timeout_seconds' => (int) env('TELEGRAM_BOT_REQUEST_TIMEOUT_SECONDS', 5),
     ],

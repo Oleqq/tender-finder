@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\AccessService;
 use App\Services\TelegramBotClient;
 use App\Services\TenderSourceImportService;
+use App\Telegram\TelegramDeliveryException;
 use App\Tenders\SourceFetchResult;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -104,7 +105,7 @@ it('shows only the current users delivery statuses without payloads or foreign a
         ->has('notificationDeliveries', 1)
         ->where('notificationDeliveries.0.type', 'Новое совпадение')
         ->where('notificationDeliveries.0.status', 'failed')
-        ->where('notificationDeliveries.0.message', 'Не удалось доставить уведомление. Следующие уведомления будут отправляться автоматически.')
+        ->where('notificationDeliveries.0.message', 'Не удалось доставить уведомление. Повторная попытка будет выполнена автоматически.')
         ->missing('notificationDeliveries.0.payload')
         ->missing('notificationDeliveries.0.failure_code'));
 });
@@ -123,7 +124,7 @@ it('marks an archived teams queued delivery as skipped and records an exhausted 
         'scheduled_at' => now(),
     ]);
     $bot = Mockery::mock(TelegramBotClient::class);
-    $bot->shouldNotReceive('sendMessage');
+    $bot->shouldNotReceive('sendNotification');
     (new DeliverTelegramNotification($delivery->id))->handle($bot, app(AccessService::class));
 
     $feed = monitoredFeed();
@@ -146,7 +147,7 @@ it('records a Telegram transport error without exposing the transport failure to
         'scheduled_at' => now(),
     ]);
     $bot = Mockery::mock(TelegramBotClient::class);
-    $bot->shouldReceive('sendMessage')->once()->andThrow(new RuntimeException('transport detail'));
+    $bot->shouldReceive('sendNotification')->once()->andThrow(new RuntimeException('transport detail'));
 
     expect(fn () => (new DeliverTelegramNotification($delivery->id))->handle($bot, app(AccessService::class)))
         ->toThrow(RuntimeException::class);
@@ -156,4 +157,34 @@ it('records a Telegram transport error without exposing the transport failure to
     $this->actingAs($user)->get('/profile')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('notificationDeliveries.0.status', 'failed')
         ->missing('notificationDeliveries.0.failure_code'));
+});
+
+it('retries a transient tender-card delivery and clears its failure state after success', function () {
+    $user = User::factory()->create(['telegram_id' => 'monitoring-status-retry']);
+    Entitlement::query()->create(['user_id' => $user->id, 'code' => 'active_queries', 'status' => 'active',
+        'value' => 3, 'starts_at' => now()->subDay(), 'ends_at' => now()->addDay()]);
+    $delivery = NotificationDelivery::query()->create([
+        'user_id' => $user->id,
+        'type' => 'tender_card',
+        'status' => NotificationStatus::Queued,
+        'idempotency_key' => 'monitoring-status-retry-tender-card',
+        'payload' => ['title' => 'Тестовая закупка', 'url' => 'https://example.test/tender'],
+        'scheduled_at' => now(),
+    ]);
+
+    $firstBot = Mockery::mock(TelegramBotClient::class);
+    $firstBot->shouldReceive('sendNotification')->once()
+        ->andThrow(new TelegramDeliveryException('telegram_network_unavailable', true));
+    $job = new DeliverTelegramNotification($delivery->id);
+
+    expect(fn () => $job->handle($firstBot, app(AccessService::class)))
+        ->toThrow(TelegramDeliveryException::class);
+    expect($delivery->fresh()->failure_code)->toBe('telegram_network_unavailable');
+
+    $retryBot = Mockery::mock(TelegramBotClient::class);
+    $retryBot->shouldReceive('sendNotification')->once();
+    $job->handle($retryBot, app(AccessService::class));
+
+    expect($delivery->fresh()->status)->toBe(NotificationStatus::Sent)
+        ->and($delivery->fresh()->failure_code)->toBeNull();
 });

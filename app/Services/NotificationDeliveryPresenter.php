@@ -28,7 +28,7 @@ final class NotificationDeliveryPresenter
             NotificationStatus::Sent => ['sent', 'Отправлено в Telegram.'],
             NotificationStatus::Queued => ['queued', 'Ожидает обработки очередью.'],
             NotificationStatus::Skipped => ['skipped', 'Не отправлено: уведомление больше не актуально.'],
-            NotificationStatus::Failed => ['failed', 'Не удалось доставить уведомление. Следующие уведомления будут отправляться автоматически.'],
+            NotificationStatus::Failed => ['failed', $this->failedMessage($delivery->failure_code)],
         };
 
         return [
@@ -55,6 +55,15 @@ final class NotificationDeliveryPresenter
             'team_review_digest' => 'Командная сводка',
             'participation_approval' => 'Согласование участия',
             default => 'Сервисное уведомление',
+        };
+    }
+
+    private function failedMessage(?string $failureCode): string
+    {
+        return match ($failureCode) {
+            'telegram_chat_blocked', 'telegram_chat_unavailable' => 'Откройте личный чат с ботом Tender Finder и нажмите Start — после этого новые уведомления снова смогут прийти.',
+            'telegram_bot_not_configured', 'telegram_bot_auth_failed' => 'Сервис уведомлений временно недоступен. Мониторинги продолжают работать.',
+            default => 'Не удалось доставить уведомление. Повторная попытка будет выполнена автоматически.',
         };
     }
 }
