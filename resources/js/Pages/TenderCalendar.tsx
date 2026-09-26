@@ -18,6 +18,11 @@ type CalendarEvent = {
     all_day: boolean;
     url: string;
 };
+type CalendarSubscription = {
+    active: boolean;
+    url: string | null;
+    created_at: string | null;
+};
 const kinds = [
     { value: 'all', label: 'Все события' },
     { value: 'deadline', label: 'Подача заявок' },
@@ -26,14 +31,28 @@ const kinds = [
 ];
 
 export default function TenderCalendar() {
-    const { month, timezone, events, team } =
-        usePage<
-            PageProps<
-                TeamScope & { month: string; timezone: string; events: CalendarEvent[] }
-            >
-        >().props;
+    const {
+        month,
+        timezone,
+        events,
+        team,
+        subscription: initialSubscription,
+    } = usePage<
+        PageProps<
+            TeamScope & {
+                month: string;
+                timezone: string;
+                events: CalendarEvent[];
+                subscription: CalendarSubscription;
+            }
+        >
+    >().props;
     const [selected, setSelected] = useState<string | null>(null);
     const [kind, setKind] = useState('all');
+    const [subscription, setSubscription] = useState(initialSubscription);
+    const [subscriptionBusy, setSubscriptionBusy] = useState(false);
+    const [subscriptionError, setSubscriptionError] = useState('');
+    const [subscriptionNotice, setSubscriptionNotice] = useState('');
     const [year, number] = month.split('-').map(Number);
     const first = new Date(Date.UTC(year, number - 1, 1));
     const offset = (first.getUTCDay() + 6) % 7;
@@ -51,6 +70,62 @@ export default function TenderCalendar() {
         router.get(scopedUrl('/calendar', team), {
             month: date.toISOString().slice(0, 7),
         });
+    };
+    const rotateSubscription = async (): Promise<void> => {
+        if (
+            subscription.active &&
+            !window.confirm(
+                'Перевыпустить ссылку? Прежняя подписка календаря сразу перестанет работать.',
+            )
+        )
+            return;
+        setSubscriptionBusy(true);
+        setSubscriptionError('');
+        setSubscriptionNotice('');
+        try {
+            const response = await window.axios.post<{
+                subscription: CalendarSubscription;
+            }>(scopedUrl('/calendar/subscription', team));
+            setSubscription(response.data.subscription);
+            setSubscriptionNotice(
+                subscription.active
+                    ? 'Ссылка перевыпущена. Обновите её в календаре.'
+                    : 'Приватная ссылка создана.',
+            );
+        } catch {
+            setSubscriptionError('Не удалось создать ссылку. Попробуйте ещё раз.');
+        } finally {
+            setSubscriptionBusy(false);
+        }
+    };
+    const revokeSubscription = async (): Promise<void> => {
+        if (!window.confirm('Отключить обновляемую подписку календаря?')) return;
+        setSubscriptionBusy(true);
+        setSubscriptionError('');
+        setSubscriptionNotice('');
+        try {
+            const response = await window.axios.delete<{
+                subscription: CalendarSubscription;
+            }>(scopedUrl('/calendar/subscription', team));
+            setSubscription(response.data.subscription);
+            setSubscriptionNotice('Ссылка отключена.');
+        } catch {
+            setSubscriptionError('Не удалось отключить ссылку. Попробуйте ещё раз.');
+        } finally {
+            setSubscriptionBusy(false);
+        }
+    };
+    const copySubscription = async (): Promise<void> => {
+        if (!subscription.url) return;
+        try {
+            await navigator.clipboard.writeText(subscription.url);
+            setSubscriptionNotice('Ссылка скопирована.');
+            setSubscriptionError('');
+        } catch {
+            setSubscriptionError(
+                'Не удалось скопировать автоматически. Выделите ссылку вручную.',
+            );
+        }
     };
     return (
         <>
@@ -155,6 +230,80 @@ export default function TenderCalendar() {
                         Файл содержит все события месяца. Это снимок календаря:
                         изменения и удалённые задачи не синхронизируются автоматически.
                     </p>
+                </GlassCard>
+                <GlassCard className="work-card calendar-subscription">
+                    <div>
+                        <h2>Обновляемая подписка</h2>
+                        <p>
+                            Добавьте приватную ссылку в Google Calendar, Apple Calendar
+                            или другое приложение. Сроки обновляются при следующей
+                            синхронизации календаря.
+                        </p>
+                    </div>
+                    {subscription.url ? (
+                        <label className="work-subscription-url">
+                            Приватная ICS-ссылка
+                            <input
+                                readOnly
+                                value={subscription.url}
+                                onFocus={(event) => event.currentTarget.select()}
+                            />
+                        </label>
+                    ) : (
+                        <p>Активной ссылки пока нет.</p>
+                    )}
+                    <p className="work-help">
+                        Ссылка открывает названия и сроки доступных вам заявок без
+                        входа. Не публикуйте её и перевыпустите при подозрении на
+                        утечку. Лента включает события с прошлого месяца на 18 месяцев
+                        вперёд.
+                    </p>
+                    {subscriptionNotice ? (
+                        <p className="work-success">{subscriptionNotice}</p>
+                    ) : null}
+                    {subscriptionError ? (
+                        <p className="work-error">{subscriptionError}</p>
+                    ) : null}
+                    <div className="work-actions">
+                        {subscription.active ? (
+                            <>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    disabled={subscriptionBusy}
+                                    onClick={() => void copySubscription()}
+                                >
+                                    Скопировать ссылку
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    disabled={subscriptionBusy}
+                                    onClick={() => void rotateSubscription()}
+                                >
+                                    Перевыпустить
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled={subscriptionBusy}
+                                    onClick={() => void revokeSubscription()}
+                                >
+                                    Отключить
+                                </Button>
+                            </>
+                        ) : (
+                            <Button
+                                type="button"
+                                disabled={subscriptionBusy}
+                                onClick={() => void rotateSubscription()}
+                            >
+                                {subscriptionBusy
+                                    ? 'Создаём…'
+                                    : 'Создать приватную ссылку'}
+                            </Button>
+                        )}
+                    </div>
                 </GlassCard>
                 <div className="work-form">
                     <label>

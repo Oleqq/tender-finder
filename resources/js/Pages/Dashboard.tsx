@@ -105,7 +105,7 @@ export default function Dashboard() {
                                         <small>
                                             {action.reg_number
                                                 ? '№ ' + action.reg_number
-                                                : 'Номер ЕИС не указан'}
+                                                : 'Номер закупки не указан'}
                                             {action.tags.length > 0
                                                 ? ' · ' + action.tags.join(', ')
                                                 : ''}

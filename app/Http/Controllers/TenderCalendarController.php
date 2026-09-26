@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\CalendarSubscriptionService;
 use App\Services\TeamWorkspaceService;
 use App\Services\TenderCalendarService;
 use Illuminate\Http\Request;
@@ -29,6 +30,12 @@ final class TenderCalendarController extends Controller
             ]);
         }
 
-        return Inertia::render('TenderCalendar', [...$scope->props($user, $team), 'month' => $month, 'timezone' => $timezone, 'events' => $events]);
+        return Inertia::render('TenderCalendar', [
+            ...$scope->props($user, $team),
+            'month' => $month,
+            'timezone' => $timezone,
+            'events' => $events,
+            'subscription' => app(CalendarSubscriptionService::class)->present($user, $team),
+        ]);
     }
 }

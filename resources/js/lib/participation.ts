@@ -34,6 +34,36 @@ export type Participation = {
     }>;
 };
 
+export type ParticipationDocumentVersion = {
+    id: number;
+    source_kind: 'file' | 'link';
+    source_url: string | null;
+    download_url: string | null;
+    original_name: string | null;
+    mime_type: string | null;
+    size_bytes: number | null;
+    uploaded_by: string | null;
+    created_at: string;
+};
+
+export type ParticipationDocument = {
+    id: number;
+    title: string;
+    type:
+        | 'requirement'
+        | 'proposal'
+        | 'qualification'
+        | 'security'
+        | 'contract'
+        | 'other';
+    status: 'needed' | 'ready' | 'replace_required';
+    assignee_id: number | null;
+    checklist_item_id: number | null;
+    version: number;
+    archived_at: string | null;
+    versions: ParticipationDocumentVersion[];
+};
+
 export type ApprovalState = {
     required: boolean;
     current: {

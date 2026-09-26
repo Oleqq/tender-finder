@@ -323,7 +323,7 @@ class LocalMvpTenderWorkspaceService
             'enriched_at' => $this->nullableMetadataText($metadata['enriched_at'] ?? null),
             'can_enrich' => false,
             'source_label' => match ($tender->source) {
-                'eis_rss' => 'ЕИС · государственные закупки · RSS-поиск',
+                'eis_rss' => 'Архив ЕИС · обновление отключено',
                 default => 'TenderGuru public preview · ручной запрос',
             },
             'attachments' => $this->attachmentDtos($metadata['attachments'] ?? null),

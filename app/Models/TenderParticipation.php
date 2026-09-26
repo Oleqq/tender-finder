@@ -56,4 +56,10 @@ class TenderParticipation extends Model
     {
         return $this->hasMany(ParticipationApprovalRequest::class, 'participation_id');
     }
+
+    /** @return HasMany<ParticipationDocument, $this> */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ParticipationDocument::class, 'participation_id');
+    }
 }

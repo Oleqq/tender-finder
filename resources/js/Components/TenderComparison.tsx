@@ -39,7 +39,7 @@ export function TenderComparison({
             title={`Сравнение · ${tenders.length}`}
         >
             <p className="sheet-description">
-                Поля сравниваются только по данным, которые вернула ЕИС.
+                Поля сравниваются только по данным, сохранённым от источника.
             </p>
             <div className="tender-comparison">
                 <table>
@@ -100,7 +100,7 @@ export function TenderComparison({
                             }
                         />
                         <ComparisonRow
-                            label="Номер ЕИС"
+                            label="Номер закупки"
                             tenders={tenders}
                             value={(tender) => tender.reg_number}
                         />
@@ -136,7 +136,7 @@ export function TenderComparison({
                                         rel="noreferrer"
                                         target="_blank"
                                     >
-                                        ЕИС
+                                        Первоисточник
                                     </a>
                                 </td>
                             ))}

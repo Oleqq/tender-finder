@@ -73,6 +73,23 @@ final class TenderCalendarService
         return $events;
     }
 
+    /** @return list<CalendarEvent> */
+    public function subscriptionEvents(User $user, ?Team $team = null): array
+    {
+        $cursor = now($this->timezone($user))->startOfMonth()->subMonth();
+        $events = [];
+        foreach (range(0, 19) as $offset) {
+            foreach ($this->events($user, $cursor->copy()->addMonths($offset)->format('Y-m'), $team) as $event) {
+                $events[$event['id']] = $event;
+            }
+        }
+        $events = array_values($events);
+        usort($events, fn (array $a, array $b): int => [$a['date'], $a['starts_at'], $a['id']] <=> [$b['date'], $b['starts_at'], $b['id']]);
+        abort_if(count($events) > 10000, 422, 'Слишком много событий для подписки календаря.');
+
+        return $events;
+    }
+
     /** @return CalendarEvent */
     private function event(User $user, Tender $tender, string $kind, int $id, string $title, string $startsAt, string $date, bool $allDay, ?Team $team = null): array
     {
@@ -83,9 +100,14 @@ final class TenderCalendarService
     }
 
     /** @param list<CalendarEvent> $events */
-    public function ics(array $events): string
+    public function ics(array $events, ?string $calendarName = null): string
     {
         $lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TenderFinder//Tender Calendar//RU', 'CALSCALE:GREGORIAN'];
+        if ($calendarName !== null) {
+            $lines[] = 'X-WR-CALNAME:'.$this->escape($calendarName);
+            $lines[] = 'REFRESH-INTERVAL;VALUE=DURATION:PT1H';
+            $lines[] = 'X-PUBLISHED-TTL:PT1H';
+        }
         foreach ($events as $event) {
             $lines[] = 'BEGIN:VEVENT';
             $lines[] = 'UID:'.$event['id'];

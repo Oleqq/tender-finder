@@ -9,6 +9,7 @@ use App\Models\TenderParticipation;
 use App\Models\User;
 use App\Services\ParticipationApprovalService;
 use App\Services\ParticipationCommentService;
+use App\Services\ParticipationDocumentService;
 use App\Services\TeamActivityService;
 use App\Services\TeamWorkspaceService;
 use App\Services\TenderWorkService;
@@ -67,6 +68,7 @@ final class TenderWorkController extends Controller
             'tender' => ['id' => $tender->id, 'title' => $tender->title, 'canonical_url' => $tender->canonical_url,
                 'deadline_at' => $tender->deadline_at?->toAtomString()],
             'participation' => $work->present($participation),
+            'documents' => $participation ? app(ParticipationDocumentService::class)->present($participation, $team) : [],
             'comments' => $comments,
         ]);
     }

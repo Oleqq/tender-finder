@@ -11,6 +11,7 @@ import {
     type Stage,
     type Participation,
     type ChecklistItem,
+    type ParticipationDocument,
 } from '../lib/participation';
 import {
     WorkspacePicker,
@@ -22,6 +23,7 @@ import {
     type ChecklistTemplate,
 } from '../Components/ChecklistTemplates';
 import { ParticipationEconomics } from '../Components/ParticipationEconomics';
+import { ParticipationDocuments } from '../Components/ParticipationDocuments';
 import {
     ParticipationComments,
     type ParticipationComment,
@@ -39,6 +41,7 @@ export default function TenderWork() {
         can_edit,
         templates,
         comments,
+        documents,
     } = usePage<
         PageProps<
             TeamScope & {
@@ -51,6 +54,7 @@ export default function TenderWork() {
                 };
                 participation: Participation | null;
                 comments: ParticipationComment[];
+                documents: ParticipationDocument[];
             }
         >
     >().props;
@@ -421,6 +425,16 @@ export default function TenderWork() {
                         )}
                     </GlassCard>
                 </div>
+                {participation ? (
+                    <ParticipationDocuments
+                        initial={documents}
+                        root={root}
+                        team={team}
+                        members={members}
+                        tasks={participation.items}
+                        canEdit={can_edit}
+                    />
+                ) : null}
                 {participation ? (
                     <ParticipationEconomics
                         initial={participation.economics}

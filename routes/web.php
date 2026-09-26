@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CalendarSubscriptionController;
 use App\Http\Controllers\ChecklistTemplateController;
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\DashboardController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\OperationsDashboardController;
 use App\Http\Controllers\ParticipationAnalyticsController;
 use App\Http\Controllers\ParticipationApprovalController;
 use App\Http\Controllers\ParticipationCommentController;
+use App\Http\Controllers\ParticipationDocumentController;
 use App\Http\Controllers\ParticipationEconomicsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
@@ -58,6 +60,8 @@ Route::post('/telegram/session', [TelegramSessionController::class, 'store'])
     ->name('telegram.session.store');
 
 Route::get('/team-invitations/{token}', [TeamController::class, 'invitation']);
+Route::get('/calendar/subscriptions/{token}.ics', [CalendarSubscriptionController::class, 'feed'])
+    ->name('calendar.subscription.feed');
 
 Route::middleware('auth')->group(function () {
     Route::get('/teams', [TeamController::class, 'index'])->name('teams');
@@ -91,6 +95,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/participation/analytics/export', [ParticipationAnalyticsController::class, 'export'])->name('participation.analytics.export');
     Route::get('/calendar', [TenderCalendarController::class, 'index'])->name('calendar');
     Route::get('/calendar/export', [TenderCalendarController::class, 'index'])->name('calendar.export');
+    Route::post('/calendar/subscription', [CalendarSubscriptionController::class, 'store'])->name('calendar.subscription.store');
+    Route::delete('/calendar/subscription', [CalendarSubscriptionController::class, 'destroy'])->name('calendar.subscription.destroy');
     Route::get('/tenders/{tender}/work', [TenderWorkController::class, 'show'])->name('tenders.work');
     Route::put('/tenders/{tender}/participation', [TenderWorkController::class, 'update'])->name('tenders.participation');
     Route::patch('/tenders/{tender}/economics', [ParticipationEconomicsController::class, 'update'])->name('tenders.economics');
@@ -102,6 +108,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/tenders/{tender}/checklist', [TenderWorkController::class, 'storeItem'])->name('tenders.checklist.store');
     Route::patch('/tenders/{tender}/checklist/{item}', [TenderWorkController::class, 'updateItem'])->name('tenders.checklist.update');
     Route::delete('/tenders/{tender}/checklist/{item}', [TenderWorkController::class, 'destroyItem'])->name('tenders.checklist.destroy');
+    Route::post('/tenders/{tender}/documents', [ParticipationDocumentController::class, 'store'])->name('tenders.documents.store');
+    Route::patch('/tenders/{tender}/documents/{document}', [ParticipationDocumentController::class, 'update'])->name('tenders.documents.update');
+    Route::post('/tenders/{tender}/documents/{document}/versions', [ParticipationDocumentController::class, 'replace'])->name('tenders.documents.replace');
+    Route::patch('/tenders/{tender}/documents/{document}/archive', [ParticipationDocumentController::class, 'archive'])->name('tenders.documents.archive');
+    Route::delete('/tenders/{tender}/documents/{document}', [ParticipationDocumentController::class, 'destroy'])->name('tenders.documents.destroy');
+    Route::get('/tenders/{tender}/documents/{document}/versions/{version}', [ParticipationDocumentController::class, 'download'])->name('tenders.documents.download');
     Route::post('/tender-feed-views', [TenderFeedViewController::class, 'store'])
         ->name('tender-feed-views.store');
     Route::delete('/tender-feed-views/{view}', [TenderFeedViewController::class, 'destroy'])

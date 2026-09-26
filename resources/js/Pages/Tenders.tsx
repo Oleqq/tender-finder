@@ -168,7 +168,11 @@ const teamStatusOptions = [
 
 const sourceOptions = [
     { value: 'all', label: 'Все источники', description: 'Единая лента совпадений' },
-    { value: 'eis_rss', label: 'ЕИС', description: 'Официальная RSS-лента' },
+    {
+        value: 'eis_rss',
+        label: 'Архив ЕИС',
+        description: 'Исторические карточки, обновление отключено',
+    },
     { value: 'rostender', label: 'RosTender', description: 'Подключённые шаблоны' },
 ];
 
@@ -357,7 +361,7 @@ export default function Tenders() {
                         <SearchInput
                             aria-label="Поиск по ленте"
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Название, заказчик или номер ЕИС"
+                            placeholder="Название, заказчик или номер закупки"
                             value={search}
                         />
                         <Button size="sm" type="submit">
@@ -1145,7 +1149,7 @@ function TeamWorkflowPanel({
                             }
                         >
                             <option value="">Любой источник</option>
-                            <option value="eis_rss">ЕИС</option>
+                            <option value="eis_rss">Архив ЕИС</option>
                             <option value="rostender">RosTender</option>
                         </select>
                         <select
@@ -1665,7 +1669,7 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                     <p>
                         {match.source === 'rostender'
                             ? 'Выбранные карточки RosTender проверяются по очереди, не чаще раза в 6 часов, в пределах лимита источника.'
-                            : 'Изменения ЕИС фиксируются при получении обновлённых данных от источника.'}
+                            : 'История меняется только при получении обновлённых данных от активного источника.'}
                     </p>
                     {error ? <p className="field-error">{error}</p> : null}
                     <div className="tender-feed-card__editor-actions">

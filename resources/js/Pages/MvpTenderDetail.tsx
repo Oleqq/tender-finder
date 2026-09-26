@@ -45,8 +45,6 @@ type TenderDetailDto = {
     postal_address: string | null;
     application_security: string | null;
     contract_security: string | null;
-    enriched_at: string | null;
-    can_enrich: boolean;
     note: string | null;
     tags: string[];
     next_action_on: string | null;
@@ -64,7 +62,6 @@ export default function MvpTenderDetail() {
     );
     const [isUpdating, setIsUpdating] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [enriching, setEnriching] = useState(false);
     const [actionError, setActionError] = useState('');
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
@@ -95,29 +92,6 @@ export default function MvpTenderDetail() {
         }
     };
 
-    const enrich = async (): Promise<void> => {
-        setEnriching(true);
-        setError('');
-        setNotice('');
-
-        try {
-            const response = await window.axios.post<{ tender: TenderDetailDto }>(
-                `/local/mvp/tenders/${tender.id}/enrich`,
-            );
-            setTender(response.data.tender);
-            setNotice('Публичные сведения карточки ЕИС обновлены.');
-        } catch (requestError) {
-            setError(
-                requestErrorMessage(
-                    requestError,
-                    'Не удалось обновить публичные сведения ЕИС.',
-                ),
-            );
-        } finally {
-            setEnriching(false);
-        }
-    };
-
     const updateStatus = async (status: TenderStatus): Promise<void> => {
         setActionError('');
         setIsUpdating(true);
@@ -144,7 +118,7 @@ export default function MvpTenderDetail() {
                 activeNav="/tenders"
                 backHref="/tenders"
                 className="mvp-tender-detail"
-                eyebrow="ЕИС · карточка тендера"
+                eyebrow="Архивная карточка тендера"
                 role="super_admin"
                 title="Тендер"
                 wide
@@ -156,7 +130,7 @@ export default function MvpTenderDetail() {
                                 <Badge tone={statusTone(tender.status)}>
                                     {statusLabel(tender.status)}
                                 </Badge>
-                                <span>ЕИС · госзакупки</span>
+                                <span>{tender.source_label}</span>
                             </div>
                             <h2>{tender.title}</h2>
                             <Link
@@ -181,25 +155,6 @@ export default function MvpTenderDetail() {
                                 Данные и ссылки — только из источника. Проверьте
                                 исходную карточку перед решением об участии.
                             </p>
-                            {tender.can_enrich ? (
-                                <Button
-                                    disabled={enriching}
-                                    onClick={enrich}
-                                    variant="secondary"
-                                >
-                                    {enriching
-                                        ? 'Получаем сведения ЕИС…'
-                                        : tender.enriched_at
-                                          ? 'Обновить сведения ЕИС'
-                                          : 'Дополнить из карточки ЕИС'}
-                                </Button>
-                            ) : null}
-                            {tender.enriched_at ? (
-                                <small>
-                                    Последнее обогащение:{' '}
-                                    {formatDateTime(tender.enriched_at)}
-                                </small>
-                            ) : null}
                         </GlassCard>
 
                         {notice ? (
@@ -234,7 +189,7 @@ export default function MvpTenderDetail() {
                                 <DetailRow
                                     emphasis
                                     label="Срок подачи"
-                                    missingLabel="Нет в данных ЕИС"
+                                    missingLabel="Нет в сохранённых данных"
                                     tone={tender.deadline_at ? 'default' : 'warning'}
                                     value={formatDate(tender.deadline_at)}
                                 />
@@ -253,7 +208,7 @@ export default function MvpTenderDetail() {
                                     tone="warning"
                                 >
                                     Не считайте дату отсутствующей: откройте карточку
-                                    ЕИС и проверьте актуальный срок вручную.
+                                    первоисточника и проверьте актуальный срок вручную.
                                 </InlineAlert>
                             ) : null}
                         </section>
@@ -382,9 +337,8 @@ export default function MvpTenderDetail() {
                                 </ul>
                             ) : (
                                 <p className="mvp-tender-detail__missing">
-                                    RSS ЕИС не передала ссылки на ТЗ или вложения. Мы не
-                                    создаём фальшивые PDF и не извлекаем защищённые
-                                    документы.
+                                    В сохранённых данных нет ссылок на ТЗ или вложения.
+                                    Откройте первоисточник и проверьте документы там.
                                 </p>
                             )}
                         </section>
@@ -404,7 +358,10 @@ export default function MvpTenderDetail() {
                                     {statusShortLabel(tender.status)}
                                 </Badge>
                             </div>
-                            <p>Эта отметка видна только вам и не меняет данные ЕИС.</p>
+                            <p>
+                                Эта отметка видна только вам и не меняет данные
+                                источника.
+                            </p>
                             {tender.status === 'archived' ? (
                                 <Button
                                     disabled={isUpdating}
@@ -598,13 +555,6 @@ function formatDate(value: string | null): string | null {
         day: '2-digit',
         month: 'long',
         year: 'numeric',
-    }).format(new Date(value));
-}
-
-function formatDateTime(value: string): string {
-    return new Intl.DateTimeFormat('ru-RU', {
-        dateStyle: 'short',
-        timeStyle: 'short',
     }).format(new Date(value));
 }
 

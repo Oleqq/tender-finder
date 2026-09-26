@@ -123,12 +123,12 @@ Railway scheduler service, а не HTTP-процессом web-приложен�
 | Таблица | Главное содержимое | Правило |
 |---|---|---|
 | `search_queries` | название, keywords/minus words, region, money/deadline range, условия источника и status | active/paused/frozen/deleted; максимум 3 active при Basic/trial; ручной запуск сам не включает polling |
-| `source_feeds` | канонический RSS URL и SHA-256 hash, расписание, freshness/error | ручные страницы ЕИС имеют `manual_preview`; active polling не включён |
-| `source_feed_search_queries` | явная связь личного мониторинга с RSS-лентой ЕИС | позволяет показать состояние только тому пользователю, чей мониторинг подключён к ленте; уникальна по паре лента/мониторинг |
-| `source_feed_items` | отдельная RSS-запись, URL hash, `reg_number`, content hash | уникальны на ленту по URL hash |
-| `tenders` | каноническая карточка, source + external ID, поля для фильтра и проверенные metadata явного обогащения ЕИС | уникальны по `(source, external_id)`; RSS refresh не стирает обогащение |
+| `source_feeds` | источник, внешний идентификатор, расписание, freshness/error | активен для RosTender; строки `eis_rss` сохранены как остановленный архив |
+| `source_feed_search_queries` | историческая связь мониторинга с прежней RSS-лентой | новые связи ЕИС не создаются; данные сохранены для объяснимой истории |
+| `source_feed_items` | историческая запись источника, URL hash, `reg_number`, content hash | архивные строки не обновляются |
+| `tenders` | каноническая карточка, source + external ID и поля для фильтра | уникальны по `(source, external_id)`; `eis_rss` доступен только как архив |
 | `tender_user_states` | личный статус, заметка, JSON-теги и дата следующего действия | уникальна по `(user_id, tender_id)`; строка с аннотацией сохраняется и при статусе `new` |
-| `local_mvp_search_snapshots` | nullable ссылка на сохранённый запрос, фраза, режим релевантности, минус-слова, причины совпадения, счётчики и IDs карточек одной ручной выдачи ЕИС | пользователь владеет снимком; ссылка позволяет показать последние 20 запусков запроса; «только новые» вычисляется относительно непосредственно предыдущего снимка того же запроса; разовые поиски остаются без ссылки; история переживает refresh/restart и не смешивается между пользователями |
+| `local_mvp_search_snapshots` | архивные снимки прежних ручных выдач и технического preview | новые снимки ЕИС не создаются; история не смешивается между пользователями |
 | `tender_query_matches` | связь тендер ↔ запрос, JSON причин и объяснимый локальный score | уникальна по `(tender_id, search_query_id)`; score не является решением ИИ и не влияет на match |
 | `notification_deliveries` | тип, idempotency key, status и безопасный payload | повторный job не пошлёт одну карточку дважды |
 | `source_runs` | start/end, status, счётчики, error class | материал для будущего Live Ops |
@@ -153,6 +153,9 @@ fail-safe не допускает запуск suite на постоянной d
 | `participation_comment_versions` | снимок текста, действие, редактор и номер версии | append-only история; версия уникальна внутри комментария |
 | `participation_comment_mentions` | адресат упоминания и время прочтения | одно упоминание пользователя в комментарии; создаёт идемпотентную Telegram-доставку |
 | `participation_comment_reads` | последний показанный пользователю comment ID для заявки | уникальная позиция чтения на пару заявка/пользователь; новые параллельные комментарии не помечаются прочитанными |
+| `participation_documents` | карточка документа, тип, состояние, ответственный, связанная задача, архив и версия | принадлежит одной личной или командной заявке; до 100 документов на заявку |
+| `participation_document_versions` | неизменяемая версия приватного файла либо HTTPS-ссылки | старые версии не перезаписываются; скачивание файла проходит авторизацию заявки |
+| `calendar_subscriptions` | владелец, необязательная команда, зашифрованный токен, SHA-256 hash, отзыв и последнее использование | одна активная ссылка на область; членство команды проверяется при каждом запросе |
 
 Права на эти строки выводятся из владельца личной заявки либо активного
 членства и роли в команде. Архив команды оставляет данные доступными для чтения
@@ -167,10 +170,10 @@ fail-safe не допускает запуск suite на постоянной d
 | access | `preview`, `trialing`, `active`, `expired`, `cancelled` | AccessService на основе entitlement и времени |
 | subscription/entitlement | `active`, `expired`, `cancelled` | Trial/будущий billing domain |
 | query | `active`, `paused`, `frozen`, `deleted` | authenticated query service |
-| local MVP tender state | `new`, `favorite`, `potential`, `dismissed`, `archived` | только local technical `super_admin` для карточек ЕИС |
+| local MVP tender state | `new`, `favorite`, `potential`, `dismissed`, `archived` | исторические технические карточки доступны без обновления источника |
 | marketing admin analytics | подтверждённая аудитория, регистрации/входы/trial/Stars за 7/30/90 дней, `preview`, `trialing`, `paid`, `granted`, `expired` | read-only aggregate только для `super_admin`; строится из существующих дат и актуального entitlement, без Telegram ID, иных персональных данных или новых таблиц событий |
 | notification | `queued`, `sent`, `failed`, `skipped` | queue transport |
-| source run | `running`, `succeeded`, `failed` | RSS importer |
+| source run | `running`, `succeeded`, `failed` | активный импорт RosTender; прежние RSS-запуски только читаются |
 
 ## Индексы и почему они есть
 
@@ -199,8 +202,7 @@ fail-safe не допускает запуск suite на постоянной d
 3. Не заменяя и не печатая `.env`, выполнить `sh deploy/vps-deploy.sh` из
    корня приложения. Миграции остаются только forward-only.
 4. Проверить `/health`, `web`, `queue`, `scheduler`, PostgreSQL, Redis и
-   `php artisan migrate:status`; отдельно записать внешний блокер ЕИС, если
-   TCP к источнику не восстановлен.
+   `php artisan migrate:status`; прямых соединений с ЕИС runtime не выполняет.
 5. Сделать закрытый Telegram smoke-test только после выпуска. Откат требует
    совместимости с уже применёнными миграциями, а не удаления schema.
 
@@ -217,7 +219,5 @@ volume `tender_finder_local_postgres`. Он не публикует порт б�
 некоммитируемый `deploy/local-runtime.env`; его значения локальны и не должны
 совпадать с VPS.
 
-Синтетические RSS fixtures создают безопасные тестовые записи. Отдельно
-ручной local MVP может сохранить данные ЕИС, полученные после нажатия
-оператора. Ни один из путей не включает production-пользователей, Telegram
-уведомления или постоянный polling.
+Исторические строки ЕИС могут оставаться в локальной базе для regression-
+проверок архива, но приложение больше не создаёт их и не выполняет RSS-polling.
