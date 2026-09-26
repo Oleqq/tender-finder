@@ -216,23 +216,6 @@ it('stops watched refresh when the shared RosTender quota is exhausted', functio
     Http::assertNothingSent();
 });
 
-it('previews EIS without saving queries importing cards or queuing notifications', function () {
-    [$user] = followUpFixture();
-    Http::fake(['zakupki.gov.ru/*' => Http::response(file_get_contents(base_path('tests/Fixtures/eis-rss-initial.xml')), 200, ['Content-Type' => 'application/rss+xml'])]);
-    $this->actingAs($user)->postJson('/queries/preview', ['keywords' => ['неподходящее слово']])->assertOk()
-        ->assertJsonPath('checked', 1)->assertJsonPath('matched', 0)->assertJsonPath('excluded.keyword', 1);
-    expect(SearchQuery::query()->count())->toBe(1)->and(Tender::query()->count())->toBe(1)
-        ->and(NotificationDelivery::query()->count())->toBe(0);
-    Queue::assertNothingPushed();
-});
-
-it('distinguishes unavailable preview from a successful empty result and requires active access', function () {
-    [$user] = followUpFixture();
-    Http::fake(['zakupki.gov.ru/*' => Http::response('', 503)]);
-    $this->actingAs($user)->postJson('/queries/preview', ['keywords' => ['сервер']])->assertStatus(503)->assertJsonMissingPath('matched');
-    $this->actingAs(User::factory()->create())->postJson('/queries/preview', ['keywords' => ['сервер']])->assertForbidden();
-});
-
 it('previews only the selected RosTender template with a bounded cached sample', function () {
     [$user] = followUpFixture();
     config()->set(['tender.rostender.enabled' => true, 'tender.rostender.public_distribution_approved' => true, 'tender.rostender.api_key' => 'test']);
@@ -242,6 +225,7 @@ it('previews only the selected RosTender template with a bounded cached sample',
         'https://rostender.info/api/tenders/get/*' => fn ($request) => Http::response(['success' => true, 'data' => ['id' => (int) basename($request->url()), 'descr' => 'Поставка серверов', 'price' => ['value' => 1500000]]]),
     ]);
     $payload = ['keywords' => ['сервер'], 'budget_min' => 1000000, 'filters' => ['source' => ['rostender_template_id' => 42]]];
+    $this->actingAs(User::factory()->create())->postJson('/queries/preview', $payload)->assertForbidden();
     $this->actingAs($user)->postJson('/queries/preview', $payload)->assertOk()->assertJsonPath('checked', 5)->assertJsonPath('matched', 5);
     $this->postJson('/queries/preview', [...$payload, 'budget_min' => 2000000])->assertOk()->assertJsonPath('excluded.budget', 5);
     Http::assertSentCount(6);

@@ -31,8 +31,8 @@ class AppServiceProvider extends ServiceProvider
             ->by('telegram-webhook:'.$request->ip()));
         RateLimiter::for('local-mvp-preview', fn (Request $request): Limit => Limit::perMinute(10)
             ->by('local-mvp-preview:'.$request->user()?->id));
-        RateLimiter::for('local-mvp-rss-preview', fn (Request $request): Limit => Limit::perMinute(4)
-            ->by('local-mvp-rss-preview:'.$request->user()?->id));
+        RateLimiter::for('monitoring-preview', fn (Request $request): Limit => Limit::perMinute(4)
+            ->by('monitoring-preview:'.$request->user()?->id));
         RateLimiter::for('remote-mvp-operator', fn (Request $request): Limit => Limit::perMinute(10)
             ->by('remote-mvp-operator:'.$request->ip()));
 

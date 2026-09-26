@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Tenders;
+namespace App\Enums;
 
-enum EisRssMatchMode: string
+enum QueryMatchMode: string
 {
     case All = 'all';
     case Any = 'any';

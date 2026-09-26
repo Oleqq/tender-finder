@@ -3,12 +3,12 @@
 use App\Enums\NotificationStatus;
 use App\Enums\QueryStatus;
 use App\Jobs\DeliverTelegramNotification;
-use App\Jobs\PollEisRssFeed;
+use App\Jobs\PollRostenderTemplate;
 use App\Models\Entitlement;
 use App\Models\NotificationDelivery;
+use App\Models\RostenderFeedSearchQuery;
 use App\Models\SearchQuery;
 use App\Models\SourceFeed;
-use App\Models\SourceFeedSearchQuery;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\AccessService;
@@ -36,8 +36,9 @@ function monitoredQuery(User $user, QueryStatus $status = QueryStatus::Active): 
 function monitoredFeed(): SourceFeed
 {
     return SourceFeed::query()->create([
-        'source' => 'eis_rss',
-        'canonical_url' => 'https://zakupki.gov.ru/epz/order/extendedsearch/results.html?searchString=test',
+        'source' => 'rostender',
+        'source_identifier' => 42,
+        'canonical_url' => 'https://rostender.info/api/tenders/get/template/42',
         'url_hash' => hash('sha256', 'monitoring-status-feed'),
         'status' => 'active',
         'poll_interval_seconds' => 600,
@@ -49,14 +50,14 @@ it('shows a recovered source separately from its last failure', function () {
     $user = User::factory()->create();
     $query = monitoredQuery($user);
     $feed = monitoredFeed();
-    SourceFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
-    app(TenderSourceImportService::class)->fail($feed, 'connection_failed', 'eis_rss');
+    RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+    app(TenderSourceImportService::class)->fail($feed, 'connection_failed', 'rostender');
     $this->travel(1)->minute();
-    app(TenderSourceImportService::class)->import($feed->fresh(), new SourceFetchResult([], 0), 'eis_rss', false);
+    app(TenderSourceImportService::class)->import($feed->fresh(), new SourceFetchResult([], 0), 'rostender', false);
 
     $this->actingAs($user)->get('/queries')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->component('MyQueries')
-        ->where('queries.0.source_statuses.0.source', 'eis_rss')
+        ->where('queries.0.source_statuses.0.source', 'rostender')
         ->where('queries.0.source_statuses.0.state', 'empty')
         ->where('queries.0.source_statuses.0.last_failure_at', now()->subMinute()->toAtomString())
         ->where('queries.0.source_statuses.0.last_success_items_seen', 0));
@@ -66,7 +67,7 @@ it('keeps a queued source distinct from an unavailable source and stops schedule
     $user = User::factory()->create();
     $query = monitoredQuery($user);
     $feed = monitoredFeed();
-    SourceFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+    RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
     $feed->update(['last_attempt_at' => now()]);
 
     $this->actingAs($user)->get('/queries')->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -128,7 +129,7 @@ it('marks an archived teams queued delivery as skipped and records an exhausted 
     (new DeliverTelegramNotification($delivery->id))->handle($bot, app(AccessService::class));
 
     $feed = monitoredFeed();
-    (new PollEisRssFeed($feed->id))->failed(new RuntimeException('queue worker stopped'));
+    (new PollRostenderTemplate($feed->id))->failed(new RuntimeException('queue worker stopped'));
 
     expect($delivery->fresh()->status)->toBe(NotificationStatus::Skipped)
         ->and($feed->fresh()->last_error_code)->toBe('poll_job_failed');

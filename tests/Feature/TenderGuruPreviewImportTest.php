@@ -7,7 +7,6 @@ use App\Models\SourceRun;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Models\User;
-use App\Services\RssPollingDispatcher;
 use App\Tenders\TenderGuruPreviewSource;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -132,19 +131,4 @@ it('does not make a network request for an invalid preview query', function () {
         ->assertExitCode(1);
 
     Http::assertNothingSent();
-});
-
-it('keeps the manual preview feed out of the RSS scheduler', function () {
-    Queue::fake();
-    config()->set('tender.rss.live_polling_enabled', true);
-    SourceFeed::query()->create([
-        'canonical_url' => 'tenderguru-preview://test-hash',
-        'url_hash' => hash('sha256', 'manual-preview-feed'),
-        'status' => 'manual_preview',
-        'poll_interval_seconds' => 0,
-        'next_poll_at' => now()->subMinute(),
-    ]);
-
-    expect(app(RssPollingDispatcher::class)->dispatchOneDueFeed())->toBeFalse();
-    Queue::assertNothingPushed();
 });

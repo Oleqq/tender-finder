@@ -76,8 +76,7 @@ TELEGRAM_MINI_APP_URL=https://<домен-mini-app>
    ```
 
 `web` принимает HTTP-запросы, `queue` отправляет ответы бота, а `scheduler`
-выполняет lifecycle-задачи. Не включайте
-`RSS_LIVE_POLLING_ENABLED=true`: к проверке бота это не относится.
+выполняет lifecycle-задачи.
 
 ## Подключение webhook к тестовому боту
 

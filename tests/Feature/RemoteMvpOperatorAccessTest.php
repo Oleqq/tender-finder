@@ -3,7 +3,6 @@
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
-use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
     app()->detectEnvironment(static fn (): string => 'production');
@@ -24,11 +23,7 @@ it('opens a remote MVP workspace only through a valid expiring signed link', fun
     $url = URL::temporarySignedRoute('mvp.remote-operator.session', now()->addMinutes(10));
 
     $this->get($url)
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('MvpWorkspace')
-            ->has('currentTenders')
-            ->has('historyTenders'));
+        ->assertRedirect('/dashboard');
 
     $operator = User::query()->where('email', 'local-mvp-operator@tenderfinder.invalid')->firstOrFail();
     $this->assertAuthenticatedAs($operator);
@@ -46,7 +41,7 @@ it('revokes an existing technical MVP session when remote access is disabled', f
     config()->set('tender.remote_mvp_operator.enabled', true);
     $url = URL::temporarySignedRoute('mvp.remote-operator.session', now()->addMinutes(10));
 
-    $this->get($url)->assertOk();
+    $this->get($url)->assertRedirect('/dashboard');
     config()->set('tender.remote_mvp_operator.enabled', false);
 
     $this->get('/operations')->assertForbidden();

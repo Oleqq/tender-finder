@@ -115,7 +115,6 @@ TELEGRAM_SUPERADMIN_IDS=<личный Telegram user ID владельца,ID в�
 TELEGRAM_OWNER_ID=<числовой Telegram ID владельца>
 OPERATIONS_READINESS_TOKEN=<случайный secret>
 LEGAL_DOCUMENTS_PUBLISHED=false
-RSS_LIVE_POLLING_ENABLED=false
 ```
 
 `TELEGRAM_SUPERADMIN_IDS` — перечень личных Telegram **user ID** через
@@ -140,8 +139,7 @@ legal-документов нельзя включать `LEGAL_DOCUMENTS_PUBLIS
 4. Просмотреть логи всех трёх сервисов. Worker должен оставаться в
    `queue:work`, scheduler — в `schedule:work`; у них не должно быть restarts.
 5. На тестовом Telegram-аккаунте проверить подписанную Mini App session,
-   consent, trial и ручной поиск ЕИС. `RSS_LIVE_POLLING_ENABLED` оставлять
-   `false` до отдельного решения владельца.
+   consent, trial, мониторинг RosTender и доставку уведомления.
 6. Только затем настроить Telegram Mini App URL и webhook на Railway HTTPS
    domain с заданным webhook secret.
 

@@ -48,7 +48,7 @@ it('queues one real daily digest with the user matching tender cards', function 
     $tender = Tender::query()->create([
         'source' => 'fixture',
         'external_id' => 'digest-tender',
-        'canonical_url' => 'https://zakupki.gov.ru/epz/order/notice/digest-tender',
+        'canonical_url' => 'https://source.example.test/tenders/digest-tender',
         'canonical_url_hash' => hash('sha256', 'digest-tender'),
         'title' => 'Разработка корпоративного сайта',
     ]);

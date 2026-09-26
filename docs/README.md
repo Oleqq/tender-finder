@@ -9,9 +9,9 @@
 | [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
 | [INTEGRATION-STATUS](INTEGRATION-STATUS.md) | Состав последней интеграции веток, границы локального релиза и путь к закрытой beta. |
 | [NEW-DEVELOPER](NEW-DEVELOPER.md) | Быстрое введение нового разработчика: границы, код и команды. |
-| [LOCAL-RUNTIME](LOCAL-RUNTIME.md) | Запуск Docker и проверка ручного поиска ЕИС. |
+| [LOCAL-RUNTIME](LOCAL-RUNTIME.md) | Запуск Docker и проверка мониторинга RosTender. |
 | [LOCAL-TELEGRAM-BOT](LOCAL-TELEGRAM-BOT.md) | Локальная проверка Laravel Telegram webhook, очереди и Mini App. |
-| [RSS-MVP-SOURCE](RSS-MVP-SOURCE.md) | Реальный контракт RSS ЕИС, лимиты и безопасность. |
+| [RSS-MVP-SOURCE](RSS-MVP-SOURCE.md) | Архив выведенной из эксплуатации интеграции ЕИС. |
 | [PARTICIPATION-AND-CALENDAR](PARTICIPATION-AND-CALENDAR.md) | Участие, чек-листы, календарь, экспорт и проверка. |
 | [TEAM-WORKSPACES](TEAM-WORKSPACES.md) | Команды, роли, ответственные, шаблоны и напоминания по задачам. |
 | [DATABASE](DATABASE.md) | Схема данных и правила хранения. |

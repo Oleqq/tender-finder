@@ -89,7 +89,7 @@ it('does not queue or deliver tender notifications after access expires', functi
     $tender = Tender::query()->create([
         'source' => 'fixture',
         'external_id' => 'expired-access-tender',
-        'canonical_url' => 'https://zakupki.gov.ru/epz/order/notice/expired-access',
+        'canonical_url' => 'https://source.example.test/tenders/expired-access',
         'canonical_url_hash' => hash('sha256', 'expired-access-tender'),
         'title' => 'Поддержка сайта',
     ]);

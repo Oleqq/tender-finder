@@ -1,56 +1,20 @@
 <?php
 
 use App\Enums\SubscriptionStatus;
-use App\Jobs\MatchTender;
 use App\Models\Entitlement;
 use App\Models\SearchQuery;
-use App\Models\SourceFeed;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Models\User;
+use App\Services\PlanCatalog;
 use App\Services\TenderMatchingService;
-use App\Services\TenderSourceImportService;
-use App\Tenders\EisRssSource;
-use App\Tenders\RssSourceException;
+use App\Tenders\RostenderSearchTemplate;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function (): void {
     $this->withoutMiddleware(ValidateCsrfToken::class);
-});
-
-it('imports synthetic RSS safely and matches the initial feed without notifying about old cards', function () {
-    Queue::fake();
-    $feed = SourceFeed::query()->create([
-        'canonical_url' => 'https://zakupki.gov.ru/epz/order/extendedsearch/rss.html?searchString=site',
-        'url_hash' => hash('sha256', 'fixture-feed'),
-        'status' => 'active',
-        'poll_interval_seconds' => 600,
-    ]);
-    $source = app(EisRssSource::class);
-    $importer = app(TenderSourceImportService::class);
-
-    $first = $importer->import($feed, $source->parse(file_get_contents(base_path('tests/Fixtures/eis-rss-initial.xml'))), 'eis_rss');
-    expect($first->items_created)->toBe(1)
-        ->and(Tender::query()->count())->toBe(1);
-    Queue::assertPushed(MatchTender::class, fn (MatchTender $job): bool => $job->queueNotifications === false);
-
-    $second = $importer->import($feed->fresh(), $source->parse(file_get_contents(base_path('tests/Fixtures/eis-rss-next.xml'))), 'eis_rss');
-    expect($second->items_created)->toBe(1)
-        ->and(Tender::query()->count())->toBe(2);
-    Queue::assertPushed(MatchTender::class, fn (MatchTender $job): bool => $job->queueNotifications === true);
-});
-
-it('rejects HTML and skips untrusted RSS item links before storing anything', function () {
-    $source = app(EisRssSource::class);
-
-    expect(fn () => $source->parse('<html><body>not RSS</body></html>'))
-        ->toThrow(RssSourceException::class);
-
-    $result = $source->parse('<rss><channel><item><title>x</title><link>https://evil.example/epz/order/x</link></item></channel></rss>');
-
-    expect($result->items)->toBe([]);
 });
 
 it('matches deterministic filters with explainable reasons and minus words', function () {
@@ -68,7 +32,7 @@ it('matches deterministic filters with explainable reasons and minus words', fun
     $tender = Tender::query()->create([
         'source' => 'fixture',
         'external_id' => 'fixture-1',
-        'canonical_url' => 'https://zakupki.gov.ru/epz/order/notice/test',
+        'canonical_url' => 'https://source.example.test/tenders/fixture-1',
         'canonical_url_hash' => hash('sha256', 'fixture-1'),
         'title' => 'Техническая поддержка сайта',
         'region' => 'Москва',
@@ -118,68 +82,47 @@ it('uses the saved any-word and exact-phrase matching modes', function () {
 });
 
 it('enforces the server-side three active query limit', function () {
+    config()->set([
+        'tender.rostender.enabled' => true,
+        'tender.rostender.public_distribution_approved' => true,
+        'tender.rostender.api_key' => 'test',
+        'tender.rostender.basic_active_monitor_limit' => 10,
+    ]);
+    Cache::put('rostender:search-templates:v1', [new RostenderSearchTemplate(42, 'Серверы')], 60);
     $user = User::factory()->create(['telegram_id' => '9002']);
+    $plan = app(PlanCatalog::class)->basic();
     Entitlement::query()->create([
         'user_id' => $user->id,
         'code' => 'active_queries',
         'status' => SubscriptionStatus::Active,
         'value' => 3,
+        'plan_id' => $plan->id,
         'starts_at' => now()->subMinute(),
         'ends_at' => now()->addDay(),
     ]);
 
     foreach (range(1, 3) as $number) {
-        $this->actingAs($user)->postJson('/queries', ['keywords' => ["слово {$number}"]])->assertCreated();
+        $this->actingAs($user)->postJson('/queries', [
+            'keywords' => ["слово {$number}"],
+            'filters' => ['source' => ['rostender_template_id' => 42]],
+        ])->assertCreated();
     }
 
-    $this->actingAs($user)->postJson('/queries', ['keywords' => ['четвёртый']])
+    $this->actingAs($user)->postJson('/queries', [
+        'keywords' => ['четвёртый'],
+        'filters' => ['source' => ['rostender_template_id' => 42]],
+    ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors('limit');
 });
 
-it('runs the first EIS search for a regular user and activates background monitoring', function () {
-    $fixture = file_get_contents(base_path('tests/Fixtures/eis-rss-initial.xml'));
-    expect($fixture)->not->toBeFalse();
-
-    Http::fake([
-        'https://zakupki.gov.ru/epz/order/extendedsearch/rss.html*' => Http::response(
-            $fixture,
-            200,
-            ['Content-Type' => 'application/rss+xml'],
-        ),
-    ]);
-
-    $user = User::factory()->create(['telegram_id' => '9005']);
-    Entitlement::query()->create([
-        'user_id' => $user->id,
-        'code' => 'active_queries',
-        'status' => SubscriptionStatus::Active,
-        'value' => 3,
-        'starts_at' => now()->subMinute(),
-        'ends_at' => now()->addDay(),
-    ]);
-
-    $queryId = $this->actingAs($user)
-        ->postJson('/queries', ['keywords' => ['поддержка', 'сайта']])
-        ->assertCreated()
-        ->json('query.id');
-
-    $this->actingAs($user)
-        ->postJson("/queries/{$queryId}/run")
-        ->assertOk()
-        ->assertJsonPath('preview.items_matched', 1)
-        ->assertJsonCount(1, 'tenders');
-
-    expect(TenderQueryMatch::query()->where('search_query_id', $queryId)->count())->toBe(1)
-        ->and(SourceFeed::query()->where('status', 'active')->count())->toBe(1);
-
-    $this->actingAs($user)
-        ->postJson("/queries/{$queryId}/run")
-        ->assertOk()
-        ->assertJsonPath('preview.items_matched', 1);
-});
-
 it('lets an owner update or delete a saved query without exposing it to another user', function () {
+    config()->set([
+        'tender.rostender.enabled' => true,
+        'tender.rostender.public_distribution_approved' => true,
+        'tender.rostender.api_key' => 'test',
+    ]);
+    Cache::put('rostender:search-templates:v1', [new RostenderSearchTemplate(42, 'Серверы')], 60);
     $owner = User::factory()->create(['telegram_id' => '9003']);
     $query = SearchQuery::query()->create([
         'user_id' => $owner->id,
@@ -198,6 +141,7 @@ it('lets an owner update or delete a saved query without exposing it to another 
             'budget_max' => 300000,
             'deadline_from' => '2026-09-01',
             'deadline_to' => '2026-09-30',
+            'filters' => ['source' => ['rostender_template_id' => 42]],
         ])
         ->assertOk()
         ->assertJsonPath('query.name', 'Поддержка сайтов')

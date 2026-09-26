@@ -321,9 +321,7 @@ class LocalMvpTenderWorkspaceService
             'application_security' => $this->nullableMetadataText($metadata['application_security'] ?? null),
             'contract_security' => $this->nullableMetadataText($metadata['contract_security'] ?? null),
             'enriched_at' => $this->nullableMetadataText($metadata['enriched_at'] ?? null),
-            'can_enrich' => $tender->source === 'eis_rss'
-                && is_string($tender->reg_number)
-                && preg_match('/^\d{19,20}$/', $tender->reg_number) === 1,
+            'can_enrich' => false,
             'source_label' => match ($tender->source) {
                 'eis_rss' => 'ЕИС · государственные закупки · RSS-поиск',
                 default => 'TenderGuru public preview · ручной запрос',

@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\QueryMatchMode;
 use App\Enums\QueryStatus;
 use App\Models\SearchQuery;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
-use App\Tenders\EisRssMatchMode;
 
 class TenderMatchingService
 {
@@ -29,9 +29,9 @@ class TenderMatchingService
         ));
         $missingKeywords = array_values(array_diff($keywords, $matchedKeywords));
         $matchesKeywords = match ($mode) {
-            EisRssMatchMode::All => $missingKeywords === [],
-            EisRssMatchMode::Any => $matchedKeywords !== [],
-            EisRssMatchMode::Exact => str_contains(
+            QueryMatchMode::All => $missingKeywords === [],
+            QueryMatchMode::Any => $matchedKeywords !== [],
+            QueryMatchMode::Exact => str_contains(
                 $haystack,
                 $this->lower(implode(' ', $keywords)),
             ),
@@ -49,7 +49,7 @@ class TenderMatchingService
         }
 
         $reasons = [
-            'keywords' => $mode === EisRssMatchMode::Any ? $matchedKeywords : array_values($keywords),
+            'keywords' => $mode === QueryMatchMode::Any ? $matchedKeywords : array_values($keywords),
             'match_mode' => $mode->value,
         ];
 
@@ -142,7 +142,7 @@ class TenderMatchingService
         return mb_strtolower($value ?? '');
     }
 
-    private function matchMode(SearchQuery $query): EisRssMatchMode
+    private function matchMode(SearchQuery $query): QueryMatchMode
     {
         $filters = is_array($query->filters) ? $query->filters : [];
         $relevance = is_array($filters['relevance'] ?? null) ? $filters['relevance'] : [];
@@ -150,6 +150,6 @@ class TenderMatchingService
             ? $relevance['match_mode']
             : '';
 
-        return EisRssMatchMode::tryFrom($value) ?? EisRssMatchMode::All;
+        return QueryMatchMode::tryFrom($value) ?? QueryMatchMode::All;
     }
 }

@@ -75,18 +75,6 @@ return [
         'active_query_limit' => (int) env('LOCAL_MVP_FULL_ACCESS_QUERY_LIMIT', 20),
     ],
 
-    'rss' => [
-        'live_polling_enabled' => (bool) env('RSS_LIVE_POLLING_ENABLED', false),
-        // A person-triggered EIS search can inspect a bounded sequence of RSS
-        // result pages. It is deliberately separate from live polling.
-        'manual_search_max_pages' => (int) env('RSS_MANUAL_SEARCH_MAX_PAGES', 10),
-        'max_active_feeds' => (int) env('RSS_MAX_ACTIVE_FEEDS', 100),
-        'poll_interval_seconds' => (int) env('RSS_POLL_INTERVAL_SECONDS', 600),
-        'global_min_interval_milliseconds' => (int) env('RSS_GLOBAL_MIN_INTERVAL_MILLISECONDS', 1500),
-        'max_response_bytes' => (int) env('RSS_MAX_RESPONSE_BYTES', 5 * 1024 * 1024),
-        'request_timeout_seconds' => (int) env('RSS_REQUEST_TIMEOUT_SECONDS', 30),
-    ],
-
     'rostender' => [
         // The supplier's API licence must explicitly allow distribution to
         // Tender Finder users. Keep both switches false until that written
@@ -109,11 +97,4 @@ return [
         'pro_active_monitor_limit' => (int) env('ROSTENDER_PRO_ACTIVE_MONITOR_LIMIT', 0),
     ],
 
-    'eis_enrichment' => [
-        // Enrichment is always triggered by an explicit operator action and
-        // reads only the public print form and document list for one notice.
-        'request_timeout_seconds' => (int) env('EIS_ENRICHMENT_TIMEOUT_SECONDS', 30),
-        'max_response_bytes' => (int) env('EIS_ENRICHMENT_MAX_RESPONSE_BYTES', 2 * 1024 * 1024),
-        'max_attachments' => (int) env('EIS_ENRICHMENT_MAX_ATTACHMENTS', 30),
-    ],
 ];

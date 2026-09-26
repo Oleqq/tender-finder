@@ -258,13 +258,10 @@ export default function Profile() {
                         </summary>
                         <GlassCard tone="quiet">
                             <p>
-                                Поиск ЕИС и агрегированная аналитика продукта без
-                                персональных данных.
+                                Агрегированная аналитика продукта без персональных
+                                данных.
                             </p>
                             <div>
-                                <Link href="/mvp/workspace">
-                                    Поиск ЕИС <Icon name="chevron-right" size={16} />
-                                </Link>
                                 <Link href="/operations">
                                     Открыть аналитику{' '}
                                     <Icon name="chevron-right" size={16} />

@@ -118,9 +118,8 @@ TELEGRAM_STARS_PRO_PRICE_XTR=0
 5. Configure the bot's menu button and webhook only after HTTPS is healthy.
    The webhook endpoint is `https://YOUR_DOMAIN/api/telegram/webhook`.
 6. Test a separate Telegram account: Mini App identity, consent, trial,
-   monitoring, first RSS search, a repeat check, a new-card notification and
-   the daily digest. The EIS feed part must wait until outbound VPS access to
-   `zakupki.gov.ru:443` is restored.
+   a RosTender monitoring, a repeat check, a new-card notification and the
+   daily digest.
 
 ## YooKassa boundary
 

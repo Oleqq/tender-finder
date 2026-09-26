@@ -82,10 +82,6 @@ export default function Welcome() {
                             </Link>
                             {isSuperAdmin && !needsFirstStart ? (
                                 <div className="welcome-admin-links">
-                                    <Link href="/mvp/workspace">
-                                        Поиск ЕИС{' '}
-                                        <Icon name="chevron-right" size={17} />
-                                    </Link>
                                     <Link href="/operations">
                                         Аналитика{' '}
                                         <Icon name="chevron-right" size={17} />

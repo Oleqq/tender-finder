@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AccessState;
 use App\Enums\QueryStatus;
 use App\Models\SearchQuery;
+use App\Models\SourceFeedSearchQuery;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +14,6 @@ class SearchQueryService
     public function __construct(
         private readonly AccessService $access,
         private readonly RostenderTemplateFeedService $rostenderFeeds,
-        private readonly EisSourceFeedLinkService $eisFeeds,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -47,14 +47,8 @@ class SearchQueryService
                 $attributes['filters'] = array_replace($query->filters ?? [], $attributes['filters']);
             }
             $query->fill($attributes);
-            $eisSourceChanged = $query->isDirty([
-                'keywords', 'minus_keywords', 'region', 'budget_min', 'budget_max',
-                'deadline_from', 'deadline_to', 'filters',
-            ]);
             $query->save();
-            if ($eisSourceChanged) {
-                $this->eisFeeds->detach($query);
-            }
+            SourceFeedSearchQuery::query()->where('search_query_id', $query->id)->delete();
             $this->rostenderFeeds->synchronize($query, $this->rostenderTemplateId($query));
 
             return $query->refresh();
@@ -81,7 +75,7 @@ class SearchQueryService
                 'frozen_at' => null,
                 'monitoring_started_at' => now(),
             ])->save();
-            $this->rostenderFeeds->refreshFor($query);
+            $this->rostenderFeeds->synchronize($query, $this->rostenderTemplateId($query));
 
             return $query->refresh();
         });
@@ -98,7 +92,7 @@ class SearchQueryService
     public function delete(SearchQuery $query): void
     {
         $query->forceFill(['status' => QueryStatus::Deleted])->save();
-        $this->eisFeeds->detach($query);
+        SourceFeedSearchQuery::query()->where('search_query_id', $query->id)->delete();
         $this->rostenderFeeds->detach($query);
     }
 

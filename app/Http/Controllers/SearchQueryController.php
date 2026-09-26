@@ -11,12 +11,9 @@ use App\Services\QueryLimitReachedException;
 use App\Services\RostenderTemplateCatalog;
 use App\Services\SearchQueryPresenter;
 use App\Services\SearchQueryService;
-use App\Tenders\EisRegionCatalog;
-use App\Tenders\EisRssUrlValidator;
 use App\Tenders\RostenderAccessDisabledException;
 use App\Tenders\RostenderApiException;
 use App\Tenders\RostenderQuotaExceededException;
-use App\Tenders\RssSourceException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -27,9 +24,7 @@ use RuntimeException;
 class SearchQueryController extends Controller
 {
     public function __construct(
-        private readonly EisRssUrlValidator $eisRssUrls,
         private readonly SearchQueryPresenter $presenter,
-        private readonly EisRegionCatalog $regions,
         private readonly RostenderTemplateCatalog $rostenderTemplates,
     ) {}
 
@@ -64,7 +59,7 @@ class SearchQueryController extends Controller
             return response()->json($preview->preview($attributes));
         } catch (RostenderQuotaExceededException) {
             return response()->json(['message' => 'Лимит проверок источника исчерпан. Попробуйте позже.'], 429);
-        } catch (RostenderApiException|RostenderAccessDisabledException|RssSourceException) {
+        } catch (RostenderApiException|RostenderAccessDisabledException) {
             return response()->json(['message' => 'Источник сейчас недоступен. Это не означает, что подходящих тендеров нет. Попробуйте позже или сохраните мониторинг.'], 503);
         }
     }
@@ -161,6 +156,7 @@ class SearchQueryController extends Controller
     /** @return array<string, mixed> */
     private function validatedAttributes(Request $request): array
     {
+        $isPartialUpdate = $request->isMethod('patch');
         $attributes = $request->validate([
             'name' => ['nullable', 'string', 'max:120'],
             'keywords' => ['required', 'array', 'min:1', 'max:20'],
@@ -172,40 +168,13 @@ class SearchQueryController extends Controller
             'budget_max' => ['nullable', 'numeric', 'gte:budget_min'],
             'deadline_from' => ['nullable', 'date_format:Y-m-d'],
             'deadline_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:deadline_from'],
-            'filters' => ['nullable', 'array:source,relevance,excluded_customers'],
+            'filters' => [$isPartialUpdate ? 'sometimes' : 'required', 'array:source,relevance,excluded_customers'],
             'filters.excluded_customers' => ['sometimes', 'array', 'max:50'],
             'filters.excluded_customers.*' => ['required', 'string', 'max:200', 'distinct'],
             'filters.relevance' => ['nullable', 'array:match_mode'],
             'filters.relevance.match_mode' => ['nullable', 'string', 'in:all,any,exact'],
-            'filters.source' => ['nullable', 'array:law_44,law_223,stage_application,stage_commission,stage_completed,stage_cancelled,joint_purchase,placed_by_separate_subdivision,union_state_budget,created_by_customer_representative,smp_sono,budget_from,budget_to,published_from,published_to,regions,okpd2,okpd2_with_nested,pages,rss_url,rostender_template_id'],
-            'filters.source.law_44' => ['nullable', 'boolean'],
-            'filters.source.law_223' => ['nullable', 'boolean'],
-            'filters.source.stage_application' => ['nullable', 'boolean'],
-            'filters.source.stage_commission' => ['nullable', 'boolean'],
-            'filters.source.stage_completed' => ['nullable', 'boolean'],
-            'filters.source.stage_cancelled' => ['nullable', 'boolean'],
-            'filters.source.joint_purchase' => ['nullable', 'boolean'],
-            'filters.source.placed_by_separate_subdivision' => ['nullable', 'boolean'],
-            'filters.source.union_state_budget' => ['nullable', 'boolean'],
-            'filters.source.created_by_customer_representative' => ['nullable', 'boolean'],
-            'filters.source.smp_sono' => ['nullable', 'boolean'],
-            'filters.source.budget_from' => ['nullable', 'numeric', 'min:0'],
-            'filters.source.budget_to' => ['nullable', 'numeric', 'min:0', 'gte:filters.source.budget_from'],
-            'filters.source.published_from' => ['nullable', 'date_format:Y-m-d'],
-            'filters.source.published_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:filters.source.published_from'],
-            'filters.source.regions' => ['nullable', 'array', 'max:5'],
-            'filters.source.regions.*' => ['required', 'array:code,name'],
-            'filters.source.regions.*.code' => ['required', 'string', 'regex:/^\d{11}$/', 'distinct'],
-            'filters.source.regions.*.name' => ['required', 'string', 'max:120'],
-            'filters.source.okpd2' => ['nullable', 'array', 'max:5'],
-            'filters.source.okpd2.*' => ['required', 'array:id,code,name'],
-            'filters.source.okpd2.*.id' => ['required', 'string', 'regex:/^\d{1,12}$/', 'distinct'],
-            'filters.source.okpd2.*.code' => ['required', 'string', 'regex:/^(?:[A-U]|\d{2}(?:\.\d{1,3}){0,3})$/', 'distinct'],
-            'filters.source.okpd2.*.name' => ['required', 'string', 'max:500'],
-            'filters.source.okpd2_with_nested' => ['nullable', 'boolean'],
-            'filters.source.pages' => ['nullable', 'integer', 'min:1', 'max:'.max(1, (int) config('tender.rss.manual_search_max_pages', 3))],
-            'filters.source.rss_url' => ['nullable', 'url', 'max:2000'],
-            'filters.source.rostender_template_id' => ['nullable', 'integer', 'min:1'],
+            'filters.source' => [$isPartialUpdate ? 'sometimes' : 'required', 'array:rostender_template_id'],
+            'filters.source.rostender_template_id' => [$isPartialUpdate ? 'sometimes' : 'required', 'integer', 'min:1'],
         ]);
 
         $keywords = array_values(array_filter(array_map('trim', $attributes['keywords'])));
@@ -219,68 +188,38 @@ class SearchQueryController extends Controller
             ? array_values(array_filter(array_map('trim', $attributes['minus_keywords'])))
             : null;
         $attributes['name'] = ($attributes['name'] ?? null) ?: mb_substr(implode(', ', $keywords), 0, 120);
-        $this->normalizeEisSourceFilters($attributes);
+        if (! $isPartialUpdate || isset($attributes['filters']['source'])) {
+            $this->normalizeSourceFilters($attributes);
+        }
         $this->normalizeRelevanceFilters($attributes);
 
         return $attributes;
     }
 
     /** @param array<string, mixed> $attributes */
-    private function normalizeEisSourceFilters(array &$attributes): void
+    private function normalizeSourceFilters(array &$attributes): void
     {
         $source = $attributes['filters']['source'] ?? null;
 
         if (! is_array($source)) {
-            return;
+            throw ValidationException::withMessages([
+                'filters.source.rostender_template_id' => 'Выберите шаблон RosTender.',
+            ]);
         }
 
-        $this->validateSourceStages($source);
-        $this->validateSourceRegions($source['regions'] ?? []);
-
-        $rssUrl = $this->nullableString($source['rss_url'] ?? null);
         $rostenderTemplateId = isset($source['rostender_template_id'])
             ? (int) $source['rostender_template_id']
             : null;
 
-        if ($rostenderTemplateId !== null && ! $this->rostenderTemplates->contains($rostenderTemplateId)) {
+        if ($rostenderTemplateId === null || ! $this->rostenderTemplates->contains($rostenderTemplateId)) {
             throw ValidationException::withMessages([
                 'filters.source.rostender_template_id' => 'Выберите доступный шаблон RosTender.',
             ]);
         }
 
-        if ($rssUrl !== null) {
-            try {
-                $rssUrl = $this->eisRssUrls->canonicalFeedUrl($rssUrl);
-            } catch (RssSourceException) {
-                throw ValidationException::withMessages([
-                    'filters.source.rss_url' => 'Сохранить можно только RSS-ссылку расширенного поиска ЕИС.',
-                ]);
-            }
-        }
-
         $attributes['filters'] = [
             ...$attributes['filters'],
             'source' => [
-                'law_44' => (bool) ($source['law_44'] ?? false),
-                'law_223' => (bool) ($source['law_223'] ?? false),
-                'stage_application' => (bool) ($source['stage_application'] ?? false),
-                'stage_commission' => (bool) ($source['stage_commission'] ?? false),
-                'stage_completed' => (bool) ($source['stage_completed'] ?? false),
-                'stage_cancelled' => (bool) ($source['stage_cancelled'] ?? false),
-                'joint_purchase' => (bool) ($source['joint_purchase'] ?? false),
-                'placed_by_separate_subdivision' => (bool) ($source['placed_by_separate_subdivision'] ?? false),
-                'union_state_budget' => (bool) ($source['union_state_budget'] ?? false),
-                'created_by_customer_representative' => (bool) ($source['created_by_customer_representative'] ?? false),
-                'smp_sono' => (bool) ($source['smp_sono'] ?? false),
-                'budget_from' => $this->nullableString($source['budget_from'] ?? null),
-                'budget_to' => $this->nullableString($source['budget_to'] ?? null),
-                'published_from' => $this->nullableString($source['published_from'] ?? null),
-                'published_to' => $this->nullableString($source['published_to'] ?? null),
-                'regions' => is_array($source['regions'] ?? null) ? array_values($source['regions']) : [],
-                'okpd2' => is_array($source['okpd2'] ?? null) ? array_values($source['okpd2']) : [],
-                'okpd2_with_nested' => (bool) ($source['okpd2_with_nested'] ?? true),
-                'pages' => (int) ($source['pages'] ?? 3),
-                'rss_url' => $rssUrl,
                 'rostender_template_id' => $rostenderTemplateId,
             ],
         ];
@@ -312,54 +251,6 @@ class SearchQueryController extends Controller
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
-    }
-
-    /** @param array<string, mixed> $source */
-    private function validateSourceStages(array $source): void
-    {
-        if ($this->nullableString($source['rss_url'] ?? null) !== null) {
-            return;
-        }
-
-        $stageKeys = [
-            'stage_application',
-            'stage_commission',
-            'stage_completed',
-            'stage_cancelled',
-        ];
-        $providedStages = array_filter(
-            $stageKeys,
-            fn (string $key): bool => array_key_exists($key, $source),
-        );
-        $selectedStages = array_filter(
-            $stageKeys,
-            fn (string $key): bool => (bool) ($source[$key] ?? false),
-        );
-
-        if ($providedStages !== [] && $selectedStages === []) {
-            throw ValidationException::withMessages([
-                'filters.source.stage_application' => 'Выберите хотя бы один этап закупки.',
-            ]);
-        }
-    }
-
-    private function validateSourceRegions(mixed $items): void
-    {
-        if (! is_array($items)) {
-            return;
-        }
-
-        foreach ($items as $index => $item) {
-            $code = is_array($item) && is_string($item['code'] ?? null)
-                ? $item['code']
-                : '';
-
-            if (! $this->regions->contains($code)) {
-                throw ValidationException::withMessages([
-                    "filters.source.regions.{$index}.code" => 'Выберите регион из справочника ЕИС.',
-                ]);
-            }
-        }
     }
 
     private function assertOwnership(Request $request, SearchQuery $query): void

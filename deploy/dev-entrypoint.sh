@@ -2,38 +2,6 @@
 set -eu
 
 if [ "$(id -u)" = "0" ]; then
-    local_ca_added=0
-
-    install_local_ca() {
-        local_ca_file="$1"
-        local_ca_name="$2"
-
-        if [ ! -f "$local_ca_file" ]; then
-            return
-        fi
-
-        if ! openssl x509 -in "$local_ca_file" -noout >/dev/null 2>&1; then
-            echo "Local EIS CA file must contain a PEM X.509 certificate: $local_ca_name." >&2
-            exit 1
-        fi
-
-        cp "$local_ca_file" "/usr/local/share/ca-certificates/$local_ca_name.crt"
-        local_ca_added=1
-    }
-
-    if [ -n "${EIS_TRUSTED_CA_FILE:-}" ]; then
-        install_local_ca "$EIS_TRUSTED_CA_FILE" "tender-finder-eis-custom-ca"
-    else
-        install_local_ca "/var/www/html/deploy/local-ca/russian-trusted-root-ca.crt" "tender-finder-eis-root-ca"
-        install_local_ca "/var/www/html/deploy/local-ca/russian_trusted_root_ca_pem.crt" "tender-finder-eis-root-ca"
-        install_local_ca "/var/www/html/deploy/local-ca/russian-trusted-sub-ca.crt" "tender-finder-eis-sub-ca"
-        install_local_ca "/var/www/html/deploy/local-ca/russian_trusted_sub_ca_pem.crt" "tender-finder-eis-sub-ca"
-    fi
-
-    if [ "$local_ca_added" = "1" ]; then
-        update-ca-certificates >/dev/null
-    fi
-
     owner_marker="vendor/.tender-finder-owned-by-www-data"
 
     if [ ! -f "$owner_marker" ]; then

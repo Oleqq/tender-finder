@@ -3,11 +3,8 @@
 namespace App\Services;
 
 use App\Models\SearchQuery;
-use App\Models\SourceFeed;
 use App\Models\Tender;
-use App\Tenders\EisRssSearchCriteria;
-use App\Tenders\EisRssSearchUrlFactory;
-use App\Tenders\EisRssSource;
+use App\Tenders\RostenderAccessDisabledException;
 use App\Tenders\TenderSourceItem;
 use Illuminate\Support\Facades\Cache;
 
@@ -20,20 +17,18 @@ final class MonitoringPreviewService
     {
         $query = new SearchQuery($attributes);
         $templateId = $attributes['filters']['source']['rostender_template_id'] ?? null;
-        if ($templateId !== null) {
-            app(RostenderAccessGate::class)->assertDataProcessingAllowed();
-            $items = Cache::remember('monitoring-preview:rostender:'.$templateId, now()->addMinutes(30), function () use ($templateId): array {
-                $api = app(RostenderApiClient::class);
-                $page = $api->template($templateId);
-
-                return array_map(fn ($item) => $api->tender($item->id), array_slice($page->items, 0, 5));
-            });
-            $scope = 'Первые 5 карточек шаблона RosTender; результаты обновляются раз в 30 минут.';
-        } else {
-            $url = app(EisRssSearchUrlFactory::class)->forPhrase(implode(' ', $query->keywords), new EisRssSearchCriteria(stageApplication: true));
-            $items = app(EisRssSource::class)->fetch(new SourceFeed(['canonical_url' => $url]))->items;
-            $scope = 'Одна RSS-страница ЕИС по ключевым словам, на этапе подачи заявок.';
+        if (! is_int($templateId) || $templateId < 1) {
+            throw new RostenderAccessDisabledException;
         }
+
+        app(RostenderAccessGate::class)->assertDataProcessingAllowed();
+        $items = Cache::remember('monitoring-preview:rostender:'.$templateId, now()->addMinutes(30), function () use ($templateId): array {
+            $api = app(RostenderApiClient::class);
+            $page = $api->template($templateId);
+
+            return array_map(fn ($item) => $api->tender($item->id), array_slice($page->items, 0, 5));
+        });
+        $scope = 'Первые 5 карточек шаблона RosTender; результаты обновляются раз в 30 минут.';
         $matched = [];
         $excluded = [];
         $unknown = 0;

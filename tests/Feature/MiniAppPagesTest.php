@@ -59,7 +59,7 @@ it('keeps saved monitors behind an authenticated Inertia route', function () {
         'user_id' => $user->id,
         'search_query_id' => $query->id,
         'query' => 'разработка сайт',
-        'source' => 'eis_rss',
+        'source' => 'tenderguru_preview',
         'tender_ids' => [],
         'items_seen' => 14,
         'items_matched' => 3,

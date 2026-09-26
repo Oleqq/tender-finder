@@ -49,7 +49,7 @@ function dashboardTender(string $externalId, string $title): Tender
     return Tender::query()->create([
         'source' => 'fixture',
         'external_id' => $externalId,
-        'canonical_url' => 'https://zakupki.gov.ru/'.$externalId,
+        'canonical_url' => 'https://source.example.test/tenders/'.$externalId,
         'canonical_url_hash' => hash('sha256', $externalId),
         'title' => $title,
     ]);

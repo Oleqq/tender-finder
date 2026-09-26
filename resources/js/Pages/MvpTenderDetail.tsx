@@ -141,8 +141,8 @@ export default function MvpTenderDetail() {
         <>
             <Head title={tender.title} />
             <AppShell
-                activeNav="/mvp/workspace"
-                backHref="/mvp/workspace"
+                activeNav="/tenders"
+                backHref="/tenders"
                 className="mvp-tender-detail"
                 eyebrow="ЕИС · карточка тендера"
                 role="super_admin"

@@ -6,7 +6,6 @@ use App\Enums\QueryStatus;
 use App\Models\RostenderFeedSearchQuery;
 use App\Models\SearchQuery;
 use App\Models\SourceFeed;
-use App\Models\SourceFeedSearchQuery;
 use App\Models\SourceRun;
 use Illuminate\Support\Collection;
 
@@ -25,9 +24,8 @@ final class MonitoringStatusService
             return $result;
         }
 
-        $eisLinks = SourceFeedSearchQuery::query()->whereIn('search_query_id', $queryIds)->get();
         $rostenderLinks = RostenderFeedSearchQuery::query()->whereIn('search_query_id', $queryIds)->get();
-        $links = $eisLinks->concat($rostenderLinks);
+        $links = $rostenderLinks;
         $feeds = SourceFeed::query()->whereIn('id', $links->pluck('source_feed_id')->unique())->get()->keyBy('id');
 
         foreach ($queries as $query) {
@@ -89,8 +87,6 @@ final class MonitoringStatusService
             return 'Не удалось безопасно подключиться к источнику. Следующая попытка запланирована.';
         }
 
-        return $source === 'rostender'
-            ? 'RosTender временно не ответил. Следующая попытка запланирована.'
-            : 'ЕИС временно не ответила. Это не означает, что совпадений нет.';
+        return 'RosTender временно не ответил. Следующая попытка запланирована.';
     }
 }

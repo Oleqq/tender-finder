@@ -3,17 +3,13 @@
 use App\Http\Controllers\ChecklistTemplateController;
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\EisCatalogController;
 use App\Http\Controllers\LegalDocumentController;
-use App\Http\Controllers\LocalMvpEisRssPreviewController;
 use App\Http\Controllers\LocalMvpOperatorSessionController;
 use App\Http\Controllers\LocalMvpSubscriberSessionController;
 use App\Http\Controllers\LocalMvpTenderAnnotationController;
 use App\Http\Controllers\LocalMvpTenderDetailController;
-use App\Http\Controllers\LocalMvpTenderEnrichmentController;
 use App\Http\Controllers\LocalMvpTenderGuruPreviewController;
 use App\Http\Controllers\LocalMvpTenderStateController;
-use App\Http\Controllers\MvpWorkspaceController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OperationsDashboardController;
 use App\Http\Controllers\ParticipationAnalyticsController;
@@ -116,9 +112,6 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile/notification-preferences', [NotificationPreferenceController::class, 'update'])
         ->name('profile.notification-preferences.update');
     Route::get('/plans', fn () => Inertia::render('Plans'))->name('plans');
-    Route::get('/mvp/workspace', [MvpWorkspaceController::class, 'show'])
-        ->middleware('super_admin')
-        ->name('mvp.workspace');
     Route::get('/operations', [OperationsDashboardController::class, 'show'])
         ->middleware('super_admin')
         ->name('operations.dashboard');
@@ -126,13 +119,13 @@ Route::middleware('auth')->group(function () {
         ->middleware('super_admin')
         ->name('operations.demo');
     Route::get('/queries', [SearchQueryController::class, 'index'])->name('queries.index');
-    Route::post('/queries/preview', [SearchQueryController::class, 'preview'])->middleware('throttle:local-mvp-rss-preview')->name('queries.preview');
+    Route::post('/queries/preview', [SearchQueryController::class, 'preview'])->middleware('throttle:monitoring-preview')->name('queries.preview');
     Route::post('/tenders/{tender}/feedback', [TenderFeedbackController::class, 'store'])->middleware('throttle:local-mvp-preview')->name('tenders.feedback');
     Route::get('/tenders/{tender}/changes', [TenderFeedbackController::class, 'changes'])->name('tenders.changes');
     Route::post('/queries', [SearchQueryController::class, 'store'])->name('queries.store');
     Route::patch('/queries/{query}', [SearchQueryController::class, 'update'])->name('queries.update');
     Route::post('/queries/{query}/run', SavedSearchRunController::class)
-        ->middleware('throttle:local-mvp-rss-preview')
+        ->middleware('throttle:monitoring-preview')
         ->name('queries.run');
     Route::get('/queries/{query}/runs', [SavedSearchRunHistoryController::class, 'index'])
         ->name('queries.runs.index');
@@ -148,20 +141,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/local/mvp/tenderguru-preview', [LocalMvpTenderGuruPreviewController::class, 'store'])
         ->middleware('throttle:local-mvp-preview')
         ->name('local.mvp.tenderguru-preview');
-    Route::post('/local/mvp/eis-rss-preview', [LocalMvpEisRssPreviewController::class, 'store'])
-        ->middleware('throttle:local-mvp-rss-preview')
-        ->name('local.mvp.eis-rss-preview');
-    Route::get('/local/mvp/eis/okpd2-options', [EisCatalogController::class, 'okpd2'])
-        ->middleware('throttle:local-mvp-rss-preview')
-        ->name('local.mvp.eis.okpd2-options');
     Route::post('/local/mvp/tenders/export', TenderExportController::class)
         ->middleware('throttle:local-mvp-preview')
         ->name('local.mvp.tenders.export');
     Route::patch('/local/mvp/tenders/{tender}/annotation', LocalMvpTenderAnnotationController::class)
         ->name('local.mvp.tenders.annotation');
-    Route::post('/local/mvp/tenders/{tender}/enrich', LocalMvpTenderEnrichmentController::class)
-        ->middleware('throttle:local-mvp-rss-preview')
-        ->name('local.mvp.tenders.enrich');
     Route::post('/local/mvp/tenders/{tender}/status', [LocalMvpTenderStateController::class, 'update'])
         ->name('local.mvp.tenders.status');
     Route::post('/local/mvp/tenders/status', [LocalMvpTenderStateController::class, 'bulkUpdate'])

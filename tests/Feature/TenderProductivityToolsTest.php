@@ -51,9 +51,9 @@ it('stores personal notes tags and next actions without exposing them to another
 it('assigns status tags and next action to accessible tenders in bulk', function () {
     [$operator, $first] = productivityTender($this, 'Первая массовая карточка');
     $second = Tender::query()->create([
-        'source' => 'eis_rss',
+        'source' => 'tenderguru_preview',
         'external_id' => 'productivity-bulk-second',
-        'canonical_url' => 'https://zakupki.gov.ru/epz/order/notice/ea20/view/common-info.html?regNumber=11234567890123456789',
+        'canonical_url' => 'https://source.example.test/tenders/second',
         'canonical_url_hash' => hash('sha256', 'productivity-bulk-second'),
         'title' => 'Вторая массовая карточка',
         'currency' => 'RUB',
@@ -61,7 +61,7 @@ it('assigns status tags and next action to accessible tenders in bulk', function
     LocalMvpSearchSnapshot::query()->create([
         'user_id' => $operator->id,
         'query' => 'массовое действие',
-        'source' => 'eis_rss',
+        'source' => 'tenderguru_preview',
         'tender_ids' => [$first->id, $second->id],
     ]);
 
@@ -136,9 +136,9 @@ it('exports accessible cards to safe CSV and a valid XLSX workbook', function ()
 it('exports only cards new in a selected saved-search run', function () {
     [$operator, $first] = productivityTender($this, 'Первая закупка');
     $second = Tender::query()->create([
-        'source' => 'eis_rss',
+        'source' => 'tenderguru_preview',
         'external_id' => 'productivity-second',
-        'canonical_url' => 'https://zakupki.gov.ru/epz/order/notice/ea20/view/common-info.html?regNumber=01234567890123456780',
+        'canonical_url' => 'https://source.example.test/tenders/new',
         'canonical_url_hash' => hash('sha256', 'productivity-second'),
         'title' => 'Новая закупка запуска',
         'currency' => 'RUB',
@@ -154,14 +154,14 @@ it('exports only cards new in a selected saved-search run', function () {
         'user_id' => $operator->id,
         'search_query_id' => $query->id,
         'query' => 'закупка',
-        'source' => 'eis_rss',
+        'source' => 'tenderguru_preview',
         'tender_ids' => [$first->id],
     ]);
     $run = LocalMvpSearchSnapshot::query()->create([
         'user_id' => $operator->id,
         'search_query_id' => $query->id,
         'query' => 'закупка',
-        'source' => 'eis_rss',
+        'source' => 'tenderguru_preview',
         'tender_ids' => [$first->id, $second->id],
     ]);
 
@@ -179,13 +179,13 @@ it('exports only cards new in a selected saved-search run', function () {
 /** @return array{User, Tender} */
 function productivityTender($test, string $title): array
 {
-    $test->get('/local/mvp-operator')->assertOk();
+    $test->get('/local/mvp-operator')->assertRedirect('/dashboard');
     $operator = User::query()->where('email', 'local-mvp-operator@tenderfinder.invalid')->firstOrFail();
     $tender = Tender::query()->create([
-        'source' => 'eis_rss',
+        'source' => 'tenderguru_preview',
         'external_id' => 'productivity-'.md5($title),
         'reg_number' => '01234567890123456789',
-        'canonical_url' => 'https://zakupki.gov.ru/epz/order/notice/ea20/view/common-info.html?regNumber=01234567890123456789',
+        'canonical_url' => 'https://source.example.test/tenders/productivity',
         'canonical_url_hash' => hash('sha256', 'productivity-'.$title),
         'title' => $title,
         'budget_amount' => '250000.00',
@@ -198,7 +198,7 @@ function productivityTender($test, string $title): array
     LocalMvpSearchSnapshot::query()->create([
         'user_id' => $operator->id,
         'query' => $title,
-        'source' => 'eis_rss',
+        'source' => 'tenderguru_preview',
         'tender_ids' => [$tender->id],
     ]);
 

@@ -86,7 +86,7 @@ class RostenderTemplateFeedService
 
     public function synchronize(SearchQuery $query, ?int $templateId): void
     {
-        if ($templateId === null) {
+        if ($templateId === null || $query->status !== QueryStatus::Active) {
             $this->detach($query);
 
             return;

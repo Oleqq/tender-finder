@@ -51,17 +51,13 @@ export default function Plans() {
                     >
                         <div>
                             <p>Дополнительные инструменты</p>
-                            <h2>Поиск и аналитика</h2>
+                            <h2>Аналитика</h2>
                             <span>
                                 Роль владельца расширяет возможности, но не заменяет
                                 пользовательский доступ.
                             </span>
                         </div>
                         <div>
-                            <Link href="/mvp/workspace">
-                                Открыть поиск ЕИС{' '}
-                                <Icon name="chevron-right" size={16} />
-                            </Link>
                             <Link href="/operations">
                                 Открыть аналитику{' '}
                                 <Icon name="chevron-right" size={16} />

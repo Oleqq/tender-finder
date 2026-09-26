@@ -40,7 +40,7 @@ type QueryDto = {
 };
 
 type SourceStatus = {
-    source: 'eis_rss' | 'rostender';
+    source: 'rostender';
     state: 'ok' | 'empty' | 'error' | 'queued' | 'paused' | 'pending';
     message: string;
     last_success_at: string | null;
@@ -758,7 +758,7 @@ function QueryRunSummaryCard({ query }: { query: QueryDto }) {
             </dl>
             {query.last_run.partially_loaded ? (
                 <p className="query-card__run-warning">
-                    ЕИС отдала не все запрошенные страницы.
+                    Архивный запуск получил не все запрошенные страницы.
                 </p>
             ) : null}
         </div>
@@ -869,7 +869,7 @@ function SourceStatusCards({ statuses }: { statuses: SourceStatus[] }) {
 }
 
 function sourceLabel(source: SourceStatus['source']): string {
-    return source === 'rostender' ? 'RosTender' : 'ЕИС';
+    return source === 'rostender' ? 'RosTender' : 'Источник';
 }
 
 function sourceStateLabel(state: SourceStatus['state']): string {
@@ -999,7 +999,7 @@ function QueryFields({
                         }
                         value={form.rostenderTemplateId ?? ''}
                     >
-                        <option value="">ЕИС · поиск по ключевым словам</option>
+                        <option value="">Выберите шаблон RosTender</option>
                         {rostenderTemplates.map((template) => (
                             <option key={template.id} value={String(template.id)}>
                                 RosTender · {template.name}
@@ -1013,7 +1013,12 @@ function QueryFields({
                         фильтры дополнительно отберут подходящие карточки в
                         TenderFinder.
                     </p>
-                ) : null}
+                ) : (
+                    <p className="query-create__hint">
+                        Доступных шаблонов RosTender сейчас нет. Создать новый
+                        мониторинг пока нельзя.
+                    </p>
+                )}
             </div>
             <div hidden={step !== undefined && step !== 0}>
                 <p>
@@ -1159,16 +1164,10 @@ function toQueryPayload(form: QueryFormValues): QueryPayload | null {
         return null;
     }
 
-    const source =
-        form.rostenderTemplateId === null
-            ? undefined
-            : {
-                  stage_application: true,
-                  rostender_template_id:
-                      form.rostenderTemplateId === ''
-                          ? null
-                          : Number(form.rostenderTemplateId),
-              };
+    const source = {
+        rostender_template_id:
+            form.rostenderTemplateId === '' ? null : Number(form.rostenderTemplateId),
+    };
 
     return {
         name: form.name.trim() || null,
@@ -1180,7 +1179,7 @@ function toQueryPayload(form: QueryFormValues): QueryPayload | null {
         deadline_from: form.deadlineFrom || null,
         deadline_to: form.deadlineTo || null,
         filters: {
-            ...(source ? { source } : {}),
+            source,
             excluded_customers: form.excludedCustomers
                 .split('\n')
                 .map((value) => value.trim())
@@ -1328,10 +1327,6 @@ function mergedFilters(
     payload: QueryPayload,
 ): Record<string, unknown> {
     const existing = query.filters ?? {};
-    const originalSource =
-        typeof existing.source === 'object' && existing.source !== null
-            ? existing.source
-            : {};
     const update = payload.filters ?? {};
     const changedSource =
         typeof update.source === 'object' && update.source !== null
@@ -1341,7 +1336,6 @@ function mergedFilters(
         ...existing,
         ...update,
         source: {
-            ...originalSource,
             rostender_template_id: changedSource.rostender_template_id ?? null,
         },
     };

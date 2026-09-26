@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\LocalMvpOperatorService;
 use App\Services\MvpOperatorWorkspaceResponseService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Response;
 
 class RemoteMvpOperatorSessionController extends Controller
 {
@@ -13,7 +13,7 @@ class RemoteMvpOperatorSessionController extends Controller
         Request $request,
         LocalMvpOperatorService $operator,
         MvpOperatorWorkspaceResponseService $response,
-    ): Response {
+    ): RedirectResponse {
         abort_unless($operator->isRemoteEnabled(), 404);
 
         return $response->open($request);

@@ -199,7 +199,7 @@ function tenderForFeed(string $externalId, string $title, array $attributes = []
     return Tender::query()->create([
         'source' => 'fixture',
         'external_id' => $externalId,
-        'canonical_url' => "https://zakupki.gov.ru/epz/order/notice/ea20/view/common-info.html?regNumber={$externalId}",
+        'canonical_url' => "https://source.example.test/tenders/{$externalId}",
         'canonical_url_hash' => hash('sha256', $externalId),
         'title' => $title,
         'description' => 'Синтетическая тестовая запись.',
