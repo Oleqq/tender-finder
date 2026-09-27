@@ -94,7 +94,7 @@ export function TenderFeedbackActions({
 
     return (
         <>
-            <div className="query-card__actions">
+            <div className="tender-feedback-actions">
                 <Button
                     size="sm"
                     variant="secondary"

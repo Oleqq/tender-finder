@@ -1575,22 +1575,40 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
     };
 
     return (
-        <GlassCard as="article" className="tender-card tender-feed-card">
-            <div className="tender-card__meta">
-                <Badge tone={statusTone(status)}>{statusLabel(status)}</Badge>
-                {match.source === 'rostender' ? (
-                    <Badge tone="accent">RosTender</Badge>
-                ) : match.source === 'sber_ast' ? (
-                    <Badge tone="accent">Сбер АСТ</Badge>
-                ) : match.source === 'workspace_ru' ? (
-                    <Badge tone="accent">Workspace.ru</Badge>
-                ) : null}
-                <span>
-                    <Icon name="spark" size={14} /> Подходит:{' '}
-                    {match.match_reasons.join(', ')}
+        <GlassCard
+            as="article"
+            className={`tender-feed-card tender-feed-card--${status}`}
+        >
+            <header className="tender-feed-card__header">
+                <div className="tender-feed-card__badges">
+                    <Badge tone={statusTone(status)}>{statusLabel(status)}</Badge>
+                    {match.source === 'rostender' ? (
+                        <Badge tone="accent">RosTender</Badge>
+                    ) : match.source === 'sber_ast' ? (
+                        <Badge tone="accent">Сбер АСТ</Badge>
+                    ) : match.source === 'workspace_ru' ? (
+                        <Badge tone="accent">Workspace.ru</Badge>
+                    ) : null}
+                </div>
+                <span className="tender-feed-card__match">
+                    <Icon name="spark" size={15} />
+                    Найдено по вашим условиям
                 </span>
-            </div>
-            <h3>{match.title}</h3>
+            </header>
+            <h3 className="tender-feed-card__title">
+                <Link href={'/local/mvp/tenders/' + match.tender_id}>
+                    {match.title}
+                </Link>
+            </h3>
+            {match.customer || match.reg_number || match.region ? (
+                <div className="tender-feed-card__context">
+                    {match.customer ? <p>{match.customer}</p> : null}
+                    <div>
+                        {match.reg_number ? <span>№ {match.reg_number}</span> : null}
+                        {match.region ? <span>{match.region}</span> : null}
+                    </div>
+                </div>
+            ) : null}
             {!editing && tags ? (
                 <div className="tender-feed-card__tags">
                     {splitTags(tags).map((tag) => (
@@ -1598,19 +1616,33 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                     ))}
                 </div>
             ) : null}
-            <div className="tender-card__footer">
-                <strong>{formatBudget(match.budget_amount, match.currency)}</strong>
-                <span>{formatDeadline(match.deadline_at)}</span>
+            <div className="tender-feed-card__facts">
+                <div>
+                    <span>Бюджет</span>
+                    <strong>{formatBudget(match.budget_amount, match.currency)}</strong>
+                </div>
+                <div>
+                    <span>Приём заявок</span>
+                    <strong>
+                        {match.deadline_at
+                            ? formatDate(match.deadline_at)
+                            : 'Срок не указан'}
+                    </strong>
+                </div>
             </div>
             {!editing && nextActionOn ? (
                 <p className="tender-feed-card__action">
-                    Следующее действие: {formatDate(nextActionOn)}
+                    <Icon name="calendar" size={16} />
+                    <span>
+                        Следующее действие <strong>{formatDate(nextActionOn)}</strong>
+                    </span>
                 </p>
             ) : null}
             <details className="tender-feed-card__details">
-                <summary>Подробнее о совпадении</summary>
+                <summary>Почему тендер попал в ленту</summary>
                 <div>
                     <p>Мониторинг: {match.query_name}</p>
+                    <p>Совпало: {match.match_reasons.join(', ')}</p>
                     {match.rule_score !== null && match.rule_score !== undefined ? (
                         <p>Соответствие вашим условиям: {match.rule_score}/100</p>
                     ) : null}
@@ -1709,7 +1741,8 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
             ) : null}
             {!editing &&
             (savedFollowUp.deadline || savedFollowUp.action || savedFollowUp.watch) ? (
-                <p>
+                <p className="tender-feed-card__enabled">
+                    <Icon name="bell" size={15} />
                     Включено:{' '}
                     {[
                         savedFollowUp.deadline ? 'напоминания о сроке' : '',
@@ -1720,6 +1753,21 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                         .join(', ')}
                 </p>
             ) : null}
+            <div className="tender-feed-card__primary-actions">
+                <Link
+                    className="button button--primary button--md"
+                    href={'/local/mvp/tenders/' + match.tender_id}
+                >
+                    Открыть карточку
+                    <Icon name="chevron-right" size={17} />
+                </Link>
+                <Link
+                    className="button button--secondary button--md"
+                    href={`/tenders/${match.tender_id}/work`}
+                >
+                    Участие и задачи
+                </Link>
+            </div>
             <TenderFeedbackActions
                 tenderId={match.tender_id}
                 queryId={match.search_query_id ?? 0}
@@ -1730,7 +1778,7 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                     setPersistedStatus('dismissed');
                 }}
             />
-            <div className="tender-feed-card__links">
+            <div className="tender-feed-card__secondary-actions">
                 <button
                     onClick={() => {
                         if (editing) cancelEdit();
@@ -1740,13 +1788,9 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                 >
                     {editing ? 'Закрыть редактор' : 'Изменить отметку'}
                 </button>
-                <Link href={'/local/mvp/tenders/' + match.tender_id}>
-                    Открыть карточку
-                </Link>
                 <a href={match.canonical_url} rel="noreferrer" target="_blank">
-                    Первоисточник
+                    Открыть первоисточник ↗
                 </a>
-                <Link href={`/tenders/${match.tender_id}/work`}>Участие и задачи</Link>
             </div>
         </GlassCard>
     );

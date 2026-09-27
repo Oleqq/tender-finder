@@ -1,6 +1,7 @@
 import { scopedUrl } from '../lib/workspace';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
+import { Icon } from '../Components/Icon';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { Badge, GlassCard } from '../Components/ui';
 import { stages, stageLabel, type Stage } from '../lib/participation';
@@ -44,18 +45,24 @@ export default function ParticipationPage() {
             <AppShell
                 title="Участие"
                 eyebrow="От отбора до результата"
-                className="work-page"
+                className="work-page participation-page"
                 activeNav="/tenders"
             >
                 <TenderWorkNav active="/participation" />
                 <WorkspacePicker path="/participation" />
-                <div className="work-intro">
-                    <h2>Ваши заявки</h2>
-                    <p>
-                        Добавляйте закупки из ленты, готовьте документы и фиксируйте
-                        результат.
-                    </p>
-                </div>
+                <section className="work-page-hero page-enter">
+                    <span className="work-page-hero__icon">
+                        <Icon name="check" size={23} />
+                    </span>
+                    <div>
+                        <p>Рабочий процесс</p>
+                        <h2>Ваши заявки</h2>
+                        <span>
+                            Добавляйте закупки из ленты, готовьте документы и фиксируйте
+                            результат.
+                        </span>
+                    </div>
+                </section>
                 <nav className="work-stages" aria-label="Этап участия">
                     <Link
                         className={!stage ? 'is-active' : ''}
@@ -82,7 +89,10 @@ export default function ParticipationPage() {
                     ))}
                 </nav>
                 {participations.data.length === 0 ? (
-                    <GlassCard className="work-card">
+                    <GlassCard className="work-card participation-empty">
+                        <span className="participation-empty__icon">
+                            <Icon name="tenders" size={24} />
+                        </span>
                         <h2>Заявок пока нет</h2>
                         <p>
                             {stage
@@ -96,7 +106,11 @@ export default function ParticipationPage() {
                 ) : null}
                 <div className="work-list">
                     {participations.data.map((row) => (
-                        <GlassCard key={row.id} as="article" className="work-card">
+                        <GlassCard
+                            key={row.id}
+                            as="article"
+                            className="work-card participation-card"
+                        >
                             {team && (
                                 <p>
                                     Ответственный:{' '}

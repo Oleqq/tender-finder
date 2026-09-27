@@ -1,6 +1,7 @@
 import { scopedUrl } from '../lib/workspace';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
+import { Icon } from '../Components/Icon';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { Badge, GlassCard } from '../Components/ui';
 import { WorkspacePicker, type TeamScope } from '../Components/WorkspacePicker';
@@ -58,13 +59,26 @@ export default function ParticipationAnalytics() {
             <AppShell
                 title="Аналитика"
                 eyebrow="Результаты участия"
-                className="work-page"
+                className="work-page participation-analytics-page"
                 activeNav="/tenders"
                 wide
             >
                 <TenderWorkNav active="/participation/analytics" />
                 <WorkspacePicker path="/participation/analytics" />
-                <div className="work-toolbar analytics-toolbar">
+                <section className="work-page-hero page-enter">
+                    <span className="work-page-hero__icon">
+                        <Icon name="chart" size={23} />
+                    </span>
+                    <div>
+                        <p>Результаты участия</p>
+                        <h2>Воронка и экономика</h2>
+                        <span>
+                            Следите за движением заявок, конверсией и финансовым
+                            результатом.
+                        </span>
+                    </div>
+                </section>
+                <GlassCard className="work-toolbar analytics-toolbar" tone="quiet">
                     <nav className="work-stages" aria-label="Период аналитики">
                         {[
                             ['30', '30 дней'],
@@ -87,9 +101,9 @@ export default function ParticipationAnalytics() {
                         ))}
                     </nav>
                     <a className="button button--secondary" href={exportUrl}>
-                        Скачать CSV
+                        <Icon name="arrow-right" size={16} /> Скачать CSV
                     </a>
-                </div>
+                </GlassCard>
 
                 <section className="analytics-summary" aria-label="Основные показатели">
                     <GlassCard>

@@ -2,16 +2,20 @@
 
 ## За минуту
 
-Tender Finder — Laravel 12 + React/TypeScript Telegram Mini App. Тендеры для
-пользовательских мониторингов поступают через официальный API RosTender и
-сохранённые в нём шаблоны. Интеграции с `zakupki.gov.ru` в runtime нет:
-RSS-поиск, HTML/XML-парсеры, фоновые jobs и enrichment удалены.
+Tender Finder — Laravel 12 + React/TypeScript Telegram Mini App. Основные
+пользовательские мониторинги работают через официальный API RosTender и
+сохранённые в нём шаблоны. Дополнительно реализованы отключённые по умолчанию
+публичные источники СБЕР АСТ и Workspace.ru. Интеграции с `zakupki.gov.ru` в
+runtime нет: RSS-поиск, HTML/XML-парсеры, фоновые jobs и enrichment для него
+удалены.
 
 Стек: PHP 8.3, PostgreSQL 16, Redis, Inertia, Vite и Docker Compose.
 
 ## Где искать код
 
 - `app/Tenders/Rostender*` и `app/Services/Rostender*` — источник и квоты.
+- `app/Services/SberAst*` и `WorkspaceRu*` — публичные источники без
+  пользовательской авторизации.
 - `SearchQueryController`, `SearchQueryService`, `MonitoringPreviewService` —
   создание, изменение и предварительная проверка мониторинга.
 - `TenderMatchingService` и `TenderRuleScore` — детерминированный match и score.

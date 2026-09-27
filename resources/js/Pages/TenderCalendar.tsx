@@ -2,6 +2,7 @@ import { scopedUrl } from '../lib/workspace';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
+import { Icon } from '../Components/Icon';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { Badge, Button, GlassCard } from '../Components/ui';
 import { WorkspacePicker, type TeamScope } from '../Components/WorkspacePicker';
@@ -130,17 +131,27 @@ export default function TenderCalendar() {
     return (
         <>
             <Head title="Календарь закупок" />
-            <AppShell title="Календарь" activeNav="/tenders" className="work-page">
+            <AppShell
+                title="Календарь"
+                eyebrow="Сроки и действия"
+                activeNav="/tenders"
+                className="work-page tender-calendar-page"
+            >
                 <TenderWorkNav active="/calendar" />
                 <WorkspacePicker path="/calendar" />
-                <div className="work-intro">
-                    <h2>Сроки под контролем</h2>
-                    <p>
-                        Подача заявок, личные действия и незавершённые задачи. Часовой
-                        пояс: {timezone}.
-                    </p>
-                </div>
-                <GlassCard className="work-card">
+                <section className="work-page-hero page-enter">
+                    <span className="work-page-hero__icon">
+                        <Icon name="calendar" size={23} />
+                    </span>
+                    <div>
+                        <p>Планирование</p>
+                        <h2>Сроки под контролем</h2>
+                        <span>
+                            Подача заявок, личные действия и задачи · {timezone}
+                        </span>
+                    </div>
+                </section>
+                <GlassCard className="work-card calendar-panel">
                     <div className="work-toolbar">
                         <Button
                             variant="ghost"

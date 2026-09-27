@@ -1,4 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
+import { Icon } from './Icon';
 import type { PageProps } from '../types';
 
 export type TeamScope = {
@@ -17,10 +18,19 @@ export type TeamScope = {
 export function WorkspacePicker({ path }: { path: string }) {
     const { team, teams = [] } = usePage<PageProps<TeamScope>>().props;
     return (
-        <div className="work-form">
-            <label>
-                Рабочее пространство
+        <div className="workspace-picker">
+            <label className="workspace-picker__select">
+                <span>
+                    <span className="workspace-picker__icon">
+                        <Icon name="user" size={18} />
+                    </span>
+                    <span>
+                        <small>Рабочее пространство</small>
+                        <strong>{team?.name ?? 'Личное'}</strong>
+                    </span>
+                </span>
                 <select
+                    aria-label="Рабочее пространство"
                     value={team?.id ?? ''}
                     onChange={(e) =>
                         router.get(
@@ -39,9 +49,11 @@ export function WorkspacePicker({ path }: { path: string }) {
                     ))}
                 </select>
             </label>
-            <Link href="/teams">Управление командами</Link>
+            <Link className="workspace-picker__manage" href="/teams">
+                Команды <Icon name="chevron-right" size={16} />
+            </Link>
             {team && (
-                <p className="work-help">
+                <p className="workspace-picker__help">
                     Общие заявки команды «{team.name}».{' '}
                     {team.archived_at
                         ? 'Команда в архиве: данные доступны только для чтения.'
