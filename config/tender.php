@@ -97,4 +97,18 @@ return [
         'pro_active_monitor_limit' => (int) env('ROSTENDER_PRO_ACTIVE_MONITOR_LIMIT', 0),
     ],
 
+    'sber_ast' => [
+        // Public registries do not require supplier credentials. Keep this
+        // opt-in so a deployment can verify network access and the current
+        // platform terms before scheduled polling starts.
+        'enabled' => (bool) env('SBER_AST_ENABLED', false),
+        'registry_urls' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('SBER_AST_REGISTRY_URLS', 'https://utp.sberbank-ast.ru/VIP/List/PurchaseList')),
+        ))),
+        'request_timeout_seconds' => (int) env('SBER_AST_REQUEST_TIMEOUT_SECONDS', 15),
+        'poll_interval_seconds' => (int) env('SBER_AST_POLL_INTERVAL_SECONDS', 3600),
+        'user_agent' => env('SBER_AST_USER_AGENT', 'TenderFinder/1.0 (+public procurement monitoring)'),
+    ],
+
 ];

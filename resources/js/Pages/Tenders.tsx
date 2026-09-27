@@ -174,6 +174,11 @@ const sourceOptions = [
         description: 'Исторические карточки, обновление отключено',
     },
     { value: 'rostender', label: 'RosTender', description: 'Подключённые шаблоны' },
+    {
+        value: 'sber_ast',
+        label: 'Сбер АСТ',
+        description: 'Публичные реестры площадки',
+    },
 ];
 
 export default function Tenders() {
@@ -1151,6 +1156,7 @@ function TeamWorkflowPanel({
                             <option value="">Любой источник</option>
                             <option value="eis_rss">Архив ЕИС</option>
                             <option value="rostender">RosTender</option>
+                            <option value="sber_ast">Сбер АСТ</option>
                         </select>
                         <select
                             value={rule.search_query_id}
@@ -1336,6 +1342,8 @@ function TeamFeedTenderCard({
                 <Badge tone={teamReviewTone(status)}>{teamReviewLabel(status)}</Badge>
                 {match.source === 'rostender' ? (
                     <Badge tone="accent">RosTender</Badge>
+                ) : match.source === 'sber_ast' ? (
+                    <Badge tone="accent">Сбер АСТ</Badge>
                 ) : null}
                 {review.overdue ? <Badge tone="warning">SLA просрочен</Badge> : null}
                 <span>
@@ -1564,6 +1572,8 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                 <Badge tone={statusTone(status)}>{statusLabel(status)}</Badge>
                 {match.source === 'rostender' ? (
                     <Badge tone="accent">RosTender</Badge>
+                ) : match.source === 'sber_ast' ? (
+                    <Badge tone="accent">Сбер АСТ</Badge>
                 ) : null}
                 <span>
                     <Icon name="spark" size={14} /> Подходит:{' '}
