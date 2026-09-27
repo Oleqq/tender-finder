@@ -179,6 +179,11 @@ const sourceOptions = [
         label: 'Сбер АСТ',
         description: 'Публичные реестры площадки',
     },
+    {
+        value: 'workspace_ru',
+        label: 'Workspace.ru',
+        description: 'Digital-тендеры из официального RSS',
+    },
 ];
 
 export default function Tenders() {
@@ -1157,6 +1162,7 @@ function TeamWorkflowPanel({
                             <option value="eis_rss">Архив ЕИС</option>
                             <option value="rostender">RosTender</option>
                             <option value="sber_ast">Сбер АСТ</option>
+                            <option value="workspace_ru">Workspace.ru</option>
                         </select>
                         <select
                             value={rule.search_query_id}
@@ -1344,6 +1350,8 @@ function TeamFeedTenderCard({
                     <Badge tone="accent">RosTender</Badge>
                 ) : match.source === 'sber_ast' ? (
                     <Badge tone="accent">Сбер АСТ</Badge>
+                ) : match.source === 'workspace_ru' ? (
+                    <Badge tone="accent">Workspace.ru</Badge>
                 ) : null}
                 {review.overdue ? <Badge tone="warning">SLA просрочен</Badge> : null}
                 <span>
@@ -1574,6 +1582,8 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                     <Badge tone="accent">RosTender</Badge>
                 ) : match.source === 'sber_ast' ? (
                     <Badge tone="accent">Сбер АСТ</Badge>
+                ) : match.source === 'workspace_ru' ? (
+                    <Badge tone="accent">Workspace.ru</Badge>
                 ) : null}
                 <span>
                     <Icon name="spark" size={14} /> Подходит:{' '}

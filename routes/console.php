@@ -10,6 +10,7 @@ Artisan::command('inspire', function () {
 
 Schedule::command('tenders:dispatch-rostender')->everyMinute()->withoutOverlapping();
 Schedule::command('tenders:dispatch-sber-ast')->everyMinute()->withoutOverlapping();
+Schedule::command('tenders:dispatch-workspace-ru')->everyMinute()->withoutOverlapping();
 Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();
 Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverlapping();
 

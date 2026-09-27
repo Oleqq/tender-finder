@@ -111,4 +111,13 @@ return [
         'user_agent' => env('SBER_AST_USER_AGENT', 'TenderFinder/1.0 (+public procurement monitoring)'),
     ],
 
+    'workspace_ru' => [
+        // Workspace publishes a dedicated public RSS feed for tenders.
+        'enabled' => (bool) env('WORKSPACE_RU_ENABLED', false),
+        'feed_url' => env('WORKSPACE_RU_FEED_URL', 'https://workspace.ru/tenders/rss/'),
+        'request_timeout_seconds' => (int) env('WORKSPACE_RU_REQUEST_TIMEOUT_SECONDS', 15),
+        'poll_interval_seconds' => (int) env('WORKSPACE_RU_POLL_INTERVAL_SECONDS', 3600),
+        'user_agent' => env('WORKSPACE_RU_USER_AGENT', 'TenderFinder/1.0 (+public tender RSS monitoring)'),
+    ],
+
 ];
