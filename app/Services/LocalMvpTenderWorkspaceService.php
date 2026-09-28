@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class LocalMvpTenderWorkspaceService
 {
     /** @var list<string> */
-    private const LOCAL_MVP_SOURCES = ['tenderguru_preview', 'eis_rss'];
+    private const LOCAL_MVP_SOURCES = ['tenderguru_preview'];
 
     public function __construct(private readonly LocalMvpSearchSnapshotService $snapshots) {}
 
@@ -322,10 +322,7 @@ class LocalMvpTenderWorkspaceService
             'contract_security' => $this->nullableMetadataText($metadata['contract_security'] ?? null),
             'enriched_at' => $this->nullableMetadataText($metadata['enriched_at'] ?? null),
             'can_enrich' => false,
-            'source_label' => match ($tender->source) {
-                'eis_rss' => 'Архив ЕИС · обновление отключено',
-                default => 'TenderGuru public preview · ручной запрос',
-            },
+            'source_label' => 'TenderGuru public preview · ручной запрос',
             'attachments' => $this->attachmentDtos($metadata['attachments'] ?? null),
         ];
     }

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('source_feeds', function (Blueprint $table) {
-            $table->string('source', 64)->default('eis_rss')->index()->after('id');
+            $table->string('source', 64)->index()->after('id');
             $table->unsignedBigInteger('source_identifier')->nullable()->after('source');
             $table->unique(['source', 'source_identifier'], 'source_feeds_source_identifier_unique');
         });

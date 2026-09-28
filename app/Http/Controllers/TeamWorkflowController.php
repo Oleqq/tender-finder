@@ -46,7 +46,7 @@ final class TeamWorkflowController extends Controller
         abort_if(TeamTenderRoutingRule::query()->where('team_id', $team->id)->count() >= 50, 422, 'Допускается до 50 правил маршрутизации.');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'], 'priority' => ['required', 'integer', 'min:1', 'max:1000'],
-            'source' => ['nullable', Rule::in(['eis_rss', 'rostender', 'sber_ast', 'workspace_ru'])], 'search_query_id' => ['nullable', 'integer'],
+            'source' => ['nullable', Rule::in(['rostender', 'sber_ast', 'workspace_ru', 'b2b_center'])], 'search_query_id' => ['nullable', 'integer'],
             'region' => ['nullable', 'string', 'max:160'], 'min_budget' => ['nullable', 'numeric', 'min:0'],
             'assignee_id' => ['required', 'integer'], 'enabled' => ['required', 'boolean'],
         ]);

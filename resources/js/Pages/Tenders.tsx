@@ -168,11 +168,6 @@ const teamStatusOptions = [
 
 const sourceOptions = [
     { value: 'all', label: 'Все источники', description: 'Единая лента совпадений' },
-    {
-        value: 'eis_rss',
-        label: 'Архив ЕИС',
-        description: 'Исторические карточки, обновление отключено',
-    },
     { value: 'rostender', label: 'RosTender', description: 'Подключённые шаблоны' },
     {
         value: 'sber_ast',
@@ -183,6 +178,11 @@ const sourceOptions = [
         value: 'workspace_ru',
         label: 'Workspace.ru',
         description: 'Digital-тендеры из официального RSS',
+    },
+    {
+        value: 'b2b_center',
+        label: 'B2B-Center',
+        description: 'Открытый каталог коммерческих закупок',
     },
 ];
 
@@ -1159,10 +1159,10 @@ function TeamWorkflowPanel({
                             }
                         >
                             <option value="">Любой источник</option>
-                            <option value="eis_rss">Архив ЕИС</option>
                             <option value="rostender">RosTender</option>
                             <option value="sber_ast">Сбер АСТ</option>
                             <option value="workspace_ru">Workspace.ru</option>
+                            <option value="b2b_center">B2B-Center</option>
                         </select>
                         <select
                             value={rule.search_query_id}
@@ -1352,6 +1352,8 @@ function TeamFeedTenderCard({
                     <Badge tone="accent">Сбер АСТ</Badge>
                 ) : match.source === 'workspace_ru' ? (
                     <Badge tone="accent">Workspace.ru</Badge>
+                ) : match.source === 'b2b_center' ? (
+                    <Badge tone="accent">B2B-Center</Badge>
                 ) : null}
                 {review.overdue ? <Badge tone="warning">SLA просрочен</Badge> : null}
                 <span>
@@ -1588,6 +1590,8 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                         <Badge tone="accent">Сбер АСТ</Badge>
                     ) : match.source === 'workspace_ru' ? (
                         <Badge tone="accent">Workspace.ru</Badge>
+                    ) : match.source === 'b2b_center' ? (
+                        <Badge tone="accent">B2B-Center</Badge>
                     ) : null}
                 </div>
                 <span className="tender-feed-card__match">

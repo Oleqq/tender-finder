@@ -22,7 +22,7 @@ final class TenderWorkService
         return Tender::query()->where(function (Builder $query) use ($user, $ids): void {
             $query->whereHas('matches.searchQuery', fn (Builder $q) => $q->where('user_id', $user->id));
             if ($ids !== []) {
-                $query->orWhere(fn (Builder $q) => $q->whereIn('id', $ids)->whereIn('source', ['eis_rss', 'tenderguru_preview']));
+                $query->orWhere(fn (Builder $q) => $q->whereIn('id', $ids)->where('source', 'tenderguru_preview'));
             }
         });
     }

@@ -11,6 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('tenders:dispatch-rostender')->everyMinute()->withoutOverlapping();
 Schedule::command('tenders:dispatch-sber-ast')->everyMinute()->withoutOverlapping();
 Schedule::command('tenders:dispatch-workspace-ru')->everyMinute()->withoutOverlapping();
+Schedule::command('tenders:dispatch-b2b-center')->everyMinute()->withoutOverlapping();
 Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();
 Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverlapping();
 
@@ -18,4 +19,6 @@ Schedule::command('notifications:send-tender-reminders')->everyMinute()->without
 Schedule::command('tenders:refresh-watched')->hourly()->withoutOverlapping();
 
 Schedule::command('notifications:send-task-reminders')->everyMinute()->withoutOverlapping();
-Schedule::command('teams:process-tender-reviews')->everyMinute()->withoutOverlapping();
+Schedule::command('teams:process-tender-reviews')
+    ->everyMinute()
+    ->withoutOverlapping();

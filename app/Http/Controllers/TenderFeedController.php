@@ -41,7 +41,7 @@ class TenderFeedController extends Controller
             'status' => ['nullable', Rule::in(['all', ...array_column(TenderUserStatus::cases(), 'value')])],
             'tag' => ['nullable', 'string', 'max:40'],
             'query_id' => ['nullable', 'integer'],
-            'source' => ['nullable', Rule::in(['all', 'rostender', 'sber_ast', 'workspace_ru', 'eis_rss'])],
+            'source' => ['nullable', Rule::in(['all', 'rostender', 'sber_ast', 'workspace_ru', 'b2b_center'])],
             'sort' => ['nullable', Rule::in(['matched_desc', 'deadline_asc', 'budget_desc', 'budget_asc'])],
         ]);
 
@@ -180,7 +180,7 @@ class TenderFeedController extends Controller
             'status' => ['nullable', Rule::in(['all', 'new', 'reviewing', 'qualified', 'deferred', 'rejected'])],
             'query_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
-            'source' => ['nullable', Rule::in(['all', 'rostender', 'sber_ast', 'workspace_ru', 'eis_rss'])],
+            'source' => ['nullable', Rule::in(['all', 'rostender', 'sber_ast', 'workspace_ru', 'b2b_center'])],
             'sort' => ['nullable', Rule::in(['matched_desc', 'deadline_asc', 'budget_desc', 'budget_asc'])],
             'overdue' => ['nullable', 'boolean'],
         ]);

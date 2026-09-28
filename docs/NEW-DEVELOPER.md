@@ -5,7 +5,7 @@
 Tender Finder — Laravel 12 + React/TypeScript Telegram Mini App. Основные
 пользовательские мониторинги работают через официальный API RosTender и
 сохранённые в нём шаблоны. Дополнительно реализованы отключённые по умолчанию
-публичные источники СБЕР АСТ и Workspace.ru. Интеграции с `zakupki.gov.ru` в
+публичные источники СБЕР АСТ, Workspace.ru и B2B-Center. Интеграции с `zakupki.gov.ru` в
 runtime нет: RSS-поиск, HTML/XML-парсеры, фоновые jobs и enrichment для него
 удалены.
 
@@ -14,7 +14,7 @@ runtime нет: RSS-поиск, HTML/XML-парсеры, фоновые jobs и 
 ## Где искать код
 
 - `app/Tenders/Rostender*` и `app/Services/Rostender*` — источник и квоты.
-- `app/Services/SberAst*` и `WorkspaceRu*` — публичные источники без
+- `app/Services/SberAst*`, `WorkspaceRu*` и `B2bCenter*` — публичные источники без
   пользовательской авторизации.
 - `SearchQueryController`, `SearchQueryService`, `MonitoringPreviewService` —
   создание, изменение и предварительная проверка мониторинга.
@@ -43,7 +43,7 @@ docker compose -f compose.local.yml -f compose.local.dev.yml run --rm --no-deps 
 
 - Не коммитить env-файлы, API-ключи, webhook secrets, raw `initData` и данные
   живых закупок.
-- Не возвращать прямой парсинг сайтов, обход CAPTCHA, cookies или proxy rotation.
+- Не добавлять обход CAPTCHA, закрытых страниц, cookies или proxy rotation.
 - Не отправлять пользовательские данные внешнему LLM без отдельного
   privacy/cost approval.
 - Не применять `docker compose down -v` без явного решения удалить локальную БД.

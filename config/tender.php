@@ -120,4 +120,14 @@ return [
         'user_agent' => env('WORKSPACE_RU_USER_AGENT', 'TenderFinder/1.0 (+public tender RSS monitoring)'),
     ],
 
+    'b2b_center' => [
+        // Only the public, server-rendered catalog is read. Account API access
+        // remains a separate paid B2B-Center capability and is not required.
+        'enabled' => (bool) env('B2B_CENTER_ENABLED', false),
+        'catalog_url' => env('B2B_CENTER_CATALOG_URL', 'https://www.b2b-center.ru/market/'),
+        'request_timeout_seconds' => (int) env('B2B_CENTER_REQUEST_TIMEOUT_SECONDS', 15),
+        'poll_interval_seconds' => (int) env('B2B_CENTER_POLL_INTERVAL_SECONDS', 3600),
+        'user_agent' => env('B2B_CENTER_USER_AGENT', 'TenderFinder/1.0 (+public tender catalog monitoring)'),
+    ],
+
 ];
