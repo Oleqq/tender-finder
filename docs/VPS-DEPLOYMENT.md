@@ -28,6 +28,18 @@ between Windows worktrees and the Linux VPS.
 
 ## Latest verified release
 
+On 29 September 2026, commit `d32716b` completed the support workspace and
+was released through `deploy/vps-deploy.sh`. CI was green in both repositories.
+A fresh PostgreSQL backup (`postgres-20260929T135237Z.sql.gz`) passed
+`gzip -t` before deployment. The tracked source archive checksum was verified
+on the VPS before installation; `.env.production` stayed in place with mode
+`600`, and `storage` and `backups` were preserved. The forward-only migration
+`2026_09_29_150000_add_support_access_audit` is `Ran`. Web, queue, scheduler,
+PostgreSQL, Redis and Caddy started; PostgreSQL accepted connections, Redis
+returned `PONG`, support routes were listed and external HTTPS `/health`
+returned `ok`. The first external request from the new Mac timed out before a
+repeat succeeded. Real Telegram beta acceptance remains open.
+
 On 29 September 2026, commit `06c331b` was copied to the VPS as a tracked
 source archive and released through `deploy/vps-deploy.sh`. Both repositories'
 CI checks were green before the release. A fresh PostgreSQL backup was created
