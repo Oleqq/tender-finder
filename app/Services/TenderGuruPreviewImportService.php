@@ -21,6 +21,7 @@ final class TenderGuruPreviewImportService
         $feed = SourceFeed::query()->firstOrCreate(
             ['url_hash' => hash('sha256', "tenderguru-preview:{$queryHash}")],
             [
+                'source' => 'tenderguru_preview',
                 'canonical_url' => "tenderguru-preview://{$queryHash}",
                 'status' => 'manual_preview',
                 'poll_interval_seconds' => 0,
