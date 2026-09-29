@@ -1,24 +1,31 @@
 # RosTender API integration
 
+> This document began as the dormant adapter's implementation note. The
+> production source is active as recorded in [CURRENT-STATE](CURRENT-STATE.md).
+> The permission and quota gates below still apply to each environment.
+
 ## Legal and operational boundary
 
-RosTender is implemented as a dormant, server-side source. It must not fetch,
-store for distribution, display, export, or notify about RosTender data unless
-the supplier has supplied written permission for Tender Finder's intended user
-distribution. Both switches must be true before any queue job can call the API:
+RosTender was initially implemented as a dormant server-side source. It must
+not fetch, store for distribution, display, export, or notify about RosTender
+data unless the supplier has supplied written permission for Tender Finder's
+intended user distribution. Both switches must be true before any queue job
+can call the API:
 
 ```dotenv
 ROSTENDER_ENABLED=true
 ROSTENDER_PUBLIC_DISTRIBUTION_APPROVED=true
 ```
 
-Keep both `false` until that approval and the applicable licence/tariff have
-been reviewed. A key is a production secret: store `ROSTENDER_API_KEY` only in
-`/opt/tenderfinder/.env.production` (mode `600`), never in Git, tickets,
-commands, screenshots, or logs. If a key appears in a conversation or other
-untrusted channel, revoke and replace it in the RosTender cabinet before use.
+In a new environment, keep both `false` until that approval and the applicable
+licence/tariff have been reviewed. A key is a production secret: store
+`ROSTENDER_API_KEY` only in `/opt/tenderfinder/.env.production` (mode `600`),
+never in Git, tickets, commands, screenshots, or logs. If a key appears in a
+conversation or other untrusted channel, revoke and replace it in the
+RosTender cabinet before use.
 
-No production deployment or activation is part of this change.
+The original adapter change did not activate production; later VPS releases
+did. See [CURRENT-STATE](CURRENT-STATE.md) for the current release status.
 
 ## API contract used
 
