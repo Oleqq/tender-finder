@@ -266,10 +266,17 @@ export default function Profile() {
                                     Открыть аналитику{' '}
                                     <Icon name="chevron-right" size={16} />
                                 </Link>
+                                <Link href="/support/admin">
+                                    Обращения пользователей{' '}
+                                    <Icon name="chevron-right" size={16} />
+                                </Link>
                             </div>
                         </GlassCard>
                     </details>
                 ) : null}
+                <Link className="profile-plans-link" href="/support">
+                    Поддержка <Icon name="chevron-right" size={17} />
+                </Link>
                 <Link className="profile-plans-link" href="/plans">
                     Подробнее о доступе <Icon name="chevron-right" size={17} />
                 </Link>

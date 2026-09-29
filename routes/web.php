@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminSupportController;
 use App\Http\Controllers\CalendarSubscriptionController;
 use App\Http\Controllers\ChecklistTemplateController;
 use App\Http\Controllers\ConsentController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\RemoteMvpOperatorSessionController;
 use App\Http\Controllers\SavedSearchRunController;
 use App\Http\Controllers\SavedSearchRunHistoryController;
 use App\Http\Controllers\SearchQueryController;
+use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamTenderFeedController;
 use App\Http\Controllers\TeamWorkflowController;
@@ -64,6 +66,20 @@ Route::get('/calendar/subscriptions/{token}.ics', [CalendarSubscriptionControlle
     ->name('calendar.subscription.feed');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/support/admin', [AdminSupportController::class, 'index'])
+        ->middleware('super_admin')->name('support.admin.index');
+    Route::get('/support/admin/{ticket}', [AdminSupportController::class, 'show'])
+        ->middleware('super_admin')->name('support.admin.show');
+    Route::patch('/support/admin/{ticket}', [AdminSupportController::class, 'update'])
+        ->middleware('super_admin')->name('support.admin.update');
+    Route::post('/support/admin/{ticket}/reply', [AdminSupportController::class, 'reply'])
+        ->middleware(['super_admin', 'throttle:10,1'])->name('support.admin.reply');
+    Route::get('/support', [SupportTicketController::class, 'index'])->name('support.index');
+    Route::post('/support', [SupportTicketController::class, 'store'])
+        ->middleware('throttle:5,60')->name('support.store');
+    Route::get('/support/{ticket}', [SupportTicketController::class, 'show'])->name('support.show');
+    Route::post('/support/{ticket}/reply', [SupportTicketController::class, 'reply'])
+        ->middleware('throttle:10,1')->name('support.reply');
     Route::get('/teams', [TeamController::class, 'index'])->name('teams');
     Route::post('/teams', [TeamController::class, 'store']);
     Route::patch('/teams/{team}/archive', [TeamController::class, 'archive']);
