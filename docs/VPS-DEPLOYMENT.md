@@ -34,6 +34,22 @@ between Windows worktrees and the Linux VPS.
 
 ## Latest verified release
 
+On 29 September 2026, commit `ad2d42d` delivered audited permanent Pro grants
+and Telegram notices for manual access changes. Commit `17bb334` then added a
+dual-stack Docker egress network because the VPS IPv4 path to Telegram timed
+out while IPv6 worked. Both commits passed CI in both repositories and were
+released through `deploy/vps-deploy.sh`. Before the second release, backup
+`postgres-20260929T154853Z.sql.gz` passed `gzip -t`; the source archive
+checksum matched, `.env.production` retained mode `600`, and no migrations
+were pending. The new `web`, `queue`, and `scheduler` containers joined the
+IPv6 bridge; a request from the recreated queue container reached Telegram's
+IPv6 endpoint. PostgreSQL, Redis, all Compose services, and external HTTPS
+`/health` passed checks. Two manual Pro grants remain active without expiry;
+their two personal Telegram notices reached status `sent` after API responses.
+Receipt on the users' devices still awaits closed beta confirmation. Incoming
+SSH/HTTPS connections from this Mac intermittently stall before authentication
+or TLS; investigate server/network reachability before expanding beta.
+
 On 29 September 2026, commit `d32716b` completed the support workspace and
 was released through `deploy/vps-deploy.sh`. CI was green in both repositories.
 A fresh PostgreSQL backup (`postgres-20260929T135237Z.sql.gz`) passed

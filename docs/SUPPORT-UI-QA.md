@@ -47,7 +47,7 @@ feature-тестов и не приёмка в настоящем Telegram.
 ## Автоматические проверки
 
 Автоматический контур перед коммитом: `php artisan test --compact` — 180
-тестов, 1905 assertions; PHPStan без ошибок, Pint, ESLint, Prettier,
+тестов, 1941 assertions; PHPStan без ошибок, Pint, ESLint, Prettier,
 TypeScript/Vite build и `git diff --check` прошли. Эти результаты относятся к
 локальному проверенному исходному коду. На VPS 29 сентября выпущен коммит
 `d32716b`: миграция отмечена `Ran`, все сервисы запущены, PostgreSQL и Redis
