@@ -31,6 +31,7 @@ final class AccessFreezeService
         NotificationDelivery::query()
             ->where('user_id', $user->id)
             ->where('status', NotificationStatus::Queued)
+            ->whereNotIn('type', ['access_granted', 'access_updated', 'access_revoked'])
             ->update([
                 'status' => NotificationStatus::Skipped->value,
                 'failure_code' => 'access_expired',

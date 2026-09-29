@@ -27,7 +27,10 @@ export function presentAccess(access: Access | null): AccessPresentation {
             };
         case 'active':
             return {
-                badge: 'Доступ активен',
+                badge:
+                    access.mode === 'developer'
+                        ? 'Про (Developer Mode)'
+                        : 'Доступ активен',
                 title: 'Рабочее пространство открыто',
                 description: 'Доступ подтверждён сервером для этой сессии.',
                 detail: period,

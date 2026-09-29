@@ -41,6 +41,7 @@ const eventLabel: Record<string, string> = {
     staff_reply: 'Ответ поддержки',
     workflow_changed: 'Изменён статус или ответственный',
     access_granted: 'Выдан ручной доступ',
+    access_updated: 'Обновлён ручной доступ',
     access_revoked: 'Отозван ручной доступ',
 };
 
@@ -50,7 +51,12 @@ export default function AdminSupportTicket() {
             ticket: SupportTicketDetail;
             diagnostics: Diagnostics;
             assignees: Array<{ id: number; name: string | null }>;
-            manualGrant: { id: number; ends_at: string | null } | null;
+            manualGrant: {
+                id: number;
+                ends_at: string | null;
+                plan_code: string | null;
+                mode: 'developer' | null;
+            } | null;
             grantBlockReason: string | null;
         }>
     >().props;
@@ -246,7 +252,9 @@ export default function AdminSupportTicket() {
                             <div className="mt-3 space-y-1 text-sm">
                                 <p>
                                     {manualGrant
-                                        ? 'Basic выдан поддержкой для решения обращения.'
+                                        ? manualGrant.plan_code === 'pro'
+                                            ? `Про${manualGrant.mode === 'developer' ? ' (Developer Mode)' : ''} назначен для проверки приложения.`
+                                            : 'Basic выдан поддержкой для решения обращения.'
                                         : access.description}
                                 </p>
                                 <p>
@@ -267,12 +275,14 @@ export default function AdminSupportTicket() {
                             </div>
                             <div className="mt-5 border-t border-[var(--tf-line)] pt-4">
                                 <h3 className="font-semibold">
-                                    Ручной доступ для решения обращения
+                                    {manualGrant?.plan_code === 'pro'
+                                        ? 'Постоянный ручной доступ'
+                                        : 'Ручной доступ для решения обращения'}
                                 </h3>
                                 <p className="mt-2 text-sm">
-                                    Только Basic на 1–7 дней. Это не оплата и не
-                                    продление подписки. Причина сохраняется в служебном
-                                    журнале и не показывается пользователю.
+                                    {manualGrant?.plan_code === 'pro'
+                                        ? `Тариф Про${manualGrant.mode === 'developer' ? ' (Developer Mode)' : ''} назначен отдельно для проверки приложения. Это не оплата; причина сохранена в служебном журнале.`
+                                        : 'Здесь можно выдать Basic на 1–7 дней. Это не оплата. Причина сохраняется в служебном журнале и не показывается пользователю.'}
                                 </p>
                                 {manualGrant ? (
                                     <form
@@ -283,9 +293,9 @@ export default function AdminSupportTicket() {
                                             title="Ручной доступ действует"
                                             tone="neutral"
                                         >
-                                            До{' '}
+                                            Срок:{' '}
                                             {manualGrant.ends_at
-                                                ? supportDate(manualGrant.ends_at)
+                                                ? `до ${supportDate(manualGrant.ends_at)}`
                                                 : 'без даты окончания'}
                                             . Отзыв остановит мониторинги и ожидающие
                                             доставки, если другого активного доступа
@@ -467,7 +477,13 @@ export default function AdminSupportTicket() {
                                         <p className="text-[var(--tf-faint)]">
                                             {supportDate(event.created_at)} ·{' '}
                                             {event.actor_id === null
-                                                ? 'участник удалён'
+                                                ? [
+                                                      'access_granted',
+                                                      'access_updated',
+                                                      'access_revoked',
+                                                  ].includes(event.action)
+                                                    ? 'системная операция'
+                                                    : 'участник удалён'
                                                 : `${['created', 'user_reply'].includes(event.action) ? 'пользователь' : 'администратор'} #${event.actor_id}`}
                                             {event.access_entitlement_id
                                                 ? ` · ${event.access_plan_code === 'basic' ? 'Basic' : event.access_plan_code} · запись #${event.access_entitlement_id}`

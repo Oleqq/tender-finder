@@ -18,6 +18,7 @@ final class SupportAccessService
         private readonly ConsentService $consents,
         private readonly PlanCatalog $plans,
         private readonly AccessFreezeService $freeze,
+        private readonly AccessChangeNotificationService $notifier,
     ) {}
 
     public function grantBlockReason(User $user): ?string
@@ -95,7 +96,7 @@ final class SupportAccessService
                 'ends_at' => $endsAt,
                 'metadata' => ['source' => SubscriptionSource::AdminGrant->value],
             ]);
-            $lockedTicket->events()->create([
+            $event = $lockedTicket->events()->create([
                 'actor_id' => $actor->id,
                 'action' => 'access_granted',
                 'reason' => $reason,
@@ -105,6 +106,7 @@ final class SupportAccessService
                 'created_at' => $startsAt,
             ]);
             $lockedTicket->touch();
+            $this->notifier->granted($entitlement, $event->id);
         });
     }
 
@@ -135,7 +137,7 @@ final class SupportAccessService
                 'ends_at' => $now,
                 'cancelled_at' => $now,
             ])->save();
-            $lockedTicket->events()->create([
+            $event = $lockedTicket->events()->create([
                 'actor_id' => $actor->id,
                 'action' => 'access_revoked',
                 'reason' => $reason,
@@ -147,6 +149,7 @@ final class SupportAccessService
             $lockedTicket->touch();
 
             $this->freeze->freezeIfInactive($user, $now);
+            $this->notifier->revoked($entitlement, $event->id);
         });
     }
 }

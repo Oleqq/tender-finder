@@ -12,9 +12,10 @@ final readonly class AccessSnapshot
         public ?string $planCode,
         public ?int $activeQueryLimit,
         public ?string $endsAt,
+        public ?string $mode = null,
     ) {}
 
-    /** @return array{state: string, plan_code: ?string, active_query_limit: ?int, ends_at: ?string} */
+    /** @return array{state: string, plan_code: ?string, active_query_limit: ?int, ends_at: ?string, mode: ?string} */
     public function toArray(): array
     {
         return [
@@ -22,6 +23,7 @@ final readonly class AccessSnapshot
             'plan_code' => $this->planCode,
             'active_query_limit' => $this->activeQueryLimit,
             'ends_at' => $this->endsAt,
+            'mode' => $this->mode,
         ];
     }
 
@@ -32,6 +34,7 @@ final readonly class AccessSnapshot
             planCode: $entitlement->plan?->code,
             activeQueryLimit: $entitlement->code === 'active_queries' ? $entitlement->value : null,
             endsAt: $entitlement->ends_at?->toAtomString(),
+            mode: ($entitlement->metadata['developer_mode'] ?? false) === true ? 'developer' : null,
         );
     }
 }

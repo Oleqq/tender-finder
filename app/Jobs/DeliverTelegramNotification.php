@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Enums\NotificationStatus;
+use App\Enums\SubscriptionStatus;
+use App\Models\Entitlement;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationPreference;
 use App\Models\TenderUserState;
@@ -19,6 +21,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 use Throwable;
 
 class DeliverTelegramNotification implements ShouldQueue
@@ -51,11 +54,19 @@ class DeliverTelegramNotification implements ShouldQueue
             return;
         }
 
-        if (! $access->hasActiveAccess($delivery->user)) {
+        if (! in_array($delivery->type, ['access_granted', 'access_updated', 'access_revoked'], true)
+            && ! $access->hasActiveAccess($delivery->user)) {
             $delivery->forceFill([
                 'status' => NotificationStatus::Skipped,
                 'failure_code' => 'access_expired',
             ])->save();
+
+            return;
+        }
+
+        if (in_array($delivery->type, ['access_granted', 'access_updated'], true)
+            && ! $this->accessChangeStillCurrent($delivery)) {
+            $delivery->forceFill(['status' => NotificationStatus::Skipped, 'failure_code' => 'access_change_superseded'])->save();
 
             return;
         }
@@ -106,6 +117,9 @@ class DeliverTelegramNotification implements ShouldQueue
                 'team_review_sla' => "Просрочен разбор тендера: {$payload['title']}\n{$payload['url']}",
                 'team_review_digest' => "Командная очередь «{$payload['team_name']}»: открыто {$payload['open']}, просрочено {$payload['overdue']}.\n{$payload['url']}",
                 'participation_approval' => $this->approvalText($payload),
+                'access_granted' => $this->accessText($payload, 'включил'),
+                'access_updated' => $this->accessText($payload, 'обновил'),
+                'access_revoked' => 'Администратор завершил ваш ручной доступ к Tender Finder. Если это ошибка, напишите в поддержку в приложении.',
                 default => "Новый подходящий тендер: {$payload['title']}\n{$payload['url']}",
             };
 
@@ -148,6 +162,22 @@ class DeliverTelegramNotification implements ShouldQueue
             'tender_change' => $state->watch_changes && $state->watch_started_at !== null && $state->watch_started_at->lte($delivery->created_at),
             default => false,
         };
+    }
+
+    private function accessChangeStillCurrent(NotificationDelivery $delivery): bool
+    {
+        $entitlementId = $delivery->payload['entitlement_id'] ?? null;
+        if (! is_int($entitlementId)) {
+            return false;
+        }
+
+        return Entitlement::query()
+            ->whereKey($entitlementId)
+            ->where('user_id', $delivery->user_id)
+            ->where('status', SubscriptionStatus::Active)
+            ->where('starts_at', '<=', now())
+            ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>', now()))
+            ->exists();
     }
 
     /** @param array<string, mixed> $payload */
@@ -193,5 +223,17 @@ class DeliverTelegramNotification implements ShouldQueue
         };
 
         return "{$event}: {$payload['title']}\n{$payload['url']}";
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function accessText(array $payload, string $verb): string
+    {
+        $plan = ($payload['plan_code'] ?? '') === 'pro' ? 'Про' : 'Basic';
+        $mode = ($payload['developer_mode'] ?? false) === true ? ' (Developer Mode)' : '';
+        $end = is_string($payload['ends_at'] ?? null)
+            ? ' до '.Carbon::parse($payload['ends_at'])->timezone('Europe/Moscow')->format('d.m.Y H:i').' МСК'
+            : ' без даты окончания';
+
+        return "Администратор {$verb} вам доступ Tender Finder: {$plan}{$mode}{$end}. Откройте приложение, чтобы проверить статус.";
     }
 }

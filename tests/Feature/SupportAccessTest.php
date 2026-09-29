@@ -7,6 +7,7 @@ use App\Enums\QueryStatus;
 use App\Enums\SubscriptionSource;
 use App\Enums\SubscriptionStatus;
 use App\Enums\UserRole;
+use App\Jobs\DeliverTelegramNotification;
 use App\Models\Entitlement;
 use App\Models\NotificationDelivery;
 use App\Models\SearchQuery;
@@ -17,9 +18,11 @@ use App\Services\ConsentService;
 use App\Services\PlanCatalog;
 use App\Services\SupportTicketService;
 use App\Services\TrialLifecycleService;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
+    Queue::fake();
     config()->set('tender.local_mvp_full_access.enabled', false);
     config()->set('tender.local_mvp_operator.enabled', false);
     config()->set('tender.legal.documents_published', true);
@@ -58,6 +61,8 @@ it('grants bounded Basic access only to the ticket owner and writes an audit ent
         ->and($entitlement->starts_at->diffInDays($entitlement->ends_at))->toBe(3.0)
         ->and($ticket->events()->where('action', 'access_granted')->count())->toBe(1);
     expect($ticket->events()->latest('id')->firstOrFail()->reason)->toBe('Компенсация за технический сбой.');
+    expect(NotificationDelivery::query()->where('user_id', $owner->id)->where('type', 'access_granted')->count())->toBe(1);
+    Queue::assertPushed(DeliverTelegramNotification::class, 1);
 
     $this->post("/support/admin/{$ticket->id}/access", [
         'days' => 3, 'reason' => 'Повторный запрос на ручной доступ.',
@@ -152,6 +157,7 @@ it('revokes only the manual grant and freezes work when no access remains', func
         ->and($entitlement->subscription->fresh()->status)->toBe(SubscriptionStatus::Cancelled)
         ->and($query->fresh()->status)->toBe(QueryStatus::Frozen)
         ->and($delivery->fresh()->status)->toBe(NotificationStatus::Skipped);
+    expect(NotificationDelivery::query()->where('type', 'access_revoked')->sole()->status)->toBe(NotificationStatus::Queued);
     $event = $ticket->events()->latest('id')->firstOrFail();
     expect($event->action)->toBe('access_revoked')
         ->and($event->access_entitlement_id)->toBe($entitlement->id)
@@ -185,7 +191,7 @@ it('expires a manual grant automatically without sending a trial reminder', func
         ->and($entitlement->subscription?->fresh()->status)->toBe(SubscriptionStatus::Expired)
         ->and($query->fresh()->status)->toBe(QueryStatus::Frozen)
         ->and(app(AccessService::class)->snapshotFor($owner)->state)->toBe(AccessState::Preview)
-        ->and(NotificationDelivery::query()->where('user_id', $owner->id)->count())->toBe(0);
+        ->and(NotificationDelivery::query()->where('user_id', $owner->id)->where('type', 'trial_ending_24h')->count())->toBe(0);
 });
 
 it('keeps paid access and active work when a later payment overlaps a manual grant', function () {

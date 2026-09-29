@@ -45,6 +45,8 @@ class AccessService
             ->where(function ($query): void {
                 $query->whereNull('ends_at')->orWhere('ends_at', '>', now());
             })
+            ->orderByDesc('value')
+            ->orderByRaw('CASE WHEN ends_at IS NULL THEN 1 ELSE 0 END DESC')
             ->orderByDesc('ends_at')
             ->first();
 

@@ -54,6 +54,9 @@ final class NotificationDeliveryPresenter
             'team_review_sla' => 'Срок разбора',
             'team_review_digest' => 'Командная сводка',
             'participation_approval' => 'Согласование участия',
+            'access_granted' => 'Доступ включён',
+            'access_updated' => 'Доступ обновлён',
+            'access_revoked' => 'Доступ завершён',
             default => 'Сервисное уведомление',
         };
     }

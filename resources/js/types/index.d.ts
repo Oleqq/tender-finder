@@ -9,6 +9,7 @@ export interface Access {
     plan_code: string | null;
     active_query_limit: number | null;
     ends_at: string | null;
+    mode: 'developer' | null;
 }
 
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> =

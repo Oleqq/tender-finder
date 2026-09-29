@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
  * @property SubscriptionStatus $status
  * @property int|null $value
  * @property Carbon|null $ends_at
+ * @property array<string, mixed>|null $metadata
  * @property Plan|null $plan
  * @property Subscription|null $subscription
  */

@@ -44,6 +44,8 @@ class AdminSupportController extends Controller
             'manualGrant' => $grant === null ? null : [
                 'id' => $grant->id,
                 'ends_at' => $grant->ends_at?->toAtomString(),
+                'plan_code' => $grant->plan?->code,
+                'mode' => ($grant->metadata['developer_mode'] ?? false) === true ? 'developer' : null,
             ],
             'grantBlockReason' => $supportAccess->grantBlockReason($ticket->user),
             'assignees' => User::query()->where('role', UserRole::SuperAdmin->value)
