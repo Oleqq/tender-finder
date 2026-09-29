@@ -8,6 +8,12 @@ are private Docker services with persistent volumes. A systemd timer creates a
 compressed PostgreSQL backup every day at 03:15 UTC and removes backups older
 than 30 days. The current backup directory is `/opt/tenderfinder/backups`.
 
+The release script creates the external dual-stack Docker bridge
+`tender-finder-egress-v6` when needed. `web`, `queue`, and `scheduler` join it
+alongside the private application network. This gives Telegram API calls an
+IPv6 route when the VPS IPv4 path to Telegram is unavailable. PostgreSQL and
+Redis remain on the private network and have no published ports.
+
 The technical production address is `https://200.165.238.247.sslip.io`. It is
 not a business domain and should be replaced before public promotion. The old
 VPS is retained unchanged and is not part of this deployment target.

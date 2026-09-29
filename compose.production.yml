@@ -45,6 +45,7 @@ services:
 
   web:
     <<: *application
+    networks: [default, telegram_egress]
     command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080", "--no-reload"]
     expose:
       - "8080"
@@ -57,10 +58,12 @@ services:
 
   queue:
     <<: *application
+    networks: [default, telegram_egress]
     command: ["php", "artisan", "queue:work", "redis", "--sleep=1", "--tries=3", "--max-time=3600"]
 
   scheduler:
     <<: *application
+    networks: [default, telegram_egress]
     command: ["php", "artisan", "schedule:work"]
 
   caddy:
@@ -84,6 +87,11 @@ services:
     profiles: ["ops"]
     restart: "no"
     command: ["php", "artisan", "migrate", "--force"]
+
+networks:
+  telegram_egress:
+    external: true
+    name: tender-finder-egress-v6
 
 volumes:
   caddy_data:
