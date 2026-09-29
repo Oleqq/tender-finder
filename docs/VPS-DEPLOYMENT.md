@@ -6,7 +6,7 @@ The production stack is one Docker Compose application: Caddy manages HTTPS;
 Laravel `web`, `queue`, and `scheduler` run separately; PostgreSQL and Redis
 are private Docker services with persistent volumes. A systemd timer creates a
 compressed PostgreSQL backup every day at 03:15 UTC and removes backups older
-than 30 days.
+than 30 days. The current backup directory is `/opt/tenderfinder/backups`.
 
 The technical production address is `https://200.165.238.247.sslip.io`. It is
 not a business domain and should be replaced before public promotion. The old
@@ -27,6 +27,25 @@ are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
 ## Latest verified release
+
+On 29 September 2026, commit `06c331b` was copied to the VPS as a tracked
+source archive and released through `deploy/vps-deploy.sh`. Both repositories'
+CI checks were green before the release. A fresh PostgreSQL backup was created
+and checked with `gzip -t`. The archive did not contain `.env.production`;
+the existing file was preserved with mode `600`. The forward-only migration
+`2026_09_29_120000_add_support_tickets` ran successfully, and
+`php artisan migrate:status` showed no pending migrations. The three support
+tables exist in PostgreSQL. `web`, `queue`, `scheduler`, PostgreSQL, Redis and
+Caddy were running, with zero container restarts and no recent application
+error lines. The external HTTPS `/health` returned `ok`; authenticated support
+routes were present. Real Telegram conversations still need closed beta
+acceptance.
+
+During this release, some new SSH and HTTPS connections from the new Mac timed
+out before the application handled a request. Subsequent external `/health`
+checks succeeded, and HTTPS checks from the VPS itself succeeded consistently.
+The cause of the intermittent external connection timeouts is not established;
+check reachability from a second network before expanding the beta.
 
 On 11 September 2026, commit `484fc98` was deployed through
 `deploy/vps-deploy.sh` without replacing `.env.production`. It adds the
@@ -50,8 +69,8 @@ checkouts.
 
 These items cannot be safely guessed or created by deployment code:
 
-1. A domain controlled by the business. `200.169.176.78.sslip.io` can be used
-   for a temporary technical check only; it is not a brand domain.
+1. A domain controlled by the business. `200.165.238.247.sslip.io` is the
+   current temporary technical address; it is not a brand domain.
 2. Approved XTR prices for Basic and Pro. The historic 990 ₽ / 2990 ₽ policy
    is not an exchange-rate instruction for Telegram Stars.
 3. Public offer and privacy-policy URLs/versions. The current product copy is

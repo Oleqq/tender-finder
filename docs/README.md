@@ -6,8 +6,12 @@
 | Документ | Назначение |
 |---|---|
 | [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус MVP, пользовательский путь и ближайшие этапы. |
+| [PROGRESS](PROGRESS.md) | Хронология этапов, фактические выпуски и оставшаяся приёмка. |
 | [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
-| [INTEGRATION-STATUS](INTEGRATION-STATUS.md) | Состав последней интеграции веток, границы локального релиза и путь к закрытой beta. |
+| [EXTERNAL-SOURCE-DISCOVERY](EXTERNAL-SOURCE-DISCOVERY.md) | Что проверено по Росэлторгу и РТС-Тендер и какие разрешения ещё нужны. |
+| [SUPPORT-WORKSPACE](SUPPORT-WORKSPACE.md) | Возможности поддержки, границы доступа и статус production-выпуска. |
+| [VPS-DEPLOYMENT](VPS-DEPLOYMENT.md) | Фактический VPS-релиз, резервные копии и проверки production. |
+| [INTEGRATION-STATUS](INTEGRATION-STATUS.md) | Архивный снимок интеграции веток от 2 сентября; не текущий статус. |
 | [NEW-DEVELOPER](NEW-DEVELOPER.md) | Быстрое введение нового разработчика: границы, код и команды. |
 | [LOCAL-RUNTIME](LOCAL-RUNTIME.md) | Запуск Docker и проверка мониторинга RosTender. |
 | [LOCAL-TELEGRAM-BOT](LOCAL-TELEGRAM-BOT.md) | Локальная проверка Laravel Telegram webhook, очереди и Mini App. |
@@ -16,7 +20,7 @@
 | [PARTICIPATION-AND-CALENDAR](PARTICIPATION-AND-CALENDAR.md) | Участие, чек-листы, календарь, экспорт и проверка. |
 | [TEAM-WORKSPACES](TEAM-WORKSPACES.md) | Команды, роли, ответственные, шаблоны и напоминания по задачам. |
 | [DATABASE](DATABASE.md) | Схема данных и правила хранения. |
-| [DEPLOYMENT](DEPLOYMENT.md) | Чек-лист будущего VPS cutover. |
+| [DEPLOYMENT](DEPLOYMENT.md) | Исторический чек-лист VPS cutover; текущий порядок — в VPS-DEPLOYMENT. |
 | [DESIGN-SYSTEM](DESIGN-SYSTEM.md) | Компоненты и правила UI. |
 | [ADMIN-DASHBOARD](ADMIN-DASHBOARD.md) | Границы, формулы и проверка закрытой маркетинговой админки. |
 | [LEGAL-DRAFTS](LEGAL-DRAFTS.md) | Материал для юридической проверки, не публичные документы. |

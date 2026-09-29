@@ -22,6 +22,8 @@ runtime нет: RSS-поиск, HTML/XML-парсеры, фоновые jobs и 
 - `app/Telegram/`, `TelegramIdentityService`, `TelegramBotClient` — Mini App и
   Bot API.
 - `resources/js/Pages/MyQueries.tsx` и `Tenders.tsx` — мониторинги и лента.
+- `app/Services/SupportTicketService.php` и `resources/js/Pages/Support.tsx` —
+  обращения; доступ администратора проверяется сервером.
 - `tests/Feature/` — основной контракт поведения.
 
 Таблицы прежнего источника не удаляются: они могут содержать исторические
