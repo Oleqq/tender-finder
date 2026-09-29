@@ -24,11 +24,16 @@ type NotificationDelivery = {
 type ProfilePageProps = PageProps<{
     notificationPreferences: NotificationPreferences;
     notificationDeliveries: NotificationDelivery[];
+    openSupportTickets: number | null;
 }>;
 
 export default function Profile() {
-    const { auth, notificationPreferences, notificationDeliveries } =
-        usePage<ProfilePageProps>().props;
+    const {
+        auth,
+        notificationPreferences,
+        notificationDeliveries,
+        openSupportTickets,
+    } = usePage<ProfilePageProps>().props;
     const [preferences, setPreferences] = useState(notificationPreferences);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
@@ -78,6 +83,32 @@ export default function Profile() {
                         <p>Роль и доступ подтверждаются серверной сессией.</p>
                     </div>
                 </section>
+
+                <GlassCard className="profile-support-entry page-enter page-enter--delay">
+                    <div>
+                        <strong>Нужна помощь?</strong>
+                        <p>
+                            Напишите нам прямо здесь и следите за ответом в приложении.
+                        </p>
+                    </div>
+                    <Link className="profile-support-entry__link" href="/support">
+                        Мои обращения <Icon name="chevron-right" size={17} />
+                    </Link>
+                    {isSuperAdmin && openSupportTickets !== null ? (
+                        <Link
+                            className="profile-support-entry__link"
+                            href="/support/admin"
+                        >
+                            Центр поддержки
+                            <Badge
+                                tone={openSupportTickets > 0 ? 'warning' : 'neutral'}
+                            >
+                                Новых: {openSupportTickets}
+                            </Badge>
+                            <Icon name="chevron-right" size={17} />
+                        </Link>
+                    ) : null}
+                </GlassCard>
 
                 <section className="profile-section page-enter page-enter--later">
                     <div className="section-heading">
@@ -266,17 +297,10 @@ export default function Profile() {
                                     Открыть аналитику{' '}
                                     <Icon name="chevron-right" size={16} />
                                 </Link>
-                                <Link href="/support/admin">
-                                    Обращения пользователей{' '}
-                                    <Icon name="chevron-right" size={16} />
-                                </Link>
                             </div>
                         </GlassCard>
                     </details>
                 ) : null}
-                <Link className="profile-plans-link" href="/support">
-                    Поддержка <Icon name="chevron-right" size={17} />
-                </Link>
                 <Link className="profile-plans-link" href="/plans">
                     Подробнее о доступе <Icon name="chevron-right" size={17} />
                 </Link>

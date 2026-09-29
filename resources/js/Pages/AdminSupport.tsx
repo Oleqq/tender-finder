@@ -1,6 +1,6 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
-import { Badge, GlassCard } from '../Components/ui';
+import { Badge, Button, GlassCard } from '../Components/ui';
 import {
     categoryLabel,
     statusLabel,
@@ -33,7 +33,7 @@ export default function AdminSupport() {
                 wide
             >
                 <div className="space-y-4">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {(
                             [
                                 [null, 'Все'],
@@ -57,12 +57,22 @@ export default function AdminSupport() {
                                 {label}
                             </Link>
                         ))}
+                        <Button
+                            className="ml-auto"
+                            onClick={() => router.reload({ only: ['tickets'] })}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            Обновить
+                        </Button>
                     </div>
                     {tickets.data.length === 0 ? (
-                        <GlassCard>Обращений с таким статусом нет.</GlassCard>
+                        <GlassCard className="p-4 sm:p-5">
+                            Обращений с таким статусом нет.
+                        </GlassCard>
                     ) : null}
                     {tickets.data.map((ticket) => (
-                        <GlassCard key={ticket.id}>
+                        <GlassCard className="p-4 sm:p-5" key={ticket.id}>
                             <Link
                                 className="block space-y-2"
                                 href={`/support/admin/${ticket.id}`}
@@ -74,12 +84,14 @@ export default function AdminSupport() {
                                     <Badge>{statusLabel[ticket.status]}</Badge>
                                 </div>
                                 <p>Пользователь #{ticket.user_id}</p>
-                                <small>
+                                <small className="block">
                                     Ответственный:{' '}
                                     {ticket.assignee_id === null
                                         ? 'не назначен'
-                                        : `#${ticket.assignee_id}`}{' '}
-                                    · Обновлено {supportDate(ticket.updated_at)}
+                                        : `#${ticket.assignee_id}`}
+                                </small>
+                                <small className="block">
+                                    Обновлено {supportDate(ticket.updated_at)}
                                 </small>
                             </Link>
                         </GlassCard>

@@ -74,6 +74,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('super_admin')->name('support.admin.update');
     Route::post('/support/admin/{ticket}/reply', [AdminSupportController::class, 'reply'])
         ->middleware(['super_admin', 'throttle:10,1'])->name('support.admin.reply');
+    Route::post('/support/admin/{ticket}/access', [AdminSupportController::class, 'grantAccess'])
+        ->middleware(['super_admin', 'throttle:5,1'])->name('support.admin.access.grant');
+    Route::delete('/support/admin/{ticket}/access', [AdminSupportController::class, 'revokeAccess'])
+        ->middleware(['super_admin', 'throttle:5,1'])->name('support.admin.access.revoke');
     Route::get('/support', [SupportTicketController::class, 'index'])->name('support.index');
     Route::post('/support', [SupportTicketController::class, 'store'])
         ->middleware('throttle:5,60')->name('support.store');

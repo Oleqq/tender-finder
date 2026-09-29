@@ -595,6 +595,12 @@ input:focus-visible {
 .profile-help { display: flex; gap: 9px; margin-top: var(--space-5); padding: 0 4px; color: var(--tf-faint); font-size: 11px; line-height: 1.38; }
 .profile-help svg { flex: 0 0 auto; color: var(--tf-teal); }
 .profile-help p { margin: 0; }
+.profile-support-entry { display: grid; gap: var(--space-3); margin-top: var(--space-4); padding: var(--space-4); }
+.profile-support-entry > div > strong { display: block; font-size: 14px; }
+.profile-support-entry > div > p { margin: 4px 0 0; color: var(--app-muted); font-size: 12px; line-height: 1.45; }
+.profile-support-entry__link { display: flex; min-height: 46px; align-items: center; justify-content: space-between; gap: var(--space-3); border-top: 1px solid var(--tf-line); padding-top: var(--space-3); color: var(--tf-accent-deep); font-size: 13px; font-weight: 720; }
+.profile-support-entry__link > svg { flex: 0 0 auto; }
+.profile-support-entry__link > .badge { margin-left: auto; }
 .profile-plans-link { display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 3px; color: var(--tf-accent-deep); font-size: 12px; font-weight: 720; }
 .profile-admin { margin-top: var(--space-6); }
 .profile-admin > summary { display: inline-flex; min-height: 40px; align-items: center; gap: 7px; cursor: pointer; color: var(--tf-accent-deep); font-size: 12px; font-weight: 720; }

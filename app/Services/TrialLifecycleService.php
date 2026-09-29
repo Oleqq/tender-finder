@@ -3,19 +3,17 @@
 namespace App\Services;
 
 use App\Enums\NotificationStatus;
-use App\Enums\QueryStatus;
 use App\Enums\SubscriptionSource;
 use App\Enums\SubscriptionStatus;
 use App\Jobs\DeliverTelegramNotification;
 use App\Models\Entitlement;
 use App\Models\NotificationDelivery;
-use App\Models\SearchQuery;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class TrialLifecycleService
 {
-    public function __construct(private readonly AccessService $access) {}
+    public function __construct(private readonly AccessFreezeService $freeze) {}
 
     public function processDue(): void
     {
@@ -44,7 +42,7 @@ class TrialLifecycleService
                 $entitlement === null
                 || $entitlement->status !== SubscriptionStatus::Active
                 || $entitlement->ends_at === null
-                || $entitlement->subscription?->source !== SubscriptionSource::Trial
+                || ! in_array($entitlement->subscription?->source, [SubscriptionSource::Trial, SubscriptionSource::AdminGrant], true)
             ) {
                 return;
             }
@@ -52,6 +50,10 @@ class TrialLifecycleService
             if ($entitlement->ends_at->lte($now)) {
                 $this->expire($entitlement, $now);
 
+                return;
+            }
+
+            if ($entitlement->subscription->source === SubscriptionSource::AdminGrant) {
                 return;
             }
 
@@ -70,27 +72,7 @@ class TrialLifecycleService
 
         $user = $entitlement->user()->firstOrFail();
 
-        if ($this->access->hasActiveAccess($user)) {
-            return;
-        }
-
-        SearchQuery::query()
-            ->where('user_id', $user->id)
-            ->where('status', QueryStatus::Active)
-            ->update([
-                'status' => QueryStatus::Frozen->value,
-                'frozen_at' => $now,
-                'updated_at' => $now,
-            ]);
-
-        NotificationDelivery::query()
-            ->where('user_id', $user->id)
-            ->where('status', NotificationStatus::Queued)
-            ->update([
-                'status' => NotificationStatus::Skipped->value,
-                'failure_code' => 'access_expired',
-                'updated_at' => $now,
-            ]);
+        $this->freeze->freezeIfInactive($user, $now);
     }
 
     private function queueReminder(Entitlement $entitlement, int $hoursRemaining, Carbon $now): void

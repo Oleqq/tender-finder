@@ -32,7 +32,7 @@ export default function Support() {
                         Не добавляйте пароли, токены, поисковые фразы и содержимое
                         тендеров. Укажите, что не работает и когда вы это заметили.
                     </InlineAlert>
-                    <GlassCard>
+                    <GlassCard className="p-4 sm:p-5">
                         <h2 className="text-lg font-semibold">Новое обращение</h2>
                         <form className="mt-4 space-y-4" onSubmit={submit}>
                             <label className="form-field">
@@ -82,7 +82,7 @@ export default function Support() {
                         <h2 className="text-lg font-semibold">Мои обращения</h2>
                         {tickets.length === 0 ? <p>Пока нет обращений.</p> : null}
                         {tickets.map((ticket) => (
-                            <GlassCard key={ticket.id}>
+                            <GlassCard className="p-4 sm:p-5" key={ticket.id}>
                                 <Link
                                     className="block space-y-2"
                                     href={`/support/${ticket.id}`}

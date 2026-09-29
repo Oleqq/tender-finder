@@ -111,7 +111,7 @@ local-запись и подтверждённый Telegram-вход време�
 этих таблицах хранит только небольшой набор limits/metadata; ключевые связи
 остаются нормальными foreign keys.
 
-Когда срок trial проходит, lifecycle‑задача помечает его subscription и
+Когда срок trial или ручного `admin_grant` проходит, lifecycle‑задача помечает его subscription и
 entitlement как `expired`, меняет активные `search_queries` на `frozen` и
 помечает ожидающие `notification_deliveries` как `skipped`. Ничего не
 удаляется физически: это сохраняет объяснимую историю и не даёт повторной
@@ -163,7 +163,16 @@ fail-safe не допускает запуск suite на постоянной d
 |---|---|---|
 | `support_tickets` | пользователь, тема, статус, ответственный | пользователь читает только свои записи; администратор — очередь |
 | `support_ticket_messages` | сообщения пользователя и поддержки | принадлежность обращению проверяется перед чтением и ответом |
-| `support_ticket_events` | создание, ответы и изменения статуса/ответственного с причиной | служебный журнал доступен только `super_admin`; ручное изменение доступа не реализовано |
+| `support_ticket_events` | создание, ответы, изменения workflow и ручного доступа с причиной, entitlement, тарифом и исходным сроком | служебный журнал доступен только `super_admin`; выдача/отзыв и событие записываются атомарно |
+
+Ручная выдача создаёт отдельные `subscriptions` и `entitlements` с source
+`admin_grant` и тарифом Basic на 1–7 дней. Действующие согласия обязательны;
+активный trial или платный доступ не перезаписываются. Отзыв отменяет только
+выданный вручную entitlement, а журнал сохраняет исходный срок. Ручной период
+не заполняет `users.trial_used_at` и не лишает пользователя права на первый
+trial. Миграция
+`2026_09_29_150000_add_support_access_audit` расширяет существующую таблицу
+событий nullable-полями без изменения прежних строк.
 
 Права на эти строки выводятся из владельца личной заявки либо активного
 членства и роли в команде. Архив команды оставляет данные доступными для чтения
@@ -176,7 +185,7 @@ fail-safe не допускает запуск suite на постоянной d
 |---|---|---|
 | role | `subscriber`, `super_admin` | только verified Telegram identity service |
 | access | `preview`, `trialing`, `active`, `expired`, `cancelled` | AccessService на основе entitlement и времени |
-| subscription/entitlement | `active`, `expired`, `cancelled` | Trial/будущий billing domain |
+| subscription/entitlement | `active`, `expired`, `cancelled` | Trial, support grant и billing domain |
 | query | `active`, `paused`, `frozen`, `deleted` | authenticated query service |
 | local MVP tender state | `new`, `favorite`, `potential`, `dismissed`, `archived` | исторические технические карточки доступны без обновления источника |
 | marketing admin analytics | подтверждённая аудитория, регистрации/входы/trial/Stars за 7/30/90 дней, `preview`, `trialing`, `paid`, `granted`, `expired` | read-only aggregate только для `super_admin`; строится из существующих дат и актуального entitlement, без Telegram ID, иных персональных данных или новых таблиц событий |

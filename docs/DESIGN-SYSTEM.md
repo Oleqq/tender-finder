@@ -49,7 +49,7 @@ safe-area, touch targets и reduced-motion. Новые элементы испо
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
 | Tender UI | мониторинги RosTender, объяснимые совпадения, рабочая лента, сравнение, personal states, участие, задачи, документы, календарь и приватная ICS-подписка; прежние карточки ЕИС показаны только как архив | закрытая beta-приёмка реальной Telegram-доставки |
 | Access | server-calculated access status, access explanation and entry points to the available workspace | Stars invoice state and subscription management after the commercial flow is approved |
-| Admin | role-aware shell variant, server-guarded read-only агрегаты, period switcher, funnel, growth chart и access distribution | user drawer, campaigns, audit и технический Live Ops остаются вне MVP |
+| Admin | role-aware shell variant, server-guarded read-only агрегаты, period switcher, funnel, growth chart и access distribution; центр поддержки с очередью, ответами, безопасной диагностикой и журналом ручного доступа | user drawer, campaigns и технический Live Ops остаются вне MVP |
 
 «Готово» означает работающий переиспользуемый React-компонент; строка
 «backlog» не считается сделанной до API, states и тестов. Сначала создаются
@@ -105,6 +105,12 @@ production остаётся доступным только после пров�
 мониторинг через Laravel, а `/tenders` показывает только серверные совпадения
 конкретного пользователя. До VPS/Telegram smoke-test они проверяются локально,
 но интерфейс не подменяет отсутствующие данные интерактивными образцами.
+
+Центр поддержки использует те же surface, spacing и статусные компоненты, что
+и пользовательский путь. Вход расположен сразу после имени в профиле, а
+рабочая карточка на широком экране делится на переписку и действия оператора.
+Результаты отдельной ручной проверки 390/1280 px —
+[SUPPORT-UI-QA](SUPPORT-UI-QA.md).
 
 ## Правило MVP-состояний
 

@@ -66,6 +66,10 @@ it('shows scoped safe diagnostics and records every support workflow change', fu
     $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
     $subscriber = User::factory()->create();
     $ticket = app(SupportTicketService::class)->create($owner, 'notifications', 'Сообщения перестали приходить после обеда.');
+    $this->actingAs($owner)->get('/profile')->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('openSupportTickets', null));
+    $this->actingAs($admin)->get('/profile')->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('openSupportTickets', 1));
     $query = SearchQuery::query()->create([
         'user_id' => $owner->id,
         'name' => 'Секретная поисковая фраза',

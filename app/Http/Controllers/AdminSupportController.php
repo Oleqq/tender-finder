@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\UserRole;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Services\SupportAccessService;
 use App\Services\SupportDiagnosticsService;
 use App\Services\SupportTicketPresenter;
 use App\Services\SupportTicketService;
@@ -33,11 +34,18 @@ class AdminSupportController extends Controller
         ]);
     }
 
-    public function show(SupportTicket $ticket, SupportTicketPresenter $presenter, SupportDiagnosticsService $diagnostics): Response
+    public function show(SupportTicket $ticket, SupportTicketPresenter $presenter, SupportDiagnosticsService $diagnostics, SupportAccessService $supportAccess): Response
     {
+        $grant = $supportAccess->activeGrantFor($ticket->user);
+
         return Inertia::render('AdminSupportTicket', [
             'ticket' => $presenter->detail($ticket, true),
             'diagnostics' => $diagnostics->forUser($ticket->user),
+            'manualGrant' => $grant === null ? null : [
+                'id' => $grant->id,
+                'ends_at' => $grant->ends_at?->toAtomString(),
+            ],
+            'grantBlockReason' => $supportAccess->grantBlockReason($ticket->user),
             'assignees' => User::query()->where('role', UserRole::SuperAdmin->value)
                 ->orderBy('id')->get(['id', 'name'])
                 ->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name])
@@ -67,6 +75,28 @@ class AdminSupportController extends Controller
     {
         $data = $request->validate(['body' => ['required', 'string', 'min:2', 'max:2000']]);
         $service->reply($ticket, $this->user($request), $data['body'], true);
+
+        return redirect()->route('support.admin.show', $ticket);
+    }
+
+    public function grantAccess(Request $request, SupportTicket $ticket, SupportAccessService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'days' => ['required', 'integer', 'between:1,7'],
+            'reason' => ['required', 'string', 'min:10', 'max:500'],
+        ]);
+        $service->grant($ticket, $this->user($request), (int) $data['days'], $data['reason']);
+
+        return redirect()->route('support.admin.show', $ticket);
+    }
+
+    public function revokeAccess(Request $request, SupportTicket $ticket, SupportAccessService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'min:10', 'max:500'],
+            'confirm' => ['required', 'accepted'],
+        ]);
+        $service->revoke($ticket, $this->user($request), $data['reason']);
 
         return redirect()->route('support.admin.show', $ticket);
     }

@@ -49,6 +49,9 @@ final class SupportTicketPresenter
                     'old_assignee_id' => $event->old_assignee_id,
                     'new_assignee_id' => $event->new_assignee_id,
                     'reason' => $event->reason,
+                    'access_entitlement_id' => $event->access_entitlement_id,
+                    'access_plan_code' => $event->access_plan_code,
+                    'access_ends_at' => $event->access_ends_at?->toAtomString(),
                     'created_at' => $event->created_at->toAtomString(),
                 ])->all();
         }

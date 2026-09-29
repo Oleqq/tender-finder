@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Models\NotificationPreference;
+use App\Models\SupportTicket;
+use App\Services\LocalMvpOperatorService;
 use App\Services\NotificationDeliveryPresenter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -10,7 +13,7 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
-    public function __invoke(Request $request, NotificationDeliveryPresenter $deliveries): Response
+    public function __invoke(Request $request, NotificationDeliveryPresenter $deliveries, LocalMvpOperatorService $operator): Response
     {
         $user = $request->user();
         abort_if($user === null, 401);
@@ -32,6 +35,9 @@ class ProfileController extends Controller
                 'timezone' => $preference->timezone,
             ],
             'notificationDeliveries' => $deliveries->recentFor($user),
+            'openSupportTickets' => $user->role === UserRole::SuperAdmin && $operator->canUseWorkspace($user)
+                ? SupportTicket::query()->where('status', 'open')->count()
+                : null,
         ]);
     }
 }

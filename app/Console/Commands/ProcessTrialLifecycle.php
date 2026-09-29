@@ -9,7 +9,7 @@ class ProcessTrialLifecycle extends Command
 {
     protected $signature = 'trials:process-lifecycle';
 
-    protected $description = 'Queue due trial reminders and expire ended trial access.';
+    protected $description = 'Queue trial reminders and expire ended trial or support-granted access.';
 
     public function handle(TrialLifecycleService $trials): int
     {

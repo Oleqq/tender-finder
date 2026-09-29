@@ -1,4 +1,4 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { type FormEvent } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Badge, Button, GlassCard } from '../Components/ui';
@@ -30,11 +30,27 @@ export default function SupportTicket() {
                 title={`Обращение #${ticket.id}`}
             >
                 <div className="space-y-4">
-                    <Badge>{statusLabel[ticket.status]}</Badge>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <Badge>{statusLabel[ticket.status]}</Badge>
+                        <Button
+                            onClick={() => router.reload({ only: ['ticket'] })}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            Проверить ответ
+                        </Button>
+                    </div>
+                    <p className="text-sm text-[var(--app-muted)]">
+                        Ответ поддержки появится в этой переписке. Вы можете добавить
+                        уточнение в любой момент.
+                    </p>
                     <ol className="space-y-3">
                         {ticket.messages.map((message) => (
                             <li key={message.id}>
-                                <GlassCard tone={message.is_staff ? 'accent' : 'quiet'}>
+                                <GlassCard
+                                    className="p-4 sm:p-5"
+                                    tone={message.is_staff ? 'accent' : 'quiet'}
+                                >
                                     <strong>
                                         {message.is_staff ? 'Поддержка' : 'Вы'}
                                     </strong>
@@ -46,7 +62,7 @@ export default function SupportTicket() {
                             </li>
                         ))}
                     </ol>
-                    <GlassCard>
+                    <GlassCard className="p-4 sm:p-5">
                         <form className="space-y-3" onSubmit={submit}>
                             <label className="form-field">
                                 <span>Ответить</span>

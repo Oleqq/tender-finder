@@ -14,6 +14,9 @@ use Illuminate\Support\Carbon;
  * @property int|null $old_assignee_id
  * @property int|null $new_assignee_id
  * @property string|null $reason
+ * @property int|null $access_entitlement_id
+ * @property string|null $access_plan_code
+ * @property Carbon|null $access_ends_at
  * @property Carbon $created_at
  */
 class SupportTicketEvent extends Model
@@ -22,11 +25,12 @@ class SupportTicketEvent extends Model
 
     protected $fillable = [
         'ticket_id', 'actor_id', 'action', 'old_status', 'new_status',
-        'old_assignee_id', 'new_assignee_id', 'reason', 'created_at',
+        'old_assignee_id', 'new_assignee_id', 'reason', 'access_entitlement_id',
+        'access_plan_code', 'access_ends_at', 'created_at',
     ];
 
     protected function casts(): array
     {
-        return ['created_at' => 'datetime'];
+        return ['created_at' => 'datetime', 'access_ends_at' => 'datetime'];
     }
 }

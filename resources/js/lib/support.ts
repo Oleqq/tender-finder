@@ -27,6 +27,9 @@ export type SupportTicketDetail = SupportTicketSummary & {
         old_assignee_id: number | null;
         new_assignee_id: number | null;
         reason: string | null;
+        access_entitlement_id: number | null;
+        access_plan_code: string | null;
+        access_ends_at: string | null;
         created_at: string;
     }>;
 };
