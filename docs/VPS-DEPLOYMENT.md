@@ -34,6 +34,18 @@ between Windows worktrees and the Linux VPS.
 
 ## Latest verified release
 
+Later on 30 September 2026, commit `5ce07c3` fixed the subscriber tender
+detail route found during the full UX flow check. Both repositories' CI
+passed. Backup `postgres-20260930T111310Z.sql.gz` passed `gzip -t`, and the
+new source archive checksum matched on the VPS. The standard deployment
+script built the images, reported `Nothing to migrate`, and restarted all
+six services. Web was healthy, PostgreSQL accepted connections, Redis returned
+`PONG`, migration status showed `Ran`, and `.env.production` remained `600`.
+The external HTTPS `/health` returned `ok`; a VPS-local request confirmed
+the public onboarding route and that the new tender detail route redirects
+unauthenticated visitors to onboarding. A matched card still needs visual
+acceptance from a real Telegram session.
+
 On 30 September 2026, commit `8a2e1ce` simplified the first-run workflow.
 CI passed in both repositories. Backup
 `postgres-20260930T104835Z.sql.gz` passed `gzip -t`, and the committed source
