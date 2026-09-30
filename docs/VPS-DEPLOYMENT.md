@@ -34,6 +34,22 @@ between Windows worktrees and the Linux VPS.
 
 ## Latest verified release
 
+On 30 September 2026, commit `57017c7` delivered the RosTender quota
+cooldown. Both repositories' CI passed. Backup
+`postgres-20260930T084130Z.sql.gz` passed `gzip -t`; the tracked source
+archive checksum matched on the VPS, and `.env.production` retained mode
+`600`. The standard `deploy/vps-deploy.sh` stopped during its `--pull` build
+because Docker Hub returned HTTP 429. No running service had been replaced.
+Official `linux/amd64` base images were downloaded on the Mac, transferred
+with a verified checksum, and loaded into the VPS cache. The script's build,
+migrate, start and prune steps were then executed without `--pull`; the
+migration step reported no pending migrations. Production smoke confirmed
+that a quota-exhausted RosTender poll left the successful-request counter at
+200, set the next poll to 1 October 00:05 Moscow time, and did not dispatch
+the cooled-down feed again. External HTTPS `/health`, all Compose services,
+PostgreSQL, Redis and `php artisan migrate:status` passed. The real Telegram
+Mini App and next-day quota recovery remain closed beta checks.
+
 On 29 September 2026, commit `ad2d42d` delivered audited permanent Pro grants
 and Telegram notices for manual access changes. Commit `17bb334` then added a
 dual-stack Docker egress network because the VPS IPv4 path to Telegram timed
