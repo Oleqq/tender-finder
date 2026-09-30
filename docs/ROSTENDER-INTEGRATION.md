@@ -43,6 +43,16 @@ The implementation intentionally performs only page 1 for a shared saved
 template. It does not create arbitrary user search requests, scrape HTML, use
 proxies, weaken TLS, or poll on page loads/text input.
 
+The personal feed's phrase action creates a user monitoring attached to the
+single active saved template. It matches already imported, still-open cards
+immediately and dispatches a due poll only when normal quota is available.
+Typing a phrase never calls a free-text RosTender endpoint. If multiple
+templates are active, the user must choose one in the monitoring wizard.
+During quota exhaustion that wizard can reuse an already connected template
+without another API call. Detail cards fetched before a mid-batch quota
+failure are persisted and matched, while the source run still records the
+failure and cooldown. See [TENDER-SEARCH-UX-QA](TENDER-SEARCH-UX-QA.md).
+
 ## Shared-template and quota model
 
 `source_feeds` now supports `source=rostender` and a `source_identifier`

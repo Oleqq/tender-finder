@@ -52,7 +52,9 @@ final class MonitoringStatusService
         $failure = SourceRun::query()->where('source_feed_id', $feed->id)->where('status', 'failed')->latest('finished_at')->first();
         $lastSuccessAt = $success?->finished_at;
         $lastFailureAt = $failure?->finished_at;
-        $hasCurrentFailure = $lastFailureAt !== null && ($lastSuccessAt === null || $lastFailureAt->gt($lastSuccessAt));
+        $hasCurrentFailure = $lastFailureAt !== null && ($lastSuccessAt === null
+            || $lastFailureAt->gt($lastSuccessAt)
+            || ($lastFailureAt->equalTo($lastSuccessAt) && $failure->id > $success->id));
         $waitingForQueue = ! $hasCurrentFailure
             && $feed->last_attempt_at !== null
             && ($lastSuccessAt === null || $feed->last_attempt_at->gt($lastSuccessAt));
@@ -83,7 +85,7 @@ final class MonitoringStatusService
     private function failureMessage(string $source, ?string $code): string
     {
         if ($code === 'quota_exhausted') {
-            return 'Суточный лимит RosTender исчерпан. Следующая попытка запланирована после обновления лимита.';
+            return 'Суточный лимит RosTender исчерпан.';
         }
 
         if ($code === 'tls_failed') {

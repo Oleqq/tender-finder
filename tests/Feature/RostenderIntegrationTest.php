@@ -350,6 +350,41 @@ it('imports new detail cards once and scopes matching to monitorings linked to t
     Http::assertNotSent(fn (Request $request): bool => str_ends_with($request->url(), '/1001'));
 });
 
+it('keeps fetched detail cards when the API quota ends partway through a poll', function () {
+    Queue::fake();
+    config()->set('tender.rostender.daily_quota_limit', 3);
+    config()->set('tender.rostender.daily_quota_reserve', 1);
+    $feed = SourceFeed::query()->create([
+        'source' => 'rostender',
+        'source_identifier' => 42,
+        'canonical_url' => 'https://rostender.info/api/tenders/get/template/42',
+        'url_hash' => hash('sha256', 'rostender:template:42'),
+        'status' => 'active',
+        'poll_interval_seconds' => 3600,
+    ]);
+    Http::fake([
+        'https://rostender.info/api/tenders/get/template/42*' => Http::response([
+            'success' => true,
+            'data' => [['id' => 1001], ['id' => 1002]],
+            '_meta' => ['totalCount' => 2, 'pageCount' => 1],
+        ]),
+        'https://rostender.info/api/tenders/get/1001' => Http::response(rostenderDetail(1001)),
+    ]);
+
+    (new PollRostenderTemplate($feed->id))->handle(
+        app(RostenderApiClient::class),
+        app(TenderSourceImportService::class),
+        app(RostenderQuotaGuard::class),
+    );
+
+    expect(Tender::query()->where('source', 'rostender')->pluck('external_id')->all())->toBe(['1001'])
+        ->and($feed->fresh()->last_success_at)->toBeNull()
+        ->and($feed->fresh()->last_error_code)->toBe('quota_exhausted')
+        ->and(SourceRun::query()->where('source_feed_id', $feed->id)->where('status', 'succeeded')->count())->toBe(1)
+        ->and(SourceRun::query()->where('source_feed_id', $feed->id)->where('status', 'failed')->count())->toBe(1);
+    Http::assertSentCount(2);
+});
+
 /** @return array{success: bool, data: array<string, mixed>} */
 function rostenderDetail(int $id): array
 {

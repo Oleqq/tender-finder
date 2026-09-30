@@ -15,6 +15,7 @@ import {
     EmptyState,
     FilterChip,
     GlassCard,
+    InlineAlert,
     SearchInput,
     SelectField,
 } from '../Components/ui';
@@ -145,6 +146,14 @@ type TendersPageProps = PageProps<
         workflowSettings?: WorkflowSettings;
         routingRules?: RoutingRule[];
         canManageWorkflow?: boolean;
+        monitoringStatus?: {
+            state: 'ok' | 'empty' | 'error' | 'queued' | 'paused' | 'pending';
+            message: string;
+            last_success_at: string | null;
+            next_attempt_at: string | null;
+        } | null;
+        monitoringName?: string | null;
+        searchStarted?: boolean;
     }
 >;
 
@@ -200,8 +209,13 @@ export default function Tenders() {
         workflowSettings,
         routingRules = [],
         canManageWorkflow = false,
+        monitoringStatus = null,
+        monitoringName = null,
+        searchStarted = false,
     } = usePage<TendersPageProps>().props;
-    const [search, setSearch] = useState(filters.q);
+    const [search, setSearch] = useState(filters.q || monitoringName || '');
+    const [searchBusy, setSearchBusy] = useState(false);
+    const [searchError, setSearchError] = useState('');
     const [savedViews, setSavedViews] = useState(initialViews);
     const [viewName, setViewName] = useState('');
     const [savingView, setSavingView] = useState(false);
@@ -228,7 +242,43 @@ export default function Tenders() {
 
     const submitSearch = (event: FormEvent): void => {
         event.preventDefault();
-        visit({ q: search });
+        if (team) {
+            visit({ q: search });
+        } else {
+            void startMonitoring();
+        }
+    };
+
+    const startMonitoring = async (): Promise<void> => {
+        const phrase = search.trim();
+        if (phrase.length < 2 || searchBusy) return;
+        setSearchBusy(true);
+        setSearchError('');
+        try {
+            const response = await window.axios.post<{ query: { id: number } }>(
+                '/queries/quick',
+                { phrase },
+            );
+            router.visit(`/tenders?query_id=${response.data.query.id}&started=1`);
+        } catch (failure) {
+            const response = (
+                failure as {
+                    response?: {
+                        data?: { message?: string; errors?: Record<string, string[]> };
+                    };
+                }
+            ).response;
+            const message = Object.values(response?.data?.errors ?? {})
+                .flat()
+                .find((item) => item.trim() !== '');
+            setSearchError(
+                message ||
+                    response?.data?.message?.trim() ||
+                    'Поиск не включился. Попробуйте ещё раз.',
+            );
+        } finally {
+            setSearchBusy(false);
+        }
     };
 
     const saveView = async (event: FormEvent): Promise<void> => {
@@ -282,6 +332,15 @@ export default function Tenders() {
             filters.sort !== 'matched_desc' ||
             filters.overdue,
     );
+    const hasExplicitFilters = Boolean(
+        filters.q ||
+            filters.status !== 'all' ||
+            filters.tag ||
+            filters.assignee_id ||
+            filters.source !== 'all' ||
+            filters.sort !== 'matched_desc' ||
+            filters.overdue,
+    );
 
     const bulkUpdate = async (): Promise<void> => {
         if (!team || selected.length === 0) return;
@@ -312,7 +371,16 @@ export default function Tenders() {
     };
 
     const visibleStatusOptions = team ? teamStatusOptions : statusOptions;
-    const isEmptyPersonalFeed = !team && tenderMatches.total === 0 && !hasFilters;
+    const isEmptyPersonalFeed =
+        !team &&
+        tenderMatches.total === 0 &&
+        !(
+            filters.q ||
+            filters.status !== 'all' ||
+            filters.tag ||
+            filters.source !== 'all' ||
+            filters.sort !== 'matched_desc'
+        );
     const hasMonitoring = filterOptions.queries.length > 0;
 
     if (isEmptyPersonalFeed) {
@@ -332,21 +400,51 @@ export default function Tenders() {
                         <h2>
                             {hasMonitoring
                                 ? 'Пока нет совпадений'
-                                : 'Сначала настройте поиск'}
+                                : 'Найдите тендеры по теме'}
                         </h2>
                         <p>
                             {hasMonitoring
-                                ? 'Откройте мониторинг, чтобы проверить состояние источника и время следующей попытки. Подходящие закупки появятся здесь.'
-                                : 'Создайте мониторинг: укажите нужные закупки и выберите доступный источник. Здесь появятся совпадения и причины, по которым они вам подходят.'}
+                                ? 'Введите новую тему или проверьте состояние автоматического поиска.'
+                                : 'Введите тему. Мы включим мониторинг, покажем подходящие тендеры в вашей ленте и будем проверять новые поступления.'}
                         </p>
-                        <Link
-                            className="button button--primary button--md"
-                            href="/queries"
+                        <SourceHealthNotice
+                            name={monitoringName}
+                            started={searchStarted}
+                            status={monitoringStatus}
+                        />
+                        <form
+                            className="tenders-first-run__search"
+                            onSubmit={submitSearch}
                         >
-                            {hasMonitoring
-                                ? 'Проверить мониторинг'
-                                : 'Создать мониторинг'}
-                        </Link>
+                            <SearchInput
+                                aria-label="Тема тендеров"
+                                onChange={(event) => setSearch(event.target.value)}
+                                placeholder="Например, разработка сайта"
+                                value={search}
+                            />
+                            <Button
+                                disabled={searchBusy || search.trim().length < 2}
+                                type="submit"
+                            >
+                                {searchBusy ? 'Включаем поиск…' : 'Найти тендеры'}
+                            </Button>
+                        </form>
+                        {searchError ? (
+                            <InlineAlert title="Поиск не запущен" tone="warning">
+                                {searchError}{' '}
+                                <Link href="/support">Написать в поддержку →</Link>
+                            </InlineAlert>
+                        ) : null}
+                        {!monitoringStatus && !searchError ? (
+                            <Link
+                                className="tenders-first-run__secondary"
+                                href="/queries"
+                            >
+                                {hasMonitoring
+                                    ? 'Состояние мониторинга →'
+                                    : 'Настроить мониторинг →'}
+                            </Link>
+                        ) : null}
                     </section>
                 </AppShell>
             </>
@@ -362,8 +460,12 @@ export default function Tenders() {
                 eyebrow={team ? 'Командный поток' : 'Мой поток'}
                 title={team ? `Лента · ${team.name}` : 'Тендеры'}
             >
-                <TenderWorkNav active="/tenders" />
-                <WorkspacePicker path="/tenders" />
+                {team ? (
+                    <>
+                        <TenderWorkNav active="/tenders" />
+                        <WorkspacePicker path="/tenders" />
+                    </>
+                ) : null}
                 {team ? (
                     <>
                         <TeamMonitoringPanel
@@ -403,48 +505,86 @@ export default function Tenders() {
                                   ' в потоке'}
                         </strong>
                     </div>
-                    {hasFilters ? <Badge tone="accent">Фильтр</Badge> : null}
+                    {hasExplicitFilters ? <Badge tone="accent">Фильтр</Badge> : null}
                 </GlassCard>
+
+                {!team ? (
+                    <SourceHealthNotice
+                        name={monitoringName}
+                        started={searchStarted}
+                        status={monitoringStatus}
+                    />
+                ) : null}
 
                 <GlassCard className="tender-feed-controls page-enter page-enter--delay">
                     <form className="tender-feed-search" onSubmit={submitSearch}>
                         <SearchInput
-                            aria-label="Поиск по ленте"
+                            aria-label={team ? 'Поиск по ленте' : 'Поиск тендеров'}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Название, заказчик или номер закупки"
+                            placeholder={
+                                team
+                                    ? 'Название, заказчик или номер закупки'
+                                    : 'Например, разработка сайта'
+                            }
                             value={search}
                         />
-                        <Button size="sm" type="submit">
-                            Найти
+                        <Button
+                            disabled={!team && (searchBusy || search.trim().length < 2)}
+                            size="sm"
+                            type="submit"
+                        >
+                            {team
+                                ? 'Фильтровать'
+                                : searchBusy
+                                  ? 'Включаем…'
+                                  : 'Найти тендеры'}
                         </Button>
                     </form>
-
-                    <div aria-label="Личный статус" className="tender-feed-statuses">
-                        {visibleStatusOptions.map((option) => (
-                            <FilterChip
-                                active={filters.status === option.value}
-                                key={option.value}
-                                onClick={() => visit({ status: option.value })}
-                            >
-                                {option.label}
-                            </FilterChip>
-                        ))}
-                    </div>
-                    {team ? (
-                        <FilterChip
-                            active={Boolean(filters.overdue)}
-                            onClick={() => visit({ overdue: !filters.overdue })}
-                        >
-                            Просроченные SLA
-                        </FilterChip>
+                    {!team && !monitoringName ? (
+                        <p className="tender-feed-search-hint">
+                            Поиск создаёт личный мониторинг: подходящие карточки
+                            появляются в ленте, новые проверяются автоматически.
+                        </p>
+                    ) : null}
+                    {searchError ? (
+                        <InlineAlert title="Поиск не запущен" tone="warning">
+                            {searchError}{' '}
+                            <Link href="/support">Написать в поддержку →</Link>
+                        </InlineAlert>
                     ) : null}
 
-                    <details className="tender-feed-advanced" open={hasFilters}>
+                    <details className="tender-feed-advanced" open={hasExplicitFilters}>
                         <summary>
-                            <span>Фильтры и представления</span>
-                            {hasFilters ? <Badge tone="accent">Настроены</Badge> : null}
+                            <span>Фильтры и отметки</span>
+                            {hasExplicitFilters ? (
+                                <Badge tone="accent">Настроены</Badge>
+                            ) : null}
                         </summary>
                         <div className="tender-feed-advanced__content">
+                            <div
+                                aria-label="Статус тендера"
+                                className="tender-feed-statuses"
+                            >
+                                {visibleStatusOptions.map((option) => (
+                                    <FilterChip
+                                        active={filters.status === option.value}
+                                        key={option.value}
+                                        onClick={() => visit({ status: option.value })}
+                                    >
+                                        {option.label}
+                                    </FilterChip>
+                                ))}
+                                {team ? (
+                                    <FilterChip
+                                        active={Boolean(filters.overdue)}
+                                        onClick={() =>
+                                            visit({ overdue: !filters.overdue })
+                                        }
+                                    >
+                                        Просроченные SLA
+                                    </FilterChip>
+                                ) : null}
+                            </div>
                             <div
                                 aria-label="Источник тендеров"
                                 className="tender-feed-sources"
@@ -802,6 +942,12 @@ export default function Tenders() {
                             : 'Фильтры и сортировка записаны в адрес страницы. Карточки принадлежат только вашей ленте и не являются рейтингом.'}
                     </p>
                 </section>
+                {!team ? (
+                    <div className="tender-feed-secondary-nav">
+                        <TenderWorkNav active="/tenders" />
+                        <WorkspacePicker path="/tenders" />
+                    </div>
+                ) : null}
             </AppShell>
         </>
     );
@@ -1898,6 +2044,53 @@ function cleanParams(filters: FeedFilters): Record<string, string | number> {
                 !(key === 'sort' && value === 'matched_desc'),
         ),
     ) as Record<string, string | number>;
+}
+
+function SourceHealthNotice({
+    name,
+    started,
+    status,
+}: {
+    name: string | null;
+    started: boolean;
+    status: TendersPageProps['monitoringStatus'];
+}) {
+    if (!status && !started) return null;
+
+    const delayed = status?.state === 'error';
+    const waiting = status?.state === 'queued' || status?.state === 'pending';
+    const title = delayed
+        ? started
+            ? 'Мониторинг включён, источник задержан'
+            : 'Источник задерживает новые тендеры'
+        : waiting
+          ? 'Поиск включён, ждём ответ источника'
+          : started
+            ? 'Автоматический поиск включён'
+            : 'Состояние мониторинга';
+
+    return (
+        <InlineAlert title={title} tone={delayed ? 'warning' : 'neutral'}>
+            {name ? `${name}. ` : ''}
+            {status?.message ?? 'Мониторинг сохранён; первая проверка запланирована.'}
+            {status?.last_success_at
+                ? ` Последний успешный ответ: ${formatDateTime(status.last_success_at)}.`
+                : ''}
+            {status?.next_attempt_at
+                ? ` Следующая попытка: ${formatDateTime(status.next_attempt_at)}.`
+                : ''}{' '}
+            <Link className="source-health-link" href="/queries">
+                Открыть мониторинг →
+            </Link>
+        </InlineAlert>
+    );
+}
+
+function formatDateTime(value: string): string {
+    return new Intl.DateTimeFormat('ru-RU', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(new Date(value));
 }
 
 function statusLabel(status: TenderStatus): string {

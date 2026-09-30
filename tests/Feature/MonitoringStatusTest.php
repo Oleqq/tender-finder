@@ -92,6 +92,19 @@ it('marks a quota cooldown as unavailable for manual retry in monitoring status'
         ->where('queries.0.source_statuses.0.next_attempt_at', now()->addDay()->toAtomString()));
 });
 
+it('shows a failure after a partial import in the same second', function () {
+    $user = User::factory()->create();
+    $query = monitoredQuery($user);
+    $feed = monitoredFeed();
+    RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+    app(TenderSourceImportService::class)->import($feed, new SourceFetchResult([], 1), 'rostender', false, false);
+    app(TenderSourceImportService::class)->fail($feed, 'quota_exhausted', 'rostender', now()->addDay());
+
+    $this->actingAs($user)->get('/queries')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('queries.0.source_statuses.0.state', 'error')
+        ->where('queries.0.source_statuses.0.manual_retry_blocked', true));
+});
+
 it('shows only the current users delivery statuses without payloads or foreign archived-team data', function () {
     $user = User::factory()->create();
     $other = User::factory()->create();

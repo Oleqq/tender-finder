@@ -11,6 +11,7 @@ use App\Models\Tender;
 use App\Models\TenderFeedView;
 use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
+use App\Services\MonitoringStatusService;
 use App\Services\TeamWorkflowService;
 use App\Services\TeamWorkspaceService;
 use App\Services\TenderFacts;
@@ -143,6 +144,15 @@ class TenderFeedController extends Controller
             ];
         });
 
+        $monitoring = SearchQuery::query()
+            ->where('user_id', $user->id)
+            ->where('status', '!=', QueryStatus::Deleted->value)
+            ->when($queryId !== null, fn (Builder $query) => $query->whereKey($queryId))
+            ->latest()
+            ->first();
+        $monitoringStatus = $monitoring === null ? null :
+            (app(MonitoringStatusService::class)->forQueries(collect([$monitoring]))[$monitoring->id][0] ?? null);
+
         return Inertia::render('Tenders', [
             'tenderMatches' => $paginator,
             'filters' => [
@@ -171,6 +181,9 @@ class TenderFeedController extends Controller
             'savedViews' => $user->tenderFeedViews()
                 ->latest()
                 ->get(['id', 'name', 'filters']),
+            'monitoringStatus' => $monitoringStatus,
+            'monitoringName' => $monitoring?->name,
+            'searchStarted' => $monitoring !== null && $queryId === $monitoring->id && $request->boolean('started'),
         ]);
     }
 

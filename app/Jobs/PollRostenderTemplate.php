@@ -43,6 +43,7 @@ class PollRostenderTemplate implements ShouldQueue
                 ->keyBy('external_id');
             $detailLimit = max(1, (int) config('tender.rostender.max_details_per_poll', 20));
             $details = [];
+            $detailFailure = null;
 
             foreach ($page->items as $item) {
                 $cachedTender = $cached->get((string) $item->id);
@@ -55,11 +56,24 @@ class PollRostenderTemplate implements ShouldQueue
                     break;
                 }
 
-                $details[] = $api->tender($item->id);
+                try {
+                    $details[] = $api->tender($item->id);
+                } catch (RostenderApiException $exception) {
+                    $detailFailure = $exception;
+                    break;
+                }
             }
 
             $queueNotifications = $feed->initialized_at !== null;
-            $importer->import($feed, new SourceFetchResult($details, $page->totalCount), 'rostender', false);
+            if ($details !== [] || $detailFailure === null) {
+                $importer->import(
+                    $feed,
+                    new SourceFetchResult($details, $detailFailure === null ? $page->totalCount : count($details)),
+                    'rostender',
+                    false,
+                    $detailFailure === null,
+                );
+            }
 
             foreach ($details as $detail) {
                 $tender = Tender::query()->where('source', 'rostender')->where('external_id', $detail->externalId)->first();
@@ -67,6 +81,9 @@ class PollRostenderTemplate implements ShouldQueue
                 if ($tender !== null) {
                     MatchRostenderTender::dispatch($tender->id, $feed->id, $queueNotifications);
                 }
+            }
+            if ($detailFailure !== null) {
+                throw $detailFailure;
             }
         } catch (RostenderQuotaExceededException $exception) {
             $importer->fail($feed, $exception->codeName, 'rostender', $quota->nextNormalAttemptAt($feed->poll_interval_seconds));

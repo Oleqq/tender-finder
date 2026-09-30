@@ -3,11 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\SearchQuery;
+use App\Models\SourceFeed;
 use App\Services\AccessService;
+use App\Services\CachedMonitoringMatchService;
 use App\Services\MonitoringPreviewService;
 use App\Services\MonitoringStatusService;
 use App\Services\QueryAccessDeniedException;
 use App\Services\QueryLimitReachedException;
+use App\Services\RostenderAccessGate;
+use App\Services\RostenderPollingDispatcher;
+use App\Services\RostenderQuotaGuard;
 use App\Services\RostenderTemplateCatalog;
 use App\Services\SearchQueryPresenter;
 use App\Services\SearchQueryService;
@@ -88,7 +93,95 @@ class SearchQueryController extends Controller
             ]);
         }
 
-        return response()->json(['query' => $this->presenter->toArray($query)], 201);
+        $cachedMatches = app(CachedMonitoringMatchService::class)->fill($query);
+
+        return response()->json([
+            'query' => $this->presenter->toArray($query),
+            'cached_matches' => $cachedMatches,
+        ], 201);
+    }
+
+    public function quick(Request $request, SearchQueryService $queries): JsonResponse
+    {
+        $data = $request->validate([
+            'phrase' => ['required', 'string', 'min:2', 'max:120'],
+        ]);
+        $phrase = trim($data['phrase']);
+        if (mb_strlen($phrase) < 2) {
+            throw ValidationException::withMessages(['phrase' => 'Введите хотя бы два символа.']);
+        }
+        if (! app(AccessService::class)->hasActiveAccess($request->user())) {
+            throw ValidationException::withMessages([
+                'monitoring' => 'Для запуска поиска нужен активный доступ. Проверьте тариф в профиле.',
+            ]);
+        }
+        if (! app(RostenderAccessGate::class)->allowsDataProcessing()) {
+            throw ValidationException::withMessages([
+                'monitoring' => 'RosTender сейчас не подключён. Поиск не запущен.',
+            ]);
+        }
+
+        $feeds = SourceFeed::query()->where('source', 'rostender')
+            ->where('status', 'active')->whereNotNull('source_identifier')
+            ->get(['source_identifier']);
+        $templateId = $feeds->count() === 1
+            ? (int) $feeds->first()->source_identifier
+            : null;
+        if ($feeds->isEmpty()) {
+            $templates = $this->rostenderTemplates->available();
+            $templateId = count($templates) === 1 ? $templates[0]->id : null;
+        }
+        if ($templateId === null) {
+            throw ValidationException::withMessages([
+                'monitoring' => 'Для быстрого поиска нужен один подключённый шаблон RosTender. Настройте мониторинг вручную.',
+            ]);
+        }
+        $keywords = array_slice(preg_split('/\s+/u', $phrase) ?: [], 0, 20);
+
+        $existing = SearchQuery::query()->where('user_id', $request->user()->id)
+            ->where('status', 'active')->where('name', $phrase)->get()
+            ->first(fn (SearchQuery $query): bool => $query->keywords === $keywords
+                && ($query->filters['source']['rostender_template_id'] ?? null) === $templateId);
+        if ($existing !== null) {
+            return response()->json([
+                'query' => $this->presenter->toArray($existing),
+                'cached_matches' => app(CachedMonitoringMatchService::class)->fill($existing),
+                'check_queued' => $this->dispatchDueSourceCheck(),
+                'reused' => true,
+            ]);
+        }
+        try {
+            $query = $queries->create($request->user(), [
+                'name' => $phrase,
+                'keywords' => $keywords,
+                'filters' => ['source' => ['rostender_template_id' => $templateId]],
+            ]);
+        } catch (QueryAccessDeniedException|QueryLimitReachedException|RostenderAccessDisabledException) {
+            throw ValidationException::withMessages([
+                'monitoring' => 'Не удалось включить мониторинг. Проверьте доступ и число активных мониторингов.',
+            ]);
+        } catch (RuntimeException) {
+            throw ValidationException::withMessages([
+                'monitoring' => 'Этот шаблон сейчас недоступен для нового мониторинга.',
+            ]);
+        }
+
+        $cachedMatches = app(CachedMonitoringMatchService::class)->fill($query);
+
+        return response()->json([
+            'query' => $this->presenter->toArray($query),
+            'cached_matches' => $cachedMatches,
+            'check_queued' => $this->dispatchDueSourceCheck(),
+        ], 201);
+    }
+
+    private function dispatchDueSourceCheck(): bool
+    {
+        if (! app(RostenderQuotaGuard::class)->normalCapacityAvailable()) {
+            return false;
+        }
+
+        return app(RostenderPollingDispatcher::class)->dispatchOneDueFeed();
     }
 
     public function update(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse

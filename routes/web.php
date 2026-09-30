@@ -157,6 +157,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/tenders/{tender}/feedback', [TenderFeedbackController::class, 'store'])->middleware('throttle:local-mvp-preview')->name('tenders.feedback');
     Route::get('/tenders/{tender}/changes', [TenderFeedbackController::class, 'changes'])->name('tenders.changes');
     Route::post('/queries', [SearchQueryController::class, 'store'])->name('queries.store');
+    Route::post('/queries/quick', [SearchQueryController::class, 'quick'])
+        ->middleware('throttle:monitoring-preview')->name('queries.quick');
     Route::patch('/queries/{query}', [SearchQueryController::class, 'update'])->name('queries.update');
     Route::post('/queries/{query}/run', SavedSearchRunController::class)
         ->middleware('throttle:monitoring-preview')

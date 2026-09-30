@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
@@ -136,7 +136,12 @@ export default function MyQueries() {
         rostenderTemplates,
     } = usePage<PageProps<MyQueriesProps>>().props;
     const [queries, setQueries] = useState<QueryDto[]>(initialQueries);
-    const [createForm, setCreateForm] = useState<QueryFormValues>(emptyQueryForm);
+    const [createForm, setCreateForm] = useState<QueryFormValues>(() => ({
+        ...emptyQueryForm(),
+        keywords: new URLSearchParams(window.location.search).get('q') ?? '',
+        rostenderTemplateId:
+            rostenderTemplates.length === 1 ? String(rostenderTemplates[0].id) : '',
+    }));
     const [editingQuery, setEditingQuery] = useState<QueryDto | null>(null);
     const [duplicatingQuery, setDuplicatingQuery] = useState<QueryDto | null>(null);
     const [editForm, setEditForm] = useState<QueryFormValues>(emptyQueryForm);
@@ -176,13 +181,13 @@ export default function MyQueries() {
         setIsCreating(true);
 
         try {
-            const response = await window.axios.post<{ query: QueryDto }>(
-                '/queries',
-                payload,
-            );
+            const response = await window.axios.post<{
+                query: QueryDto;
+                cached_matches: number;
+            }>('/queries', payload);
             setQueries((current) => [response.data.query, ...current]);
             setCreateForm(emptyQueryForm());
-            await runQuery(response.data.query);
+            router.visit(`/tenders?query_id=${response.data.query.id}`);
         } catch (error) {
             setCreateError(
                 requestErrorMessage(
@@ -426,6 +431,17 @@ export default function MyQueries() {
                                 <h2>Что искать?</h2>
                             </div>
                         </div>
+                        {rostenderTemplates.length === 0 ? (
+                            <InlineAlert
+                                title="Источник пока недоступен"
+                                tone="warning"
+                            >
+                                Нет доступного шаблона RosTender. Проверьте состояние
+                                источника позже или обратитесь в поддержку. Уже
+                                найденные совпадения остаются в{' '}
+                                <Link href="/tenders">личной ленте</Link>.
+                            </InlineAlert>
+                        ) : null}
                         <MonitoringWizard
                             fields={(step) => (
                                 <QueryFields
