@@ -34,6 +34,20 @@ between Windows worktrees and the Linux VPS.
 
 ## Latest verified release
 
+On 30 September 2026, commit `9f27f15` changed the personal search button
+into monitoring creation and showed source delays in the feed. CI passed in
+both repositories. Backup `tender-finder-2026-09-30T14-22-16Z.sql.gz` passed
+`gzip -t` and retained mode `600`; the source archive checksum matched on
+the VPS. The standard `sh deploy/vps-deploy.sh` reported `Nothing to migrate`
+and started all six services. Web, PostgreSQL and Redis were healthy;
+PostgreSQL accepted connections, Redis returned `PONG`, all migrations were
+`Ran`, and the new quick-search route was registered. Production `.env` kept
+mode `600`. HTTPS `/health` returned `ok` from the VPS with certificate
+verification. External TLS attempts from this Mac timed out before an HTTP
+response. RosTender remained in `quota_exhausted` cooldown, so live new-card
+delivery still needs a beta test after quota recovery. See
+[TENDER-SEARCH-UX-QA](TENDER-SEARCH-UX-QA.md).
+
 Later on 30 September 2026, commit `5ce07c3` fixed the subscriber tender
 detail route found during the full UX flow check. Both repositories' CI
 passed. Backup `postgres-20260930T111310Z.sql.gz` passed `gzip -t`, and the
