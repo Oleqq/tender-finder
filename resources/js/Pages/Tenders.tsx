@@ -312,13 +312,10 @@ export default function Tenders() {
     };
 
     const visibleStatusOptions = team ? teamStatusOptions : statusOptions;
-    const isFirstRun =
-        !team &&
-        filterOptions.queries.length === 0 &&
-        tenderMatches.total === 0 &&
-        !hasFilters;
+    const isEmptyPersonalFeed = !team && tenderMatches.total === 0 && !hasFilters;
+    const hasMonitoring = filterOptions.queries.length > 0;
 
-    if (isFirstRun) {
+    if (isEmptyPersonalFeed) {
         return (
             <>
                 <Head title="Мои тендеры" />
@@ -329,18 +326,26 @@ export default function Tenders() {
                     title="Тендеры"
                 >
                     <section className="tenders-first-run page-enter">
-                        <Badge tone="accent">Первый шаг</Badge>
-                        <h2>Сначала настройте поиск</h2>
+                        <Badge tone="accent">
+                            {hasMonitoring ? 'Моя лента' : 'Первый шаг'}
+                        </Badge>
+                        <h2>
+                            {hasMonitoring
+                                ? 'Пока нет совпадений'
+                                : 'Сначала настройте поиск'}
+                        </h2>
                         <p>
-                            Создайте мониторинг: укажите нужные закупки и выберите
-                            доступный источник. Здесь появятся совпадения и причины, по
-                            которым они вам подходят.
+                            {hasMonitoring
+                                ? 'Откройте мониторинг, чтобы проверить состояние источника и время следующей попытки. Подходящие закупки появятся здесь.'
+                                : 'Создайте мониторинг: укажите нужные закупки и выберите доступный источник. Здесь появятся совпадения и причины, по которым они вам подходят.'}
                         </p>
                         <Link
                             className="button button--primary button--md"
                             href="/queries"
                         >
-                            Создать мониторинг
+                            {hasMonitoring
+                                ? 'Проверить мониторинг'
+                                : 'Создать мониторинг'}
                         </Link>
                     </section>
                 </AppShell>
@@ -1635,9 +1640,7 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                 </span>
             </header>
             <h3 className="tender-feed-card__title">
-                <Link href={'/local/mvp/tenders/' + match.tender_id}>
-                    {match.title}
-                </Link>
+                <Link href={'/tenders/' + match.tender_id}>{match.title}</Link>
             </h3>
             {match.customer || match.reg_number || match.region ? (
                 <div className="tender-feed-card__context">
@@ -1795,7 +1798,7 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
             <div className="tender-feed-card__primary-actions">
                 <Link
                     className="button button--primary button--md"
-                    href={'/local/mvp/tenders/' + match.tender_id}
+                    href={'/tenders/' + match.tender_id}
                 >
                     Открыть карточку
                     <Icon name="chevron-right" size={17} />

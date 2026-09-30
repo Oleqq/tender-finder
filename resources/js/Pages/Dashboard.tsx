@@ -17,6 +17,7 @@ type NextAction = {
 type DashboardProps = {
     workspace: {
         hasMonitoring: boolean;
+        hasActiveMonitoring: boolean;
         hasMatches: boolean;
     };
     nextActions: {
@@ -47,19 +48,26 @@ export default function Dashboard() {
                 description:
                     'Укажите, какие закупки вам нужны, и выберите доступный источник. Состояние первой проверки появится в мониторинге.',
             }
-          : !workspace.hasMatches
+          : !workspace.hasActiveMonitoring
             ? {
                   href: '/queries',
-                  label: 'Проверить мониторинг',
+                  label: 'Открыть мониторинги',
                   description:
-                      'Мониторинг создан. Откройте его, чтобы увидеть состояние источника и время следующей проверки.',
+                      'Ваши мониторинги сейчас не проверяются. Откройте настройки, чтобы посмотреть причину и возобновить поиск.',
               }
-            : {
-                  href: '/tenders',
-                  label: 'Открыть тендеры',
-                  description:
-                      'В ленте есть совпадения. Откройте карточки и выберите, с какими закупками работать.',
-              };
+            : !workspace.hasMatches
+              ? {
+                    href: '/queries',
+                    label: 'Проверить мониторинг',
+                    description:
+                        'Мониторинг создан. Откройте его, чтобы увидеть состояние источника и время следующей проверки.',
+                }
+              : {
+                    href: '/tenders',
+                    label: 'Открыть тендеры',
+                    description:
+                        'В ленте есть совпадения. Откройте карточки и выберите, с какими закупками работать.',
+                };
 
     return (
         <>
@@ -77,9 +85,11 @@ export default function Dashboard() {
                                 ? 'Начните работу'
                                 : !workspace.hasMonitoring
                                   ? 'Найдите свои тендеры'
-                                  : !workspace.hasMatches
-                                    ? 'Поиск запущен'
-                                    : 'Тендеры в ленте'}
+                                  : !workspace.hasActiveMonitoring
+                                    ? 'Поиск на паузе'
+                                    : !workspace.hasMatches
+                                      ? 'Поиск запущен'
+                                      : 'Тендеры в ленте'}
                         </h2>
                         <p>{primaryAction.description}</p>
                         <Link
@@ -123,7 +133,7 @@ export default function Dashboard() {
                             {nextActions.items.map((action) => (
                                 <Link
                                     className="next-action"
-                                    href={'/local/mvp/tenders/' + action.tender_id}
+                                    href={'/tenders/' + action.tender_id}
                                     key={action.tender_id}
                                 >
                                     <span className="next-action__date">

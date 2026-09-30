@@ -168,6 +168,41 @@ it('does not offer deleted or foreign monitorings as feed filters', function () 
         ->where('filterOptions.queries.0.name', 'Сохранённый'));
 });
 
+it('opens a detail only for the users matched tender even after the monitoring is paused', function () {
+    $owner = User::factory()->create(['telegram_id' => '9353']);
+    $other = User::factory()->create(['telegram_id' => '9354']);
+    $query = SearchQuery::query()->create([
+        'user_id' => $owner->id,
+        'name' => 'Сайты',
+        'keywords' => ['сайт'],
+        'status' => 'paused',
+    ]);
+    $tender = tenderForFeed('detail-owner', 'Поддержка сайта', [
+        'source' => 'rostender',
+        'metadata' => ['customer' => 'Тестовый заказчик'],
+    ]);
+    TenderQueryMatch::query()->create([
+        'tender_id' => $tender->id,
+        'search_query_id' => $query->id,
+        'match_reasons' => ['keywords' => ['сайт'], 'region' => 'matched'],
+        'matched_at' => now(),
+    ]);
+
+    $this->actingAs($owner)->get('/tenders/'.$tender->id)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('TenderDetail')
+            ->where('tender.title', 'Поддержка сайта')
+            ->where('tender.customer', 'Тестовый заказчик')
+            ->where('tender.source_label', 'RosTender')
+            ->where('tender.query_name', 'Сайты')
+            ->where('tender.match_reasons', ['ключевые слова', 'регион']));
+
+    $this->actingAs($other)->get('/tenders/'.$tender->id)->assertNotFound();
+    $this->actingAs($owner)->get('/tenders/'.tenderForFeed('detail-unmatched', 'Другая закупка')->id)
+        ->assertNotFound();
+});
+
 it('updates personal tender fields inline only for the matching user', function () {
     $owner = User::factory()->create(['telegram_id' => '9401']);
     $other = User::factory()->create(['telegram_id' => '9402']);

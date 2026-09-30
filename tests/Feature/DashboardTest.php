@@ -64,6 +64,7 @@ it('points the signed-in user to the next useful step without leaking other user
 
     $this->actingAs($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
         ->where('workspace.hasMonitoring', false)
+        ->where('workspace.hasActiveMonitoring', false)
         ->where('workspace.hasMatches', false));
 
     $query = SearchQuery::query()->create([
@@ -74,6 +75,7 @@ it('points the signed-in user to the next useful step without leaking other user
     ]);
     $this->actingAs($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
         ->where('workspace.hasMonitoring', true)
+        ->where('workspace.hasActiveMonitoring', true)
         ->where('workspace.hasMatches', false));
 
     TenderQueryMatch::query()->create([
@@ -84,11 +86,19 @@ it('points the signed-in user to the next useful step without leaking other user
     ]);
     $this->actingAs($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
         ->where('workspace.hasMonitoring', true)
+        ->where('workspace.hasActiveMonitoring', true)
+        ->where('workspace.hasMatches', true));
+
+    $query->update(['status' => 'paused']);
+    $this->actingAs($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('workspace.hasMonitoring', true)
+        ->where('workspace.hasActiveMonitoring', false)
         ->where('workspace.hasMatches', true));
 
     $query->update(['status' => 'deleted']);
     $this->actingAs($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
         ->where('workspace.hasMonitoring', false)
+        ->where('workspace.hasActiveMonitoring', false)
         ->where('workspace.hasMatches', true));
 });
 

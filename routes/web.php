@@ -30,6 +30,7 @@ use App\Http\Controllers\TeamTenderFeedController;
 use App\Http\Controllers\TeamWorkflowController;
 use App\Http\Controllers\TelegramSessionController;
 use App\Http\Controllers\TenderCalendarController;
+use App\Http\Controllers\TenderDetailController;
 use App\Http\Controllers\TenderExportController;
 use App\Http\Controllers\TenderFeedbackController;
 use App\Http\Controllers\TenderFeedController;
@@ -110,6 +111,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
+    Route::get('/tenders/{tender}', TenderDetailController::class)->name('tenders.show');
     Route::get('/participation', [TenderWorkController::class, 'index'])->name('participation');
     Route::get('/participation/analytics', [ParticipationAnalyticsController::class, 'index'])->name('participation.analytics');
     Route::get('/participation/analytics/export', [ParticipationAnalyticsController::class, 'export'])->name('participation.analytics.export');

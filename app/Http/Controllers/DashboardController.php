@@ -35,6 +35,10 @@ class DashboardController extends Controller
                     ->where('user_id', $user->id)
                     ->where('status', '!=', QueryStatus::Deleted->value)
                     ->exists(),
+                'hasActiveMonitoring' => SearchQuery::query()
+                    ->where('user_id', $user->id)
+                    ->where('status', QueryStatus::Active->value)
+                    ->exists(),
                 'hasMatches' => TenderQueryMatch::query()
                     ->whereHas('searchQuery', fn ($query) => $query->where('user_id', $user->id))
                     ->exists(),

@@ -34,6 +34,21 @@ between Windows worktrees and the Linux VPS.
 
 ## Latest verified release
 
+On 30 September 2026, commit `8a2e1ce` simplified the first-run workflow.
+CI passed in both repositories. Backup
+`postgres-20260930T104835Z.sql.gz` passed `gzip -t`, and the committed source
+archive SHA-256 matched on the VPS. The standard `sh deploy/vps-deploy.sh`
+completed its Docker build, forward-only migration step (`Nothing to
+migrate`), container restart and image cleanup. Web, queue, scheduler,
+PostgreSQL, Redis and Caddy were running; PostgreSQL was ready, Redis returned
+`PONG`, migration status showed `Ran`, and `.env.production` retained mode
+`600`. External HTTPS `/health` returned `ok`, and `/onboarding` returned
+200 on retry. Authenticated application routes redirected unauthenticated
+requests to onboarding from the VPS. Intermittent external TLS timeouts from
+the Mac still occur. Visual acceptance inside Telegram and a real first
+RosTender search remain closed beta checks. UI details are in
+[FIRST-RUN-UX-QA](FIRST-RUN-UX-QA.md).
+
 On 30 September 2026, commit `57017c7` delivered the RosTender quota
 cooldown. Both repositories' CI passed. Backup
 `postgres-20260930T084130Z.sql.gz` passed `gzip -t`; the tracked source
