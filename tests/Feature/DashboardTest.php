@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\SearchQuery;
 use App\Models\Tender;
+use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -42,6 +44,52 @@ it('shows only the signed-in users nearest actions and summary', function () {
             ->where('nextActions.items.0.title', 'Просроченная закупка')
             ->where('nextActions.items.1.title', 'Закупка на сегодня')
             ->where('nextActions.items.2.title', 'Следующая закупка'));
+});
+
+it('points the signed-in user to the next useful step without leaking other users work', function () {
+    $owner = User::factory()->create(['telegram_id' => '9311']);
+    $other = User::factory()->create(['telegram_id' => '9312']);
+    $foreignQuery = SearchQuery::query()->create([
+        'user_id' => $other->id,
+        'name' => 'Чужой поиск',
+        'keywords' => ['строительство'],
+        'status' => 'active',
+    ]);
+    TenderQueryMatch::query()->create([
+        'tender_id' => dashboardTender('dashboard-foreign-match', 'Чужая закупка')->id,
+        'search_query_id' => $foreignQuery->id,
+        'match_reasons' => ['keywords' => ['строительство']],
+        'matched_at' => now(),
+    ]);
+
+    $this->actingAs($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('workspace.hasMonitoring', false)
+        ->where('workspace.hasMatches', false));
+
+    $query = SearchQuery::query()->create([
+        'user_id' => $owner->id,
+        'name' => 'Свой поиск',
+        'keywords' => ['сайт'],
+        'status' => 'active',
+    ]);
+    $this->actingAs($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('workspace.hasMonitoring', true)
+        ->where('workspace.hasMatches', false));
+
+    TenderQueryMatch::query()->create([
+        'tender_id' => dashboardTender('dashboard-owner-match', 'Свой тендер')->id,
+        'search_query_id' => $query->id,
+        'match_reasons' => ['keywords' => ['сайт']],
+        'matched_at' => now(),
+    ]);
+    $this->actingAs($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('workspace.hasMonitoring', true)
+        ->where('workspace.hasMatches', true));
+
+    $query->update(['status' => 'deleted']);
+    $this->actingAs($owner)->get('/dashboard')->assertInertia(fn (Assert $page) => $page
+        ->where('workspace.hasMonitoring', false)
+        ->where('workspace.hasMatches', true));
 });
 
 function dashboardTender(string $externalId, string $title): Tender

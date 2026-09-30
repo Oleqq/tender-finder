@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\QueryStatus;
+use App\Models\SearchQuery;
+use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,6 +30,15 @@ class DashboardController extends Controller
         $today = today();
 
         return Inertia::render('Dashboard', [
+            'workspace' => [
+                'hasMonitoring' => SearchQuery::query()
+                    ->where('user_id', $user->id)
+                    ->where('status', '!=', QueryStatus::Deleted->value)
+                    ->exists(),
+                'hasMatches' => TenderQueryMatch::query()
+                    ->whereHas('searchQuery', fn ($query) => $query->where('user_id', $user->id))
+                    ->exists(),
+            ],
             'nextActions' => [
                 'overdue_count' => TenderUserState::query()
                     ->where('user_id', $user->id)

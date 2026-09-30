@@ -147,6 +147,27 @@ it('keeps the tender feed behind the authenticated user journey', function () {
     $this->get('/tenders')->assertRedirect('/onboarding');
 });
 
+it('does not offer deleted or foreign monitorings as feed filters', function () {
+    $owner = User::factory()->create(['telegram_id' => '9351']);
+    $other = User::factory()->create(['telegram_id' => '9352']);
+    foreach ([
+        [$owner, 'Сохранённый', 'active'],
+        [$owner, 'Удалённый', 'deleted'],
+        [$other, 'Чужой', 'active'],
+    ] as [$user, $name, $status]) {
+        SearchQuery::query()->create([
+            'user_id' => $user->id,
+            'name' => $name,
+            'keywords' => ['сайт'],
+            'status' => $status,
+        ]);
+    }
+
+    $this->actingAs($owner)->get('/tenders')->assertInertia(fn (Assert $page) => $page
+        ->has('filterOptions.queries', 1)
+        ->where('filterOptions.queries.0.name', 'Сохранённый'));
+});
+
 it('updates personal tender fields inline only for the matching user', function () {
     $owner = User::factory()->create(['telegram_id' => '9401']);
     $other = User::factory()->create(['telegram_id' => '9402']);

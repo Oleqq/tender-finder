@@ -28,12 +28,14 @@ const reasons: Record<string, string> = {
 export function MonitoringWizard({
     fields,
     payload,
+    sourceSelected,
     saving,
     error,
     onSubmit,
 }: {
     fields: (step: number) => ReactNode;
     payload: Record<string, unknown> | null;
+    sourceSelected: boolean;
     saving: boolean;
     error: string;
     onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -81,31 +83,24 @@ export function MonitoringWizard({
             onSubmit={(event) => {
                 if (step < 4) {
                     event.preventDefault();
-                    if (payload) setStep(step + 1);
+                    if (payload && (step < 3 || sourceSelected)) setStep(step + 1);
                     return;
                 }
                 void onSubmit(event);
             }}
         >
-            <nav
-                aria-label="Шаги настройки мониторинга"
-                className="monitoring-wizard__steps"
+            <div
+                aria-label="Прогресс настройки мониторинга"
+                className="monitoring-wizard__progress"
+                role="group"
             >
-                {steps.map((label, index) => (
-                    <button
-                        key={label}
-                        type="button"
-                        aria-current={step === index ? 'step' : undefined}
-                        disabled={saving || loading || (index > 0 && !payload)}
-                        onClick={() => {
-                            setStep(index);
-                            setPreviewError('');
-                        }}
-                    >
-                        {index + 1}. {label}
-                    </button>
-                ))}
-            </nav>
+                <span>
+                    Шаг {step + 1} из {steps.length}
+                </span>
+                <div aria-hidden="true" className="monitoring-wizard__progress-track">
+                    <span style={{ width: `${((step + 1) / steps.length) * 100}%` }} />
+                </div>
+            </div>
             <fieldset
                 disabled={saving || loading}
                 className="monitoring-wizard__fields"
@@ -120,7 +115,7 @@ export function MonitoringWizard({
                             Она поможет уточнить условия поиска.
                         </p>
                         <Button
-                            disabled={!payload || loading}
+                            disabled={!payload || !sourceSelected || loading}
                             onClick={check}
                             variant="secondary"
                         >
@@ -200,7 +195,12 @@ export function MonitoringWizard({
                         Назад
                     </Button>
                 ) : null}
-                <Button disabled={saving || loading || !payload} type="submit">
+                <Button
+                    disabled={
+                        saving || loading || !payload || (step >= 3 && !sourceSelected)
+                    }
+                    type="submit"
+                >
                     {saving
                         ? 'Создаём и ищем…'
                         : step === 4

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\QueryStatus;
 use App\Enums\TenderUserStatus;
 use App\Models\SearchQuery;
 use App\Models\Team;
@@ -155,6 +156,7 @@ class TenderFeedController extends Controller
             'filterOptions' => [
                 'queries' => SearchQuery::query()
                     ->where('user_id', $user->id)
+                    ->where('status', '!=', QueryStatus::Deleted->value)
                     ->orderBy('name')
                     ->get(['id', 'name']),
                 'tags' => TenderUserState::query()

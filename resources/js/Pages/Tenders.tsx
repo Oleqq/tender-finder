@@ -312,6 +312,41 @@ export default function Tenders() {
     };
 
     const visibleStatusOptions = team ? teamStatusOptions : statusOptions;
+    const isFirstRun =
+        !team &&
+        filterOptions.queries.length === 0 &&
+        tenderMatches.total === 0 &&
+        !hasFilters;
+
+    if (isFirstRun) {
+        return (
+            <>
+                <Head title="Мои тендеры" />
+                <AppShell
+                    activeNav="/tenders"
+                    className="tenders-page"
+                    eyebrow="Мой поток"
+                    title="Тендеры"
+                >
+                    <section className="tenders-first-run page-enter">
+                        <Badge tone="accent">Первый шаг</Badge>
+                        <h2>Сначала настройте поиск</h2>
+                        <p>
+                            Создайте мониторинг: укажите нужные закупки и выберите
+                            доступный источник. Здесь появятся совпадения и причины, по
+                            которым они вам подходят.
+                        </p>
+                        <Link
+                            className="button button--primary button--md"
+                            href="/queries"
+                        >
+                            Создать мониторинг
+                        </Link>
+                    </section>
+                </AppShell>
+            </>
+        );
+    }
 
     return (
         <>

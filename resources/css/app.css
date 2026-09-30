@@ -421,12 +421,7 @@ input:focus-visible {
 .onboarding-intro__eyebrow { display: block; margin-bottom: var(--space-3); color: var(--tf-accent-deep); font-size: 12px; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
 .onboarding-intro p,
 .consent-intro p { max-width: 460px; margin: var(--space-5) 0 0; color: var(--app-muted); font-size: 15px; line-height: 1.5; }
-.value-list { display: grid; gap: var(--space-3); margin-top: var(--space-8); }
-.value-card { display: flex; align-items: flex-start; gap: 13px; padding: var(--space-4); }
-.value-card__icon { display: grid; width: 40px; height: 40px; flex: 0 0 40px; place-items: center; border-radius: 14px; color: var(--tf-accent-deep); background: var(--tf-accent-soft); }
-.value-card h3 { margin: 0; font-size: 15px; font-weight: 730; letter-spacing: -0.02em; }
-.value-card p { margin: 4px 0 0; color: var(--app-muted); font-size: 12px; line-height: 1.45; }
-.onboarding-actions { margin-top: auto; padding-top: var(--space-7); }
+.onboarding-actions { margin-top: var(--space-8); }
 .step-dots { display: flex; justify-content: center; gap: 6px; margin-top: var(--space-4); }
 .step-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--tf-line); }
 .step-dots span.is-active { width: 20px; border-radius: var(--radius-pill); background: var(--tf-accent); }
@@ -450,7 +445,11 @@ input:focus-visible {
 .dashboard-hero .badge { margin-bottom: var(--space-4); }
 .dashboard-hero h2 { font-size: clamp(32px, 8vw, 42px); }
 .dashboard-hero p { max-width: 288px; margin: var(--space-4) 0 0; color: var(--app-muted); font-size: 13px; line-height: 1.48; }
-.dashboard-signal { display: inline-flex; min-height: 34px; align-items: center; gap: 6px; margin-top: 5px; border: 1px solid color-mix(in srgb, var(--tf-teal) 30%, var(--tf-line)); border-radius: var(--radius-pill); padding: 0 10px; color: var(--tf-teal); background: var(--tf-teal-soft); font-size: 10px; font-weight: 740; letter-spacing: 0.04em; text-transform: uppercase; }
+.dashboard-hero__action { margin-top: var(--space-6); }
+.tenders-first-run { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); max-width: 520px; padding: var(--space-6) 2px; }
+.tenders-first-run h2 { margin: 0; color: var(--app-ink); font-size: clamp(25px, 6vw, 32px); font-weight: 780; letter-spacing: -0.04em; line-height: 1.1; }
+.tenders-first-run p { margin: 0; max-width: 440px; color: var(--app-muted); font-size: 14px; line-height: 1.55; }
+.tenders-first-run .button { margin-top: var(--space-2); }
 .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .metric-card { min-width: 0; padding: 12px 10px; }
 .metric-card--accent { border-color: color-mix(in srgb, var(--tf-accent) 35%, var(--tf-line)); background: var(--tf-accent-deep); color: #fff; box-shadow: var(--shadow-sm); }
@@ -1290,9 +1289,6 @@ input:focus-visible {
 @media (max-height: 680px) {
     .welcome-hero__signal { width: 84px; height: 84px; margin-bottom: var(--space-4); transform: scale(.78); }
     .welcome-promise { margin-top: var(--space-5); }
-    .value-list { margin-top: var(--space-5); gap: 8px; }
-    .value-card { padding: 11px; }
-    .value-card__icon { width: 36px; height: 36px; flex-basis: 36px; }
     .consent-card { margin-top: var(--space-5); }
     .consent-row { min-height: 70px; padding: 12px 0; }
 }
@@ -1304,10 +1300,9 @@ input:focus-visible {
 }
 
 
-.monitoring-wizard__steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
-.monitoring-wizard__steps button { padding: 8px 12px; border: 1px solid currentColor; border-radius: 16px; font-size: 13px; }
-.monitoring-wizard__steps button[aria-current="step"] { background: #196f66; color: #fff; border-color: #196f66; }
-.monitoring-wizard__steps button:disabled { opacity: .5; }
+.monitoring-wizard__progress { display: grid; gap: 8px; margin: 4px 0 8px; color: var(--app-muted); font-size: 12px; }
+.monitoring-wizard__progress-track { height: 5px; overflow: hidden; border-radius: var(--radius-pill); background: var(--tf-accent-soft); }
+.monitoring-wizard__progress-track > span { display: block; height: 100%; border-radius: inherit; background: var(--tf-accent); transition: width 180ms ease; }
 .monitoring-wizard__fields { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
 .monitoring-wizard__fields legend { font-weight: 600; margin-bottom: 12px; }
 .monitoring-wizard__fields p { margin: 12px 0; }

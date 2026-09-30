@@ -405,16 +405,18 @@ export default function MyQueries() {
                 eyebrow="Защищённый раздел"
                 title="Мониторинги"
             >
-                <GlassCard className="query-access page-enter" tone="quiet">
-                    <span className="query-access__icon">
-                        <Icon name="layers" size={19} />
-                    </span>
-                    <div>
-                        <p>Лимит мониторингов</p>
-                        <strong>{accessText}</strong>
-                    </div>
-                    <Badge tone={access.tone}>{access.badge}</Badge>
-                </GlassCard>
+                {queries.length > 0 || !canCreate ? (
+                    <GlassCard className="query-access page-enter" tone="quiet">
+                        <span className="query-access__icon">
+                            <Icon name="layers" size={19} />
+                        </span>
+                        <div>
+                            <p>Лимит мониторингов</p>
+                            <strong>{accessText}</strong>
+                        </div>
+                        <Badge tone={access.tone}>{access.badge}</Badge>
+                    </GlassCard>
+                ) : null}
 
                 {canCreate ? (
                     <GlassCard className="query-create page-enter page-enter--delay">
@@ -434,6 +436,11 @@ export default function MyQueries() {
                                 />
                             )}
                             payload={toQueryPayload(createForm)}
+                            sourceSelected={rostenderTemplates.some(
+                                (template) =>
+                                    String(template.id) ===
+                                    createForm.rostenderTemplateId,
+                            )}
                             saving={isCreating}
                             error={createError}
                             onSubmit={createQuery}
@@ -458,22 +465,15 @@ export default function MyQueries() {
                     </InlineAlert>
                 ) : null}
 
-                <section className="query-list page-enter page-enter--later">
-                    <div className="section-heading">
-                        <div>
-                            <p>Сохранённые настройки</p>
-                            <h2>Ваши мониторинги</h2>
+                {queries.length > 0 ? (
+                    <section className="query-list page-enter page-enter--later">
+                        <div className="section-heading">
+                            <div>
+                                <p>Сохранённые настройки</p>
+                                <h2>Ваши мониторинги</h2>
+                            </div>
                         </div>
-                    </div>
-                    {queries.length === 0 ? (
-                        <GlassCard className="query-empty" tone="quiet">
-                            <p>
-                                Пока нет сохранённых мониторингов. Создайте первый,
-                                когда доступ станет активным.
-                            </p>
-                        </GlassCard>
-                    ) : (
-                        queries.map((query) => {
+                        {queries.map((query) => {
                             const details = queryDetails(query, rostenderTemplates);
                             const manualRetryBlocked =
                                 query.source_statuses?.some(
@@ -616,9 +616,9 @@ export default function MyQueries() {
                                     ) : null}
                                 </GlassCard>
                             );
-                        })
-                    )}
-                </section>
+                        })}
+                    </section>
+                ) : null}
             </AppShell>
 
             <BottomSheet
