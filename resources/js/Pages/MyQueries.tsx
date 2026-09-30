@@ -47,6 +47,7 @@ type SourceStatus = {
     last_success_items_seen: number | null;
     last_failure_at: string | null;
     next_attempt_at: string | null;
+    manual_retry_blocked: boolean;
 };
 
 type QueryRunSummary = {
@@ -474,6 +475,10 @@ export default function MyQueries() {
                     ) : (
                         queries.map((query) => {
                             const details = queryDetails(query, rostenderTemplates);
+                            const manualRetryBlocked =
+                                query.source_statuses?.some(
+                                    (status) => status.manual_retry_blocked,
+                                ) ?? false;
 
                             return (
                                 <GlassCard
@@ -499,13 +504,18 @@ export default function MyQueries() {
                                     <div className="query-card__actions">
                                         {canRunManually ? (
                                             <Button
-                                                disabled={runningQueryId !== null}
+                                                disabled={
+                                                    runningQueryId !== null ||
+                                                    manualRetryBlocked
+                                                }
                                                 onClick={() => runQuery(query)}
                                                 size="sm"
                                             >
-                                                {runningQueryId === query.id
-                                                    ? 'Запускаем…'
-                                                    : 'Проверить сейчас'}
+                                                {manualRetryBlocked
+                                                    ? 'Проверка позже'
+                                                    : runningQueryId === query.id
+                                                      ? 'Запускаем…'
+                                                      : 'Проверить сейчас'}
                                             </Button>
                                         ) : null}
                                         <details className="query-card__manage">
@@ -723,7 +733,10 @@ function QueryRunSummaryCard({ query }: { query: QueryDto }) {
         return (
             <div className="query-card__run query-card__run--empty">
                 <Icon name="search" size={18} />
-                <p>Первый поиск ещё не завершён. Нажмите «Проверить сейчас».</p>
+                <p>
+                    Первый поиск ещё не завершён. Состояние источника и время следующей
+                    попытки указаны ниже.
+                </p>
             </div>
         );
     }

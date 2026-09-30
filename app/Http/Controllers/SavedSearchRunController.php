@@ -45,9 +45,11 @@ final class SavedSearchRunController extends Controller
             ]);
         } catch (RuntimeException $exception) {
             throw ValidationException::withMessages([
-                'query' => $exception->getMessage() === 'rostender_manual_check_limit_reached'
-                    ? 'Лимит ручных проверок RosTender на сегодня исчерпан.'
-                    : 'Не удалось запустить проверку RosTender. Попробуйте ещё раз.',
+                'query' => match ($exception->getMessage()) {
+                    'rostender_manual_check_limit_reached' => 'Лимит ручных проверок RosTender на сегодня исчерпан.',
+                    'rostender_source_quota_exhausted' => 'Проверки RosTender сейчас ограничены. Следующая автоматическая попытка уже запланирована.',
+                    default => 'Не удалось запустить проверку RosTender. Попробуйте ещё раз.',
+                },
             ]);
         }
 

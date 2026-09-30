@@ -1,8 +1,8 @@
 # RosTender API integration
 
-> This document began as the dormant adapter's implementation note. The
-> production source is active as recorded in [CURRENT-STATE](CURRENT-STATE.md).
-> The permission and quota gates below still apply to each environment.
+> The production source is active as recorded in
+> [CURRENT-STATE](CURRENT-STATE.md). The permission and quota gates below
+> still apply to each environment.
 
 ## Legal and operational boundary
 
@@ -60,9 +60,20 @@ Normal scheduled calls can use at most:
 The default is 200 minus a 20-call operational reserve. A reservation is made
 before a request and converted to a successful call only for a 2xx response;
 failed connections and errors release it. Reaching the guard records a failed
-source run with `quota_exhausted` and leaves the monitoring for the next
-scheduled run. `X-RateLimit-Remaining`, when returned, also reconciles the
-local counter with calls made outside this application.
+source run with `quota_exhausted` without sending another HTTP request. The
+next normal poll is scheduled no earlier than 00:05 on the next Moscow day and
+no earlier than the configured poll interval. A remote 403
+(`remote_quota_or_access_denied`) uses the same cooldown; it is not proof that
+the local quota counter is full. The scheduler does not queue the cooled-down
+feed again before that time. `X-RateLimit-Remaining`, when returned, also
+reconciles the local counter with calls made outside this application.
+
+During local quota exhaustion or an active remote 403 cooldown, a manual check
+is rejected before its per-user allowance is spent and before a job is queued.
+The monitoring card shows the last failure and next attempt; its manual button
+is disabled during the recorded cooldown. The server repeats the guard check,
+including when the UI has stale data. The operational reserve remains
+unavailable to normal and manual checks.
 
 `ROSTENDER_MAX_DETAILS_PER_POLL` bounds detail-card fan-out. Configure the
 daily interval and limits only after checking the actual contract and usage:
@@ -81,9 +92,12 @@ ROSTENDER_PRO_ACTIVE_MONITOR_LIMIT=0
 
 The monitoring attachment service applies the Basic/Pro active-source and
 refresh-frequency limits; the manual-check service applies the matching
-Moscow-day per-user plan cap. Neither is
-exposed as a public UI action in this dormant release. Preserve a zero limit
-until the product policy is approved.
+Moscow-day per-user plan cap. Production exposes the approved monitoring and
+manual-check flow. Preserve a zero limit in a new environment until its
+product policy is approved.
+
+The quota UX was inspected separately on mobile and desktop; see
+[ROSTENDER-QUOTA-UX-QA](ROSTENDER-QUOTA-UX-QA.md).
 
 ## Safe activation checklist
 

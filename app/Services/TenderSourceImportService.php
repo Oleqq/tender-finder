@@ -125,12 +125,12 @@ class TenderSourceImportService
         });
     }
 
-    public function fail(SourceFeed $feed, string $errorCode, string $source): SourceRun
+    public function fail(SourceFeed $feed, string $errorCode, string $source, ?Carbon $nextPollAt = null): SourceRun
     {
         $feed->forceFill([
             'last_attempt_at' => now(),
             'last_error_code' => $errorCode,
-            'next_poll_at' => now()->addSeconds($feed->poll_interval_seconds),
+            'next_poll_at' => $nextPollAt ?? now()->addSeconds($feed->poll_interval_seconds),
         ])->save();
 
         /** @var SourceRun $run */

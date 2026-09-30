@@ -10,7 +10,10 @@ use RuntimeException;
 
 class RostenderManualCheckService
 {
-    public function __construct(private readonly RostenderAccessGate $gate) {}
+    public function __construct(
+        private readonly RostenderAccessGate $gate,
+        private readonly RostenderQuotaGuard $quota,
+    ) {}
 
     public function queue(User $user, SourceFeed $feed): void
     {
@@ -18,6 +21,12 @@ class RostenderManualCheckService
 
         if ($feed->source !== 'rostender') {
             throw new RuntimeException('invalid_rostender_feed');
+        }
+
+        if (! $this->quota->normalCapacityAvailable()
+            || (in_array($feed->last_error_code, ['quota_exhausted', 'remote_quota_or_access_denied'], true)
+                && $feed->next_poll_at?->isFuture())) {
+            throw new RuntimeException('rostender_source_quota_exhausted');
         }
 
         $limit = $this->manualCheckLimitFor($user);

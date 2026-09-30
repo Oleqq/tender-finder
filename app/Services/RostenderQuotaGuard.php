@@ -4,10 +4,30 @@ namespace App\Services;
 
 use App\Models\RostenderApiUsage;
 use App\Tenders\RostenderQuotaExceededException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class RostenderQuotaGuard
 {
+    public function normalCapacityAvailable(): bool
+    {
+        $available = max(0, (int) config('tender.rostender.daily_quota_limit', 200)
+            - max(0, (int) config('tender.rostender.daily_quota_reserve', 20)));
+        $successfulRequests = RostenderApiUsage::query()
+            ->whereDate('usage_date', now('Europe/Moscow')->toDateString())
+            ->value('successful_requests');
+
+        return (int) $successfulRequests < $available;
+    }
+
+    public function nextNormalAttemptAt(int $pollIntervalSeconds): Carbon
+    {
+        $nextDay = now('Europe/Moscow')->addDay()->startOfDay()->addMinutes(5)->utc();
+        $regularInterval = now()->addSeconds(max(60, $pollIntervalSeconds));
+
+        return $nextDay->greaterThan($regularInterval) ? $nextDay : $regularInterval;
+    }
+
     public function reserve(bool $mayUseReservedCapacity = false): RostenderQuotaReservation
     {
         $date = now('Europe/Moscow')->toDateString();

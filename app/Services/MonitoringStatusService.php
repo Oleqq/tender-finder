@@ -13,7 +13,7 @@ final class MonitoringStatusService
 {
     /**
      * @param  Collection<int, SearchQuery>  $queries
-     * @return array<int, list<array<string, int|string|null>>>
+     * @return array<int, list<array<string, bool|int|string|null>>>
      */
     public function forQueries(Collection $queries): array
     {
@@ -43,7 +43,7 @@ final class MonitoringStatusService
         return $result;
     }
 
-    /** @return array<string, int|string|null> */
+    /** @return array<string, bool|int|string|null> */
     private function status(SearchQuery $query, SourceFeed $feed): array
     {
         /** @var SourceRun|null $success */
@@ -74,13 +74,16 @@ final class MonitoringStatusService
             'last_success_items_seen' => $success?->items_seen,
             'last_failure_at' => $lastFailureAt?->toAtomString(),
             'next_attempt_at' => $query->status === QueryStatus::Active ? $feed->next_poll_at?->toAtomString() : null,
+            'manual_retry_blocked' => $hasCurrentFailure
+                && in_array($failure->error_code, ['quota_exhausted', 'remote_quota_or_access_denied'], true)
+                && $feed->next_poll_at?->isFuture(),
         ];
     }
 
     private function failureMessage(string $source, ?string $code): string
     {
         if ($code === 'quota_exhausted') {
-            return 'Лимит источника временно исчерпан. Следующая попытка запланирована.';
+            return 'Суточный лимит RosTender исчерпан. Следующая попытка запланирована после обновления лимита.';
         }
 
         if ($code === 'tls_failed') {

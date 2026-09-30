@@ -9,10 +9,12 @@ use App\Models\RostenderApiUsage;
 use App\Models\RostenderFeedSearchQuery;
 use App\Models\SearchQuery;
 use App\Models\SourceFeed;
+use App\Models\SourceRun;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Models\User;
 use App\Services\RostenderApiClient;
+use App\Services\RostenderPollingDispatcher;
 use App\Services\RostenderQuotaGuard;
 use App\Services\RostenderTemplateFeedService;
 use App\Services\TenderMatchingService;
@@ -20,6 +22,8 @@ use App\Services\TenderSourceImportService;
 use App\Tenders\RostenderAccessDisabledException;
 use App\Tenders\RostenderQuotaExceededException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
@@ -82,6 +86,148 @@ it('reserves normal polling capacity, counts only successful calls, and keeps th
     expect(fn () => $guard->reserve())->toThrow(RostenderQuotaExceededException::class);
     expect(RostenderApiUsage::query()->sole()->successful_requests)->toBe(2)
         ->and(RostenderApiUsage::query()->sole()->in_flight_requests)->toBe(0);
+});
+
+it('waits until the next Moscow day after the source quota is exhausted', function () {
+    $this->travelTo(Carbon::parse('2026-09-30 07:00:00', 'Europe/Moscow'));
+    config()->set('tender.rostender.daily_quota_limit', 3);
+    config()->set('tender.rostender.daily_quota_reserve', 1);
+    RostenderApiUsage::query()->create([
+        'usage_date' => '2026-09-30',
+        'successful_requests' => 2,
+        'in_flight_requests' => 0,
+    ]);
+    $feed = SourceFeed::query()->create([
+        'source' => 'rostender',
+        'source_identifier' => 42,
+        'canonical_url' => 'https://rostender.info/api/tenders/get/template/42',
+        'url_hash' => hash('sha256', 'rostender:template:42'),
+        'status' => 'active',
+        'poll_interval_seconds' => 3600,
+        'next_poll_at' => now(),
+    ]);
+    Http::fake();
+    Queue::fake();
+
+    (new PollRostenderTemplate($feed->id))->handle(
+        app(RostenderApiClient::class),
+        app(TenderSourceImportService::class),
+        app(RostenderQuotaGuard::class),
+    );
+
+    expect(SourceRun::query()->sole()->error_code)->toBe('quota_exhausted')
+        ->and($feed->fresh()->next_poll_at?->timezone('Europe/Moscow')->format('Y-m-d H:i'))
+        ->toBe('2026-10-01 00:05');
+    Http::assertNothingSent();
+    expect(app(RostenderPollingDispatcher::class)->dispatchOneDueFeed())->toBeFalse();
+    Queue::assertNotPushed(PollRostenderTemplate::class);
+});
+
+it('backs off after a remote quota denial without shortening the normal poll interval', function () {
+    $this->travelTo(Carbon::parse('2026-09-30 23:30:00', 'Europe/Moscow'));
+    $feed = SourceFeed::query()->create([
+        'source' => 'rostender',
+        'source_identifier' => 42,
+        'canonical_url' => 'https://rostender.info/api/tenders/get/template/42',
+        'url_hash' => hash('sha256', 'rostender:template:42'),
+        'status' => 'active',
+        'poll_interval_seconds' => 3600,
+    ]);
+    Http::fake(['https://rostender.info/api/tenders/get/*' => Http::response([], 403)]);
+
+    (new PollRostenderTemplate($feed->id))->handle(
+        app(RostenderApiClient::class),
+        app(TenderSourceImportService::class),
+        app(RostenderQuotaGuard::class),
+    );
+
+    expect(SourceRun::query()->sole()->error_code)->toBe('remote_quota_or_access_denied')
+        ->and($feed->fresh()->next_poll_at?->timezone('Europe/Moscow')->format('Y-m-d H:i'))
+        ->toBe('2026-10-01 00:30');
+    Http::assertSentCount(1);
+});
+
+it('does not waste a manual check when the source quota is exhausted', function () {
+    $this->travelTo(Carbon::parse('2026-09-30 07:00:00', 'Europe/Moscow'));
+    config()->set('tender.rostender.basic_manual_checks_per_day', 1);
+    config()->set('tender.rostender.daily_quota_limit', 3);
+    config()->set('tender.rostender.daily_quota_reserve', 1);
+    RostenderApiUsage::query()->create([
+        'usage_date' => '2026-09-30',
+        'successful_requests' => 2,
+        'in_flight_requests' => 0,
+    ]);
+    $user = User::factory()->create();
+    $plan = Plan::query()->create(['code' => 'basic', 'name' => 'Basic', 'is_active' => true, 'limits' => []]);
+    Entitlement::query()->create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'code' => 'active_queries',
+        'status' => 'active',
+        'value' => 3,
+        'starts_at' => now()->subMinute(),
+        'ends_at' => now()->addDay(),
+    ]);
+    $query = rostenderQuery($user, 'Поставка');
+    $feed = SourceFeed::query()->create([
+        'source' => 'rostender',
+        'source_identifier' => 42,
+        'canonical_url' => 'https://rostender.info/api/tenders/get/template/42',
+        'url_hash' => hash('sha256', 'rostender:template:42'),
+        'status' => 'active',
+        'poll_interval_seconds' => 3600,
+    ]);
+    RostenderFeedSearchQuery::query()->create([
+        'source_feed_id' => $feed->id,
+        'search_query_id' => $query->id,
+    ]);
+    Queue::fake();
+
+    $this->actingAs($user)->postJson("/queries/{$query->id}/run")
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.query.0', 'Проверки RosTender сейчас ограничены. Следующая автоматическая попытка уже запланирована.');
+
+    Queue::assertNotPushed(PollRostenderTemplate::class);
+    expect(Cache::get('rostender-manual-checks:'.$user->id.':2026-09-30', 0))->toBe(0);
+});
+
+it('does not bypass a remote quota cooldown with a manual check', function () {
+    $this->travelTo(Carbon::parse('2026-09-30 07:00:00', 'Europe/Moscow'));
+    config()->set('tender.rostender.basic_manual_checks_per_day', 1);
+    $user = User::factory()->create();
+    $plan = Plan::query()->create(['code' => 'basic', 'name' => 'Basic', 'is_active' => true, 'limits' => []]);
+    Entitlement::query()->create([
+        'user_id' => $user->id,
+        'plan_id' => $plan->id,
+        'code' => 'active_queries',
+        'status' => 'active',
+        'value' => 3,
+        'starts_at' => now()->subMinute(),
+        'ends_at' => now()->addDay(),
+    ]);
+    $query = rostenderQuery($user, 'Поставка');
+    $feed = SourceFeed::query()->create([
+        'source' => 'rostender',
+        'source_identifier' => 42,
+        'canonical_url' => 'https://rostender.info/api/tenders/get/template/42',
+        'url_hash' => hash('sha256', 'rostender:template:42'),
+        'status' => 'active',
+        'poll_interval_seconds' => 3600,
+        'last_error_code' => 'remote_quota_or_access_denied',
+        'next_poll_at' => now()->addHours(17),
+    ]);
+    RostenderFeedSearchQuery::query()->create([
+        'source_feed_id' => $feed->id,
+        'search_query_id' => $query->id,
+    ]);
+    Queue::fake();
+
+    $this->actingAs($user)->postJson("/queries/{$query->id}/run")
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.query.0', 'Проверки RosTender сейчас ограничены. Следующая автоматическая попытка уже запланирована.');
+
+    Queue::assertNotPushed(PollRostenderTemplate::class);
+    expect(Cache::get('rostender-manual-checks:'.$user->id.':2026-09-30', 0))->toBe(0);
 });
 
 it('deduplicates a saved template and applies the plan source-monitor limit', function () {
@@ -178,7 +324,7 @@ it('imports new detail cards once and scopes matching to monitorings linked to t
     ]);
 
     fakeRostenderTemplateWithOneDetail(42, 1001);
-    (new PollRostenderTemplate($feed->id))->handle(app(RostenderApiClient::class), app(TenderSourceImportService::class));
+    (new PollRostenderTemplate($feed->id))->handle(app(RostenderApiClient::class), app(TenderSourceImportService::class), app(RostenderQuotaGuard::class));
 
     $tender = Tender::query()->where('source', 'rostender')->sole();
     expect($tender->external_id)->toBe('1001')
@@ -198,7 +344,7 @@ it('imports new detail cards once and scopes matching to monitorings linked to t
             '_meta' => ['totalCount' => 1, 'pageCount' => 1],
         ]),
     ]);
-    (new PollRostenderTemplate($feed->id))->handle(app(RostenderApiClient::class), app(TenderSourceImportService::class));
+    (new PollRostenderTemplate($feed->id))->handle(app(RostenderApiClient::class), app(TenderSourceImportService::class), app(RostenderQuotaGuard::class));
 
     Http::assertSentCount(1);
     Http::assertNotSent(fn (Request $request): bool => str_ends_with($request->url(), '/1001'));

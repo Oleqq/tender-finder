@@ -4,10 +4,10 @@
 словами, что и зачем хранит сервис. Вторая нужна разработке и эксплуатации:
 она описывает таблицы, связи, индексы, состояния и безопасный порядок миграций.
 
-Статус на 2026-09-29: production использует PostgreSQL 16 и Redis в Docker
-Compose на VPS. Все forward-only миграции коммита `06c331b`, включая
-`2026_09_29_120000_add_support_tickets`, применены; `migrate:status` не
-показывает ожидающих миграций. Локальные тесты используют SQLite `:memory:`.
+Статус на 2026-09-30: production использует PostgreSQL 16 и Redis в Docker
+Compose на VPS. Миграции поддержки применены; последняя выпущенная миграция —
+`2026_09_29_150000_add_support_access_audit`. Изменение паузы RosTender не
+добавляет таблиц или миграций. Локальные тесты используют SQLite `:memory:`.
 Ни этот документ, ни миграции не содержат секретов production-окружения.
 
 ## Простая карта: что происходит с данными
@@ -123,7 +123,7 @@ production `scheduler`, а не HTTP-процессом web-приложения
 | Таблица | Главное содержимое | Правило |
 |---|---|---|
 | `search_queries` | название, keywords/minus words, region, money/deadline range, условия источника и status | active/paused/frozen/deleted; максимум 3 active при Basic/trial; ручной запуск сам не включает polling |
-| `source_feeds` | источник, внешний идентификатор, расписание, freshness/error | активен для RosTender; строки `eis_rss` сохранены как остановленный архив |
+| `source_feeds` | источник, внешний идентификатор, расписание, freshness/error | активен для RosTender; `next_poll_at` хранит паузу до следующего московского дня при исчерпанной квоте или удалённом 403; строки `eis_rss` сохранены как остановленный архив |
 | `source_feed_search_queries` | историческая связь мониторинга с прежней RSS-лентой | новые связи ЕИС не создаются; данные сохранены для объяснимой истории |
 | `source_feed_items` | историческая запись источника, URL hash, `reg_number`, content hash | архивные строки не обновляются |
 | `tenders` | каноническая карточка, source + external ID и поля для фильтра | уникальны по `(source, external_id)`; `eis_rss` доступен только как архив |
@@ -131,7 +131,7 @@ production `scheduler`, а не HTTP-процессом web-приложения
 | `local_mvp_search_snapshots` | архивные снимки прежних ручных выдач и технического preview | новые снимки ЕИС не создаются; история не смешивается между пользователями |
 | `tender_query_matches` | связь тендер ↔ запрос, JSON причин и объяснимый локальный score | уникальна по `(tender_id, search_query_id)`; score не является решением ИИ и не влияет на match |
 | `notification_deliveries` | тип, idempotency key, status и безопасный payload | повторный job не пошлёт одну карточку дважды |
-| `source_runs` | start/end, status, счётчики, error class | материал для будущего Live Ops |
+| `source_runs` | start/end, status, счётчики, error class | фиксирует отказ квоты даже без нового HTTP-запроса; пользовательский статус не раскрывает технические детали |
 
 В JSONB PostgreSQL будут естественно храниться `keywords`/safe filters,
 `match_reasons` и небольшие metadata. Это не «свалка»: поиск, ownership,

@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\SourceFeed;
 use App\Models\Tender;
 use App\Services\RostenderApiClient;
+use App\Services\RostenderQuotaGuard;
 use App\Services\TenderSourceImportService;
 use App\Tenders\RostenderApiException;
 use App\Tenders\RostenderQuotaExceededException;
@@ -24,7 +25,7 @@ class PollRostenderTemplate implements ShouldQueue
 
     public function __construct(public readonly int $feedId) {}
 
-    public function handle(RostenderApiClient $api, TenderSourceImportService $importer): void
+    public function handle(RostenderApiClient $api, TenderSourceImportService $importer, RostenderQuotaGuard $quota): void
     {
         $feed = SourceFeed::query()->find($this->feedId);
 
@@ -68,9 +69,12 @@ class PollRostenderTemplate implements ShouldQueue
                 }
             }
         } catch (RostenderQuotaExceededException $exception) {
-            $importer->fail($feed, $exception->codeName, 'rostender');
+            $importer->fail($feed, $exception->codeName, 'rostender', $quota->nextNormalAttemptAt($feed->poll_interval_seconds));
         } catch (RostenderApiException $exception) {
-            $importer->fail($feed, $exception->codeName, 'rostender');
+            $nextPollAt = $exception->codeName === 'remote_quota_or_access_denied'
+                ? $quota->nextNormalAttemptAt($feed->poll_interval_seconds)
+                : null;
+            $importer->fail($feed, $exception->codeName, 'rostender', $nextPollAt);
         }
     }
 
