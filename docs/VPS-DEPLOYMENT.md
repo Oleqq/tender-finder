@@ -32,14 +32,24 @@ migrations, starts the services, and removes unused image layers. Shell scripts
 are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
-## Pending release: multi-source search, 1 October 2026
+## Release 1 October 2026: multi-source search
 
-The new public-source search is locally verified but has not been installed
-on production. SSH from the Mac repeatedly times out during banner exchange,
-before authentication. Production environment flags have not been changed.
-See [MULTISOURCE-SEARCH-QA](MULTISOURCE-SEARCH-QA.md) for the exact scope,
-checks, network findings and remaining release steps. Existing release
-records below remain the last verified production state.
+Commit `d930ec0` passed CI in both repositories and was installed using the
+standard `sh deploy/vps-deploy.sh`. Before release, PostgreSQL backup
+`tender-finder-2026-10-01T15-40-55Z.sql.gz` passed `gzip -t` and mode `600`;
+the tracked source archive SHA-256 matched on both hosts. Only the existing
+Workspace.ru and B2B-Center enabled flags were changed in production; the
+other environment entries were preserved, and `.env.production` kept mode
+`600`. The release built all images, reported `Nothing to migrate`, restarted
+web, queue, scheduler and Caddy, and left PostgreSQL/Redis healthy.
+
+External HTTPS `/health` returned HTTP 200 `ok`; PostgreSQL accepted
+connections, Redis answered `PONG`, all migrations are `Ran`. One active
+monitoring was linked to shared public feeds. Initial successful source runs
+imported 21 B2B-Center and 50 Workspace.ru cards and created 1 and 2
+personal matches. See [MULTISOURCE-SEARCH-QA](MULTISOURCE-SEARCH-QA.md).
+Sber AST remained disabled because its public registry timed out from VPS.
+Roseltorg and RTS-Tender clients were not part of this release.
 
 ## Latest verified release
 

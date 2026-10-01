@@ -37,4 +37,5 @@ B2B_CENTER_USER_AGENT="TenderFinder/1.0 (+public tender catalog monitoring)"
 Локальный режим any не расширяет уже ограниченную выдачу площадки. Длинные
 совокупности ключевых слов свыше 255 символов используют общий каталог.
 Пагинация и полная эквивалентность сложных условий — отдельный следующий этап.
-Production-включение и проверки отмечаются в [MULTISOURCE-SEARCH-QA](MULTISOURCE-SEARCH-QA.md).
+Production-включение 1 октября и первые 21 карточка отмечены в
+[MULTISOURCE-SEARCH-QA](MULTISOURCE-SEARCH-QA.md).
