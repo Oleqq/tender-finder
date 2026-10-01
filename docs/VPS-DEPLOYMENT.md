@@ -36,13 +36,13 @@ between Windows worktrees and the Linux VPS.
 
 Commit `9cf4c24` passed CI in both repositories before the manual release.
 The fresh PostgreSQL backup passed `gzip -t`, and the tracked source archive
-had the same SHA-256 on Mac and VPS. The existing `.env.production` was not
+had the same SHA-256 on the build host and VPS. The existing `.env.production` was not
 replaced: only `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS` changed from `300` to
 `86400`; mode remained `600`. `sh deploy/vps-deploy.sh` completed with
 `Nothing to migrate`. Caddy, web, queue, scheduler, PostgreSQL and Redis are
 running; queue depth is zero. The running app reports the new limit and
 accepts a valid 12-hour-old signed payload without creating an account.
-External HTTPS `/health` returned 200, while some connections from the Mac
+External HTTPS `/health` returned 200, while some connections from an external network
 timed out before the TLS handshake. Local and public-path requests issued on
 the VPS returned 200 quickly. The remote network-path issue remains under
 observation.
@@ -51,7 +51,7 @@ observation.
 
 Commit `64434a1` corrected unrelated matches caused by Workspace.ru service
 categories and mixed personal topics. The source archive SHA-256 matched on
-Mac and VPS; it did not contain `.env.production`. Backup
+the build host and VPS; it did not contain `.env.production`. Backup
 `tender-finder-2026-10-01T16-12-25Z.sql.gz` passed `gzip -t` and retained
 mode `600`. The standard `sh deploy/vps-deploy.sh` completed; there were no
 new migrations. All six services run; web, PostgreSQL and Redis are healthy,
@@ -62,7 +62,7 @@ the external HTTPS `/health` returned 200. `.env.production` remained mode
 After a read-only preflight, two stale derived matches without user state or
 participation were removed. Original cards were retained. The current active
 monitoring match count is two; Workspace.ru and B2B-Center scheduled checks
-remain registered. See [SEARCH-RELEVANCE-QA](SEARCH-RELEVANCE-QA.md).
+remain registered.
 
 ## Release 1 October 2026: multi-source search
 
@@ -79,7 +79,7 @@ External HTTPS `/health` returned HTTP 200 `ok`; PostgreSQL accepted
 connections, Redis answered `PONG`, all migrations are `Ran`. One active
 monitoring was linked to shared public feeds. Initial successful source runs
 imported 21 B2B-Center and 50 Workspace.ru cards and created 1 and 2
-personal matches. See [MULTISOURCE-SEARCH-QA](MULTISOURCE-SEARCH-QA.md).
+personal matches.
 Sber AST remained disabled because its public registry timed out from VPS.
 Roseltorg and RTS-Tender clients were not part of this release.
 
@@ -94,10 +94,9 @@ and started all six services. Web, PostgreSQL and Redis were healthy;
 PostgreSQL accepted connections, Redis returned `PONG`, all migrations were
 `Ran`, and the new quick-search route was registered. Production `.env` kept
 mode `600`. HTTPS `/health` returned `ok` from the VPS with certificate
-verification. External TLS attempts from this Mac timed out before an HTTP
+verification. External TLS attempts from the external test network timed out before an HTTP
 response. RosTender remained in `quota_exhausted` cooldown, so live new-card
-delivery still needs a beta test after quota recovery. See
-[TENDER-SEARCH-UX-QA](TENDER-SEARCH-UX-QA.md).
+delivery still needs a beta test after quota recovery.
 
 Later on 30 September 2026, commit `5ce07c3` fixed the subscriber tender
 detail route found during the full UX flow check. Both repositories' CI
@@ -122,9 +121,8 @@ PostgreSQL, Redis and Caddy were running; PostgreSQL was ready, Redis returned
 `600`. External HTTPS `/health` returned `ok`, and `/onboarding` returned
 200 on retry. Authenticated application routes redirected unauthenticated
 requests to onboarding from the VPS. Intermittent external TLS timeouts from
-the Mac still occur. Visual acceptance inside Telegram and a real first
-RosTender search remain closed beta checks. UI details are in
-[FIRST-RUN-UX-QA](FIRST-RUN-UX-QA.md).
+the build host still occur. Visual acceptance inside Telegram and a real first
+RosTender search remain closed beta checks.
 
 On 30 September 2026, commit `57017c7` delivered the RosTender quota
 cooldown. Both repositories' CI passed. Backup
@@ -132,7 +130,7 @@ cooldown. Both repositories' CI passed. Backup
 archive checksum matched on the VPS, and `.env.production` retained mode
 `600`. The standard `deploy/vps-deploy.sh` stopped during its `--pull` build
 because Docker Hub returned HTTP 429. No running service had been replaced.
-Official `linux/amd64` base images were downloaded on the Mac, transferred
+Official `linux/amd64` base images were downloaded on the build host, transferred
 with a verified checksum, and loaded into the VPS cache. The script's build,
 migrate, start and prune steps were then executed without `--pull`; the
 migration step reported no pending migrations. Production smoke confirmed
@@ -155,7 +153,7 @@ IPv6 endpoint. PostgreSQL, Redis, all Compose services, and external HTTPS
 `/health` passed checks. Two manual Pro grants remain active without expiry;
 their two personal Telegram notices reached status `sent` after API responses.
 Receipt on the users' devices still awaits closed beta confirmation. Incoming
-SSH/HTTPS connections from this Mac intermittently stall before authentication
+SSH/HTTPS connections from the external test network intermittently stall before authentication
 or TLS; investigate server/network reachability before expanding beta.
 
 On 29 September 2026, commit `d32716b` completed the support workspace and
@@ -167,7 +165,7 @@ on the VPS before installation; `.env.production` stayed in place with mode
 `2026_09_29_150000_add_support_access_audit` is `Ran`. Web, queue, scheduler,
 PostgreSQL, Redis and Caddy started; PostgreSQL accepted connections, Redis
 returned `PONG`, support routes were listed and external HTTPS `/health`
-returned `ok`. The first external request from the new Mac timed out before a
+returned `ok`. The first external request from the external test network timed out before a
 repeat succeeded. Real Telegram beta acceptance remains open.
 
 On 29 September 2026, commit `06c331b` was copied to the VPS as a tracked
@@ -183,7 +181,7 @@ error lines. The external HTTPS `/health` returned `ok`; authenticated support
 routes were present. Real Telegram conversations still need closed beta
 acceptance.
 
-During this release, some new SSH and HTTPS connections from the new Mac timed
+During this release, some new SSH and HTTPS connections from the external test network timed
 out before the application handled a request. Subsequent external `/health`
 checks succeeded, and HTTPS checks from the VPS itself succeeded consistently.
 The cause of the intermittent external connection timeouts is not established;

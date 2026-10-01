@@ -51,7 +51,7 @@ templates are active, the user must choose one in the monitoring wizard.
 During quota exhaustion that wizard can reuse an already connected template
 without another API call. Detail cards fetched before a mid-batch quota
 failure are persisted and matched, while the source run still records the
-failure and cooldown. See [TENDER-SEARCH-UX-QA](TENDER-SEARCH-UX-QA.md).
+failure and cooldown.
 
 ## Shared-template and quota model
 
@@ -106,8 +106,7 @@ Moscow-day per-user plan cap. Production exposes the approved monitoring and
 manual-check flow. Preserve a zero limit in a new environment until its
 product policy is approved.
 
-The quota UX was inspected separately on mobile and desktop; see
-[ROSTENDER-QUOTA-UX-QA](ROSTENDER-QUOTA-UX-QA.md).
+The quota UX was inspected separately on mobile and desktop.
 
 ## Safe activation checklist
 
