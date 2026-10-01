@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AccessState;
 use App\Http\Controllers\AdminSupportController;
 use App\Http\Controllers\CalendarSubscriptionController;
 use App\Http\Controllers\ChecklistTemplateController;
@@ -38,11 +39,25 @@ use App\Http\Controllers\TenderFeedViewController;
 use App\Http\Controllers\TenderPersonalStateController;
 use App\Http\Controllers\TenderWorkController;
 use App\Http\Controllers\TrialController;
+use App\Services\AccessService;
 use App\Services\LocalMvpSubscriberService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', fn () => Inertia::render('Welcome'))->name('welcome');
+Route::get('/', function (Request $request, AccessService $access) {
+    $user = $request->user();
+
+    if ($user === null) {
+        return Inertia::render('Welcome');
+    }
+
+    return match ($access->snapshotFor($user)->state) {
+        AccessState::Preview => redirect()->route('onboarding'),
+        AccessState::Active, AccessState::Trialing => redirect()->route('tenders'),
+        default => redirect()->route('dashboard'),
+    };
+})->name('welcome');
 
 Route::get('/local/mvp-operator', [LocalMvpOperatorSessionController::class, 'store'])
     ->name('local.mvp-operator.session');

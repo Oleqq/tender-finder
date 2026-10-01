@@ -421,6 +421,12 @@ export default function Tenders() {
                     eyebrow="Мой поток"
                     title="Тендеры"
                 >
+                    {hasMonitoring ? (
+                        <>
+                            <TenderWorkNav active="/tenders" />
+                            <WorkspacePicker path="/tenders" />
+                        </>
+                    ) : null}
                     <section className="tenders-first-run page-enter">
                         <Badge tone="accent">
                             {hasMonitoring ? 'Моя лента' : 'Первый шаг'}
@@ -507,12 +513,8 @@ export default function Tenders() {
                 eyebrow={team ? 'Командный поток' : 'Мой поток'}
                 title={team ? `Лента · ${team.name}` : 'Тендеры'}
             >
-                {team ? (
-                    <>
-                        <TenderWorkNav active="/tenders" />
-                        <WorkspacePicker path="/tenders" />
-                    </>
-                ) : null}
+                <TenderWorkNav active="/tenders" />
+                <WorkspacePicker path="/tenders" />
                 {team ? (
                     <>
                         <TeamMonitoringPanel
@@ -992,12 +994,6 @@ export default function Tenders() {
                             : 'Фильтры и сортировка записаны в адрес страницы. Карточки принадлежат только вашей ленте и не являются рейтингом.'}
                     </p>
                 </section>
-                {!team ? (
-                    <div className="tender-feed-secondary-nav">
-                        <TenderWorkNav active="/tenders" />
-                        <WorkspacePicker path="/tenders" />
-                    </div>
-                ) : null}
             </AppShell>
         </>
     );

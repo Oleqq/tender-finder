@@ -17,7 +17,7 @@ export default function Onboarding({ localSubscriberEntryEnabled }: OnboardingPr
         <>
             <Head title="Как это работает" />
             <AppShell
-                backHref="/"
+                backHref={auth.user ? undefined : '/'}
                 navigationVisible={false}
                 title="Как это работает"
                 eyebrow="01 / 02"
