@@ -32,6 +32,23 @@ migrations, starts the services, and removes unused image layers. Shell scripts
 are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
+## Release 1 October 2026: focused keyword search
+
+Commit `64434a1` corrected unrelated matches caused by Workspace.ru service
+categories and mixed personal topics. The source archive SHA-256 matched on
+Mac and VPS; it did not contain `.env.production`. Backup
+`tender-finder-2026-10-01T16-12-25Z.sql.gz` passed `gzip -t` and retained
+mode `600`. The standard `sh deploy/vps-deploy.sh` completed; there were no
+new migrations. All six services run; web, PostgreSQL and Redis are healthy,
+PG accepts connections, Redis returns `PONG`, migration status is `Ran`, and
+the external HTTPS `/health` returned 200. `.env.production` remained mode
+`600`.
+
+After a read-only preflight, two stale derived matches without user state or
+participation were removed. Original cards were retained. The current active
+monitoring match count is two; Workspace.ru and B2B-Center scheduled checks
+remain registered. See [SEARCH-RELEVANCE-QA](SEARCH-RELEVANCE-QA.md).
+
 ## Release 1 October 2026: multi-source search
 
 Commit `d930ec0` passed CI in both repositories and was installed using the
