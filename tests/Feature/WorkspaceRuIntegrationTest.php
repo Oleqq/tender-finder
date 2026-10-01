@@ -128,3 +128,10 @@ function workspaceRuRss(): string
 </rss>
 XML;
 }
+
+it('rejects a well-formed block page and malformed channel instead of an empty successful RSS poll', function () {
+    foreach (['<html><body>Unavailable</body></html>', '<rss />', '<rss><channel><item><title>Broken</title></item></channel></rss>'] as $body) {
+        expect(fn () => app(WorkspaceRuRssParser::class)->parse($body))
+            ->toThrow(WorkspaceRuException::class, 'invalid_feed');
+    }
+});

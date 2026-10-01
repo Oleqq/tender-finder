@@ -107,6 +107,37 @@ it('creates and dispatches the configured B2B-Center catalog when due', function
     expect(app(B2bCenterPollingDispatcher::class)->dispatchDueFeed())->toBeFalse();
 });
 
+it('recognizes the observed public empty search but rejects a blank table and blocking page', function () {
+    $parser = app(B2bCenterHtmlParser::class);
+    $html = '<div class="search-results empty_results"><div class="h2">По запросу “test” сейчас нет актуальных торговых процедур.</div></div>';
+    expect($parser->parse($html, 'https://www.b2b-center.ru/market/')->items)->toBe([]);
+    foreach (['<table class="search-results"><tbody></tbody></table>', '<html>Service unavailable</html>', '<div class="empty_results">captcha</div>'] as $invalid) {
+        expect(fn () => $parser->parse($invalid, 'https://www.b2b-center.ru/market/'))->toThrow(B2bCenterException::class);
+    }
+});
+
+it('rejects injected parameters and alternate hosts for a keyword feed', function () {
+    Http::fake();
+    $feed = b2bCenterFeed();
+    foreach (['https://www.b2b-center.ru.evil.test/market/?f_keyword=test&searching=1', 'https://www.b2b-center.ru/market/?f_keyword=test&searching=1&show=archive', 'https://www.b2b-center.ru/market/?f_keyword=test&searching=1#fragment'] as $url) {
+        $feed->canonical_url = $url;
+        expect(fn () => app(B2bCenterSource::class)->fetch($feed))->toThrow(B2bCenterException::class, 'feed_not_configured');
+    }
+    Http::assertNothingSent();
+});
+
+it('rematches previously imported public cards without repeating historical notifications', function () {
+    Queue::fake();
+    $feed = b2bCenterFeed();
+    $result = app(B2bCenterHtmlParser::class)->parse(b2bCenterHtml(), $feed->canonical_url);
+    $importer = app(TenderSourceImportService::class);
+    $importer->import($feed, $result, 'b2b_center', false);
+    $importer->import($feed, $result, 'b2b_center');
+    expect(Tender::query()->count())->toBe(2);
+    Queue::assertPushed(MatchTender::class, 2);
+    Queue::assertNotPushed(MatchTender::class, fn (MatchTender $job) => $job->queueNotifications);
+});
+
 function b2bCenterFeed(): SourceFeed
 {
     $url = 'https://www.b2b-center.ru/market/';

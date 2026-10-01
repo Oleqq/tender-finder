@@ -1,16 +1,30 @@
 <?php
 
+use App\Jobs\DeliverTelegramNotification;
+use App\Jobs\MatchTender;
+use App\Jobs\PollB2bCenterFeed;
 use App\Jobs\PollRostenderTemplate;
+use App\Jobs\PollWorkspaceRuFeed;
 use App\Models\Entitlement;
 use App\Models\RostenderApiUsage;
 use App\Models\SearchQuery;
 use App\Models\SourceFeed;
 use App\Models\SourceFeedItem;
+use App\Models\SourceFeedSearchQuery;
 use App\Models\SourceRun;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Models\User;
+use App\Services\B2bCenterHtmlParser;
+use App\Services\B2bCenterSource;
+use App\Services\CachedMonitoringMatchService;
 use App\Services\PlanCatalog;
+use App\Services\PublicTenderSources;
+use App\Services\TenderKeywordMatcher;
+use App\Services\TenderMatchingService;
+use App\Services\TenderSourceImportService;
+use App\Services\WorkspaceRuSource;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -167,3 +181,151 @@ function discoveryTender(string $title, string $externalId, ?SourceFeed $feed = 
         'currency' => 'RUB',
     ]);
 }
+
+it('searches a public feed without RosTender and keeps personal matches isolated and idempotent', function () {
+    $this->travelTo(Carbon::parse('2026-09-30 12:00:00'));
+    config()->set('tender.rostender.enabled', false);
+    config()->set('tender.workspace_ru.enabled', true);
+    Http::fake(['https://workspace.ru/tenders/rss/' => Http::response(workspaceRuRss())]);
+    Queue::fake();
+    $user = discoveryUser();
+    $other = discoveryUser();
+
+    $queryId = $this->actingAs($user)->postJson('/queries/quick', ['phrase' => 'Разработка'])
+        ->assertCreated()->assertJsonPath('check_queued', true)->json('query.id');
+    $feed = SourceFeed::query()->where('source', 'workspace_ru')->sole();
+    Queue::assertPushed(PollWorkspaceRuFeed::class, 1);
+    (new PollWorkspaceRuFeed($feed->id))->handle(
+        app(WorkspaceRuSource::class), app(TenderSourceImportService::class),
+    );
+    $matcher = app(TenderMatchingService::class);
+    foreach (Tender::query()->where('source', 'workspace_ru')->get() as $tender) {
+        $matcher->matchTender($tender, false);
+    }
+    expect(TenderQueryMatch::query()->where('search_query_id', $queryId)->count())->toBe(1);
+    $this->actingAs($other)->get('/tenders')->assertInertia(fn (Assert $page) => $page->where('tenderMatches.total', 0));
+    $this->actingAs($other)->postJson('/queries/'.$queryId.'/run')->assertNotFound();
+    $this->actingAs($user)->get('/tenders?query_id='.$queryId)->assertInertia(fn (Assert $page) => $page
+        ->where('tenderMatches.total', 1)->where('monitoringStatuses.0.source', 'workspace_ru')
+        ->where('monitoringStatuses.0.state', 'ok'));
+    $this->actingAs($user)->postJson('/queries/quick', ['phrase' => 'Разработка'])
+        ->assertOk()->assertJsonPath('reused', true)->assertJsonPath('check_queued', false);
+    expect(SearchQuery::query()->count())->toBe(1)
+        ->and(TenderQueryMatch::query()->count())->toBe(1);
+    Queue::assertPushed(PollWorkspaceRuFeed::class, 1);
+    Queue::assertNotPushed(DeliverTelegramNotification::class);
+});
+
+it('fills initial public results for a new monitoring and excludes expired or disabled feeds', function () {
+    config()->set('tender.rostender.enabled', false);
+    config()->set('tender.workspace_ru.enabled', true);
+    Queue::fake();
+    app(PublicTenderSources::class)->synchronize();
+    $feed = SourceFeed::query()->where('source', 'workspace_ru')->sole();
+    $matching = discoveryTender('Разработка портала', 'public-open', $feed);
+    $matching->forceFill(['source' => 'workspace_ru'])->save();
+    $expired = discoveryTender('Разработка архивная', 'public-expired', $feed);
+    $expired->forceFill(['source' => 'workspace_ru', 'deadline_at' => now()->subDay()])->save();
+    $disabled = discoveryTender('Разработка из выключенного источника', 'disabled', $feed);
+    $disabled->forceFill(['source' => 'b2b_center'])->save();
+
+    $this->actingAs(discoveryUser())->postJson('/queries/quick', ['phrase' => 'Разработка'])
+        ->assertCreated()->assertJsonPath('cached_matches', 1);
+    expect(TenderQueryMatch::query()->sole()->tender_id)->toBe($matching->id);
+});
+
+it('continues public checks when RosTender quota is exhausted and reports both source states', function () {
+    Queue::fake();
+    config()->set('tender.workspace_ru.enabled', true);
+    $feed = discoveryFeed();
+    RostenderApiUsage::query()->create([
+        'usage_date' => now('Europe/Moscow')->toDateString(), 'successful_requests' => 200, 'in_flight_requests' => 0,
+    ]);
+    SourceRun::query()->create([
+        'source_feed_id' => $feed->id, 'source' => 'rostender', 'status' => 'failed',
+        'started_at' => now(), 'finished_at' => now(), 'error_code' => 'quota_exhausted',
+    ]);
+    $queryId = $this->actingAs(discoveryUser())->postJson('/queries/quick', ['phrase' => 'Разработка'])
+        ->assertCreated()->assertJsonPath('check_queued', true)->json('query.id');
+    Queue::assertPushed(PollWorkspaceRuFeed::class, 1);
+    Queue::assertNotPushed(PollRostenderTemplate::class);
+    $this->get('/tenders?query_id='.$queryId)->assertInertia(fn (Assert $page) => $page
+        ->has('monitoringStatuses', 2)->where('monitoringStatuses.0.state', 'error')
+        ->where('monitoringStatuses.1.state', 'queued'));
+    $this->postJson('/queries/'.$queryId.'/run')->assertOk()->assertJsonPath('queued', false)->assertJsonStructure(['message']);
+    Queue::assertPushed(PollWorkspaceRuFeed::class, 1);
+});
+
+it('can preview and edit a public-only monitoring without a RosTender template', function () {
+    config()->set('tender.rostender.enabled', false);
+    config()->set('tender.workspace_ru.enabled', true);
+    Queue::fake();
+    $queryId = $this->actingAs(discoveryUser())->postJson('/queries/quick', ['phrase' => 'Разработка'])
+        ->assertCreated()->json('query.id');
+    $payload = ['keywords' => ['портал'], 'filters' => ['source' => ['rostender_template_id' => null]]];
+    $this->patchJson('/queries/'.$queryId, $payload)->assertOk();
+    $this->postJson('/queries/preview', $payload)->assertOk()->assertJsonPath('checked', 0);
+    $this->get('/queries')->assertInertia(fn (Assert $page) => $page->where('publicSources.0', 'workspace_ru'));
+});
+
+it('requests B2B by the user keywords and shares the source check without sharing personal state', function () {
+    $this->travelTo(Carbon::parse('2026-10-01 12:00:00'));
+    config()->set('tender.rostender.enabled', false);
+    config()->set('tender.b2b_center.enabled', true);
+    Queue::fake();
+    $html = str_replace('Закупка цинкооксидных поглотителей для загрузки системы', 'Услуги разработки сайта по техническому заданию', b2bCenterHtml());
+    Http::fake(['https://www.b2b-center.ru/market/?*' => Http::response($html)]);
+    $user = discoveryUser();
+    $other = discoveryUser();
+    $first = $this->actingAs($user)->postJson('/queries/quick', ['phrase' => 'разработка сайта'])
+        ->assertCreated()->assertJsonPath('check_queued', true)->json('query.id');
+    $second = $this->actingAs($other)->postJson('/queries/quick', ['phrase' => 'разработка сайта'])
+        ->assertCreated()->assertJsonPath('check_queued', false)->json('query.id');
+    $feed = SourceFeedSearchQuery::query()->where('search_query_id', $first)->sole()->feed;
+    expect($feed->canonical_url)->toBe('https://www.b2b-center.ru/market/?'.http_build_query(['f_keyword' => 'разработка сайта', 'searching' => 1]));
+    Queue::assertPushed(PollB2bCenterFeed::class, 1);
+    (new PollB2bCenterFeed($feed->id))->handle(app(B2bCenterSource::class), app(TenderSourceImportService::class));
+    foreach (Tender::query()->get() as $tender) {
+        (new MatchTender($tender->id, false))->handle(app(TenderMatchingService::class));
+    }
+    expect(TenderQueryMatch::query()->where('search_query_id', $first)->count())->toBe(1)
+        ->and(TenderQueryMatch::query()->where('search_query_id', $second)->count())->toBe(1);
+    Http::assertSent(fn ($request) => $request['f_keyword'] === 'разработка сайта' && ! $request->hasHeader('Cookie') && ! $request->hasHeader('Authorization'));
+    $this->actingAs($user)->postJson('/queries/'.$first.'/pause')->assertOk();
+    expect($feed->fresh()->status)->toBe('active');
+    $this->actingAs($other)->postJson('/queries/'.$second.'/pause')->assertOk();
+    expect($feed->fresh()->status)->toBe('paused');
+    $this->get('/queries')->assertInertia(fn (Assert $page) => $page
+        ->where('queries.0.source_statuses.0.state', 'paused')
+        ->where('queries.0.source_statuses.0.last_success_items_seen', 2));
+    $this->postJson('/queries/'.$second.'/resume')->assertOk();
+    expect($feed->fresh()->status)->toBe('active');
+});
+
+it('handles common Russian endings while preserving exact phrase matching', function () {
+    $query = new SearchQuery(['keywords' => ['разработка', 'сайта']]);
+    $tender = new Tender(['title' => 'Услуги разработки сайта по техническому заданию']);
+    $matcher = app(TenderMatchingService::class);
+    expect($matcher->evaluate($query, $tender)->matches)->toBeTrue();
+    $query->filters = ['relevance' => ['match_mode' => 'exact']];
+    expect($matcher->evaluate($query, $tender)->matches)->toBeFalse();
+    expect(app(TenderKeywordMatcher::class)->contains('Разработка приложения', 'сайт'))->toBeFalse();
+});
+
+it('finds a cached public card even after another shared feed updates its canonical pointer', function () {
+    config()->set('tender.rostender.enabled', false);
+    config()->set('tender.b2b_center.enabled', true);
+    Queue::fake();
+    $id = $this->actingAs(discoveryUser())->postJson('/queries/quick', ['phrase' => 'разработка сайта'])->assertCreated()->json('query.id');
+    $query = SearchQuery::query()->findOrFail($id);
+    $feed = SourceFeedSearchQuery::query()->where('search_query_id', $id)->sole()->feed;
+    $html = str_replace('Закупка цинкооксидных поглотителей для загрузки системы', 'Разработка сайта', b2bCenterHtml());
+    $result = app(B2bCenterHtmlParser::class)->parse($html, 'https://www.b2b-center.ru/market/');
+    $importer = app(TenderSourceImportService::class);
+    $importer->import($feed, $result, 'b2b_center', false);
+    $global = SourceFeed::query()->where('canonical_url', 'https://www.b2b-center.ru/market/')->sole();
+    $importer->import($global, $result, 'b2b_center', false);
+    expect(app(CachedMonitoringMatchService::class)->fill($query))->toBe(1)
+        ->and(app(CachedMonitoringMatchService::class)->fill($query))->toBe(0);
+    Queue::assertNotPushed(DeliverTelegramNotification::class);
+});

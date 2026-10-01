@@ -19,6 +19,7 @@ final class B2bCenterFeedService
         SourceFeed::query()
             ->where('source', 'b2b_center')
             ->where('canonical_url', '!=', $url)
+            ->where('canonical_url', 'not like', $url.'?%')
             ->update(['status' => 'paused']);
 
         return SourceFeed::query()->updateOrCreate(

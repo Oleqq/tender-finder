@@ -38,6 +38,9 @@ final class MonitoringStatusService
 
                 $result[$query->id][] = $this->status($query, $feed);
             }
+            foreach (app(PublicTenderSources::class)->feeds($query) as $feed) {
+                $result[$query->id][] = $this->status($query, $feed);
+            }
         }
 
         return $result;
@@ -92,6 +95,14 @@ final class MonitoringStatusService
             return 'Не удалось безопасно подключиться к источнику. Следующая попытка запланирована.';
         }
 
-        return 'RosTender временно не ответил. Следующая попытка запланирована.';
+        $name = match ($source) {
+            'rostender' => 'RosTender',
+            'sber_ast' => 'Сбер АСТ',
+            'workspace_ru' => 'Workspace.ru',
+            'b2b_center' => 'B2B-Center',
+            default => 'Источник',
+        };
+
+        return $name.' временно не ответил. Следующая попытка запланирована.';
     }
 }

@@ -33,6 +33,7 @@ class SearchQueryService
             ]);
 
             $this->rostenderFeeds->synchronize($query, $this->rostenderTemplateId($query));
+            app(B2bCenterSearchService::class)->synchronize($query);
 
             return $query;
         });
@@ -48,7 +49,7 @@ class SearchQueryService
             }
             $query->fill($attributes);
             $query->save();
-            SourceFeedSearchQuery::query()->where('search_query_id', $query->id)->delete();
+            app(B2bCenterSearchService::class)->synchronize($query);
             $this->rostenderFeeds->synchronize($query, $this->rostenderTemplateId($query));
 
             return $query->refresh();
@@ -59,6 +60,7 @@ class SearchQueryService
     {
         $query->forceFill(['status' => QueryStatus::Paused, 'paused_at' => now()])->save();
         $this->rostenderFeeds->refreshFor($query);
+        app(B2bCenterSearchService::class)->synchronize($query);
 
         return $query->refresh();
     }
@@ -76,6 +78,7 @@ class SearchQueryService
                 'monitoring_started_at' => now(),
             ])->save();
             $this->rostenderFeeds->synchronize($query, $this->rostenderTemplateId($query));
+            app(B2bCenterSearchService::class)->synchronize($query);
 
             return $query->refresh();
         });
@@ -85,6 +88,7 @@ class SearchQueryService
     {
         $query->forceFill(['status' => QueryStatus::Frozen, 'frozen_at' => now()])->save();
         $this->rostenderFeeds->refreshFor($query);
+        app(B2bCenterSearchService::class)->synchronize($query);
 
         return $query->refresh();
     }
@@ -92,6 +96,7 @@ class SearchQueryService
     public function delete(SearchQuery $query): void
     {
         $query->forceFill(['status' => QueryStatus::Deleted])->save();
+        app(B2bCenterSearchService::class)->synchronize($query);
         SourceFeedSearchQuery::query()->where('search_query_id', $query->id)->delete();
         $this->rostenderFeeds->detach($query);
     }

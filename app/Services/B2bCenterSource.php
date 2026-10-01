@@ -26,7 +26,7 @@ final class B2bCenterSource implements TenderSource
 
         if (! is_string($configuredUrl)
             || ! $this->feeds->isOfficialCatalogUrl($configuredUrl)
-            || $feed->canonical_url !== $configuredUrl) {
+            || ! $this->isConfiguredUrl($feed->canonical_url, $configuredUrl)) {
             throw new B2bCenterException('feed_not_configured');
         }
 
@@ -34,7 +34,7 @@ final class B2bCenterSource implements TenderSource
             $response = Http::accept('text/html,application/xhtml+xml')
                 ->withUserAgent((string) config('tender.b2b_center.user_agent'))
                 ->timeout(max(1, (int) config('tender.b2b_center.request_timeout_seconds', 15)))
-                ->get($configuredUrl);
+                ->get($feed->canonical_url);
         } catch (ConnectionException) {
             throw new B2bCenterException('connection_failed');
         }
@@ -44,5 +44,20 @@ final class B2bCenterSource implements TenderSource
         }
 
         return $this->parser->parse($response->body(), $configuredUrl);
+    }
+
+    private function isConfiguredUrl(string $url, string $base): bool
+    {
+        if ($url === $base) {
+            return true;
+        }
+        if (! str_starts_with($url, $base.'?')) {
+            return false;
+        }
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $parameters);
+        $phrase = $parameters['f_keyword'] ?? null;
+
+        return is_string($phrase) && trim($phrase) !== '' && mb_strlen($phrase) <= 255
+            && $url === $base.'?'.http_build_query(['f_keyword' => $phrase, 'searching' => 1]);
     }
 }

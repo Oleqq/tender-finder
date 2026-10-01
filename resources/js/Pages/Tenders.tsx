@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { TenderFeedbackActions } from '../Components/TenderFeedbackActions';
@@ -20,6 +20,14 @@ import {
     SelectField,
 } from '../Components/ui';
 import type { PageProps } from '../types';
+
+type SourceHealth = {
+    source: string;
+    state: 'ok' | 'empty' | 'error' | 'queued' | 'paused' | 'pending';
+    message: string;
+    last_success_at: string | null;
+    next_attempt_at: string | null;
+} | null;
 
 type TenderStatus = 'new' | 'favorite' | 'potential' | 'dismissed' | 'archived';
 
@@ -146,12 +154,8 @@ type TendersPageProps = PageProps<
         workflowSettings?: WorkflowSettings;
         routingRules?: RoutingRule[];
         canManageWorkflow?: boolean;
-        monitoringStatus?: {
-            state: 'ok' | 'empty' | 'error' | 'queued' | 'paused' | 'pending';
-            message: string;
-            last_success_at: string | null;
-            next_attempt_at: string | null;
-        } | null;
+        monitoringStatuses?: SourceHealth[];
+        monitoringStatus?: SourceHealth;
         monitoringName?: string | null;
         searchStarted?: boolean;
     }
@@ -210,6 +214,7 @@ export default function Tenders() {
         routingRules = [],
         canManageWorkflow = false,
         monitoringStatus = null,
+        monitoringStatuses = [],
         monitoringName = null,
         searchStarted = false,
     } = usePage<TendersPageProps>().props;
@@ -225,6 +230,21 @@ export default function Tenders() {
     const [bulkAssignee, setBulkAssignee] = useState<number | null>(null);
     const [bulkBusy, setBulkBusy] = useState(false);
     const [bulkError, setBulkError] = useState('');
+
+    useEffect(() => {
+        if (!searchStarted || !filters.query_id || team) return;
+        let checks = 0;
+        const timer = window.setInterval(() => {
+            checks += 1;
+            if (checks >= 20) window.clearInterval(timer);
+            if (document.visibilityState === 'visible') {
+                router.reload({
+                    only: ['tenderMatches', 'monitoringStatus', 'monitoringStatuses'],
+                });
+            }
+        }, 3000);
+        return () => window.clearInterval(timer);
+    }, [searchStarted, filters.query_id, team]);
 
     const visit = (next: Partial<FeedFilters>): void => {
         const params = { ...filters, q: search, ...next };
@@ -399,7 +419,17 @@ export default function Tenders() {
                         </Badge>
                         <h2>
                             {hasMonitoring
-                                ? 'Пока нет совпадений'
+                                ? monitoringStatuses.some(
+                                      (item) =>
+                                          item?.state === 'queued' ||
+                                          item?.state === 'pending',
+                                  )
+                                    ? 'Ищем подходящие тендеры'
+                                    : monitoringStatuses.some(
+                                            (item) => item?.state === 'error',
+                                        )
+                                      ? 'Ждём ответа источников'
+                                      : 'Пока нет совпадений'
                                 : 'Найдите тендеры по теме'}
                         </h2>
                         <p>
@@ -411,6 +441,7 @@ export default function Tenders() {
                             name={monitoringName}
                             started={searchStarted}
                             status={monitoringStatus}
+                            statuses={monitoringStatuses}
                         />
                         <form
                             className="tenders-first-run__search"
@@ -513,6 +544,7 @@ export default function Tenders() {
                         name={monitoringName}
                         started={searchStarted}
                         status={monitoringStatus}
+                        statuses={monitoringStatuses}
                     />
                 ) : null}
 
@@ -2050,39 +2082,89 @@ function SourceHealthNotice({
     name,
     started,
     status,
+    statuses = [],
 }: {
     name: string | null;
     started: boolean;
-    status: TendersPageProps['monitoringStatus'];
+    status: SourceHealth | undefined;
+    statuses?: SourceHealth[];
 }) {
-    if (!status && !started) return null;
-
-    const delayed = status?.state === 'error';
-    const waiting = status?.state === 'queued' || status?.state === 'pending';
-    const title = delayed
-        ? started
-            ? 'Мониторинг включён, источник задержан'
-            : 'Источник задерживает новые тендеры'
-        : waiting
-          ? 'Поиск включён, ждём ответ источника'
-          : started
-            ? 'Автоматический поиск включён'
-            : 'Состояние мониторинга';
-
+    const sources = (statuses.length > 0 ? statuses : [status]).filter(
+        (item): item is NonNullable<SourceHealth> => item != null,
+    );
+    if (sources.length === 0 && !started) return null;
+    const delayed = sources.some((item) => item.state === 'error');
+    const waiting = sources.some(
+        (item) => item.state === 'queued' || item.state === 'pending',
+    );
+    const title =
+        sources.length > 0 && sources.every((item) => item.state === 'paused')
+            ? 'Мониторинг на паузе'
+            : waiting
+              ? 'Проверяем источники'
+              : delayed
+                ? sources.every((item) => item.state === 'error')
+                    ? 'Источники пока не ответили'
+                    : 'Часть источников задерживает ответ'
+                : started
+                  ? 'Автоматический поиск включён'
+                  : 'Состояние поиска';
     return (
-        <InlineAlert title={title} tone={delayed ? 'warning' : 'neutral'}>
-            {name ? `${name}. ` : ''}
-            {status?.message ?? 'Мониторинг сохранён; первая проверка запланирована.'}
-            {status?.last_success_at
-                ? ` Последний успешный ответ: ${formatDateTime(status.last_success_at)}.`
-                : ''}
-            {status?.next_attempt_at
-                ? ` Следующая попытка: ${formatDateTime(status.next_attempt_at)}.`
-                : ''}{' '}
-            <Link className="source-health-link" href="/queries">
-                Открыть мониторинг →
-            </Link>
-        </InlineAlert>
+        <aside
+            className={`inline-alert inline-alert--${delayed ? 'warning' : 'neutral'}`}
+        >
+            <Icon name={waiting ? 'search' : 'layers'} size={18} />
+            <div className="search-source-status" aria-live="polite">
+                <strong>{title}</strong>
+                {name ? (
+                    <p>{name}. Новые совпадения будут появляться в вашей ленте.</p>
+                ) : null}
+                <details className="search-source-status__details">
+                    <summary>
+                        Источники: {sources.length} · ответили{' '}
+                        {
+                            sources.filter((item) =>
+                                ['ok', 'empty'].includes(item.state),
+                            ).length
+                        }
+                    </summary>
+                    {sources.map((item, index) => (
+                        <div
+                            className="search-source-status__item"
+                            key={`${item.source}-${index}`}
+                        >
+                            <strong>
+                                {sourceOptions.find(
+                                    (source) => source.value === item.source,
+                                )?.label ?? 'Источник'}
+                            </strong>
+                            <span>{item.message}</span>
+                            {item.last_success_at ? (
+                                <small>
+                                    Последний ответ:{' '}
+                                    {formatDateTime(item.last_success_at)}
+                                </small>
+                            ) : null}
+                            {item.next_attempt_at ? (
+                                <small>
+                                    Следующая проверка:{' '}
+                                    {formatDateTime(item.next_attempt_at)}
+                                </small>
+                            ) : null}
+                        </div>
+                    ))}
+                    {waiting ? (
+                        <p>
+                            Результаты обновляются автоматически в течение минуты. Можно
+                            вернуться к ним позже.
+                        </p>
+                    ) : null}
+                    <Link className="source-health-link" href="/queries">
+                        Настройки и уведомления →
+                    </Link>
+                </details>
+            </div>
+        </aside>
     );
 }
 

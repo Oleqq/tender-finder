@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\QueryStatus;
+use App\Models\RostenderFeedSearchQuery;
 use App\Models\SearchQuery;
 use App\Models\SourceFeed;
 use App\Services\AccessService;
+use App\Services\B2bCenterSearchService;
 use App\Services\CachedMonitoringMatchService;
 use App\Services\MonitoringPreviewService;
 use App\Services\MonitoringStatusService;
+use App\Services\PublicTenderSources;
 use App\Services\QueryAccessDeniedException;
 use App\Services\QueryLimitReachedException;
 use App\Services\RostenderAccessGate;
@@ -44,6 +48,7 @@ class SearchQueryController extends Controller
         $sourceStatuses = $statuses->forQueries($queries);
 
         return Inertia::render('MyQueries', [
+            'publicSources' => app(PublicTenderSources::class)->feeds()->pluck('source')->unique()->values(),
             'queries' => $queries
                 ->map(fn (SearchQuery $query): array => [
                     ...$this->presenter->toArray($query),
@@ -96,8 +101,9 @@ class SearchQueryController extends Controller
         $cachedMatches = app(CachedMonitoringMatchService::class)->fill($query);
 
         return response()->json([
-            'query' => $this->presenter->toArray($query),
+            'query' => $this->queryPayload($query),
             'cached_matches' => $cachedMatches,
+            'check_queued' => $this->dispatchDueSourceCheck($query),
         ], 201);
     }
 
@@ -115,23 +121,27 @@ class SearchQueryController extends Controller
                 'monitoring' => 'Для запуска поиска нужен активный доступ. Проверьте тариф в профиле.',
             ]);
         }
-        if (! app(RostenderAccessGate::class)->allowsDataProcessing()) {
+        $publicSources = app(PublicTenderSources::class);
+        $publicSources->synchronize();
+        $hasPublicSources = $publicSources->feeds()->isNotEmpty();
+        $rostenderEnabled = app(RostenderAccessGate::class)->allowsDataProcessing();
+        if (! $rostenderEnabled && ! $hasPublicSources) {
             throw ValidationException::withMessages([
-                'monitoring' => 'RosTender сейчас не подключён. Поиск не запущен.',
+                'monitoring' => 'Источники сейчас не подключены. Поиск не запущен.',
             ]);
         }
 
         $feeds = SourceFeed::query()->where('source', 'rostender')
             ->where('status', 'active')->whereNotNull('source_identifier')
             ->get(['source_identifier']);
-        $templateId = $feeds->count() === 1
+        $templateId = $rostenderEnabled && $feeds->count() === 1
             ? (int) $feeds->first()->source_identifier
             : null;
-        if ($feeds->isEmpty()) {
+        if ($rostenderEnabled && $feeds->isEmpty() && ! $hasPublicSources) {
             $templates = $this->rostenderTemplates->available();
             $templateId = count($templates) === 1 ? $templates[0]->id : null;
         }
-        if ($templateId === null) {
+        if ($templateId === null && ! $hasPublicSources) {
             throw ValidationException::withMessages([
                 'monitoring' => 'Для быстрого поиска нужен один подключённый шаблон RosTender. Настройте мониторинг вручную.',
             ]);
@@ -141,12 +151,15 @@ class SearchQueryController extends Controller
         $existing = SearchQuery::query()->where('user_id', $request->user()->id)
             ->where('status', 'active')->where('name', $phrase)->get()
             ->first(fn (SearchQuery $query): bool => $query->keywords === $keywords
-                && ($query->filters['source']['rostender_template_id'] ?? null) === $templateId);
+                && (($query->filters['source']['rostender_template_id'] ?? null) === $templateId
+                    || (! $rostenderEnabled && $hasPublicSources)));
         if ($existing !== null) {
+            app(B2bCenterSearchService::class)->synchronize($existing);
+
             return response()->json([
-                'query' => $this->presenter->toArray($existing),
+                'query' => $this->queryPayload($existing),
                 'cached_matches' => app(CachedMonitoringMatchService::class)->fill($existing),
-                'check_queued' => $this->dispatchDueSourceCheck(),
+                'check_queued' => $this->dispatchDueSourceCheck($existing),
                 'reused' => true,
             ]);
         }
@@ -169,19 +182,31 @@ class SearchQueryController extends Controller
         $cachedMatches = app(CachedMonitoringMatchService::class)->fill($query);
 
         return response()->json([
-            'query' => $this->presenter->toArray($query),
+            'query' => $this->queryPayload($query),
             'cached_matches' => $cachedMatches,
-            'check_queued' => $this->dispatchDueSourceCheck(),
+            'check_queued' => $this->dispatchDueSourceCheck($query),
         ], 201);
     }
 
-    private function dispatchDueSourceCheck(): bool
+    /** @return array<string, mixed> */
+    private function queryPayload(SearchQuery $query): array
     {
-        if (! app(RostenderQuotaGuard::class)->normalCapacityAvailable()) {
-            return false;
+        return [...$this->presenter->toArray($query),
+            'source_statuses' => app(MonitoringStatusService::class)->forQueries(collect([$query]))[$query->id]];
+    }
+
+    private function dispatchDueSourceCheck(SearchQuery $query): bool
+    {
+        $publicQueued = app(PublicTenderSources::class)->dispatchDueChecks($query);
+        if (! app(RostenderAccessGate::class)->allowsDataProcessing()
+            || ! app(RostenderQuotaGuard::class)->normalCapacityAvailable()) {
+            return $publicQueued;
         }
 
-        return app(RostenderPollingDispatcher::class)->dispatchOneDueFeed();
+        $feedIds = RostenderFeedSearchQuery::query()
+            ->where('search_query_id', $query->id)->pluck('source_feed_id')->all();
+
+        return app(RostenderPollingDispatcher::class)->dispatchOneDueFeed($feedIds) || $publicQueued;
     }
 
     public function update(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
@@ -202,14 +227,19 @@ class SearchQueryController extends Controller
             ]);
         }
 
-        return response()->json(['query' => $this->presenter->toArray($query)]);
+        if ($query->status === QueryStatus::Active) {
+            app(CachedMonitoringMatchService::class)->fill($query);
+            $this->dispatchDueSourceCheck($query);
+        }
+
+        return response()->json(['query' => $this->queryPayload($query)]);
     }
 
     public function pause(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
     {
         $this->assertOwnership($request, $query);
 
-        return response()->json(['query' => $this->presenter->toArray($queries->pause($query))]);
+        return response()->json(['query' => $this->queryPayload($queries->pause($query))]);
     }
 
     public function resume(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
@@ -228,14 +258,19 @@ class SearchQueryController extends Controller
             ]);
         }
 
-        return response()->json(['query' => $this->presenter->toArray($query)]);
+        if ($query->status === QueryStatus::Active) {
+            app(CachedMonitoringMatchService::class)->fill($query);
+            $this->dispatchDueSourceCheck($query);
+        }
+
+        return response()->json(['query' => $this->queryPayload($query)]);
     }
 
     public function freeze(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
     {
         $this->assertOwnership($request, $query);
 
-        return response()->json(['query' => $this->presenter->toArray($queries->freeze($query))]);
+        return response()->json(['query' => $this->queryPayload($queries->freeze($query))]);
     }
 
     public function destroy(Request $request, SearchQuery $query, SearchQueryService $queries): JsonResponse
@@ -267,7 +302,7 @@ class SearchQueryController extends Controller
             'filters.relevance' => ['nullable', 'array:match_mode'],
             'filters.relevance.match_mode' => ['nullable', 'string', 'in:all,any,exact'],
             'filters.source' => [$isPartialUpdate ? 'sometimes' : 'required', 'array:rostender_template_id'],
-            'filters.source.rostender_template_id' => [$isPartialUpdate ? 'sometimes' : 'required', 'integer', 'min:1'],
+            'filters.source.rostender_template_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $keywords = array_values(array_filter(array_map('trim', $attributes['keywords'])));
@@ -304,6 +339,11 @@ class SearchQueryController extends Controller
             ? (int) $source['rostender_template_id']
             : null;
 
+        if ($rostenderTemplateId === null && app(PublicTenderSources::class)->feeds()->isNotEmpty()) {
+            $attributes['filters']['source'] = ['rostender_template_id' => null];
+
+            return;
+        }
         if ($rostenderTemplateId === null || ! $this->rostenderTemplates->contains($rostenderTemplateId)) {
             throw ValidationException::withMessages([
                 'filters.source.rostender_template_id' => 'Выберите доступный шаблон RosTender.',

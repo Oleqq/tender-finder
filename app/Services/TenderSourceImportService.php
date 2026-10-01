@@ -94,12 +94,12 @@ class TenderSourceImportService
                     $itemsCreated++;
                 }
 
-                if ($queueMatches && $isNewTender) {
+                if ($queueMatches && ($isNewTender || in_array($source, ['workspace_ru', 'sber_ast', 'b2b_center'], true))) {
                     // The first import builds the user's initial feed but must not
                     // send a burst of notifications for historic procurements.
                     MatchTender::dispatch(
                         $tender->id,
-                        ! $isFirstSuccessfulPoll,
+                        ! $isFirstSuccessfulPoll && $isNewTender,
                     )->afterCommit();
                 }
             }

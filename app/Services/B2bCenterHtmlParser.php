@@ -33,6 +33,16 @@ final class B2bCenterHtmlParser
         $xpath = new DOMXPath($document);
         $links = $xpath->query("//table[contains(concat(' ', normalize-space(@class), ' '), ' search-results ')]//tbody/tr/td[1]/a[contains(@href, '/tender-') or contains(@href, '/tenders-')]");
 
+        if ($links !== false && $links->length === 0) {
+            // Observed public no-results markup, 1 October 2026. An arbitrary
+            // empty table or a blocking page must remain an error.
+            $empty = $xpath->query("//div[contains(concat(' ', normalize-space(@class), ' '), ' search-results ') and contains(concat(' ', normalize-space(@class), ' '), ' empty_results ')]");
+            if ($empty !== false && $empty->length === 1
+                && str_contains($this->text($empty->item(0)), 'сейчас нет актуальных торговых процедур.')) {
+                return new SourceFetchResult([], 0);
+            }
+        }
+
         if ($links === false || $links->length === 0) {
             throw new B2bCenterException('catalog_layout_changed');
         }

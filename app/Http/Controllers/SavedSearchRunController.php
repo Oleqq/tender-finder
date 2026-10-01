@@ -5,6 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\QueryStatus;
 use App\Models\RostenderFeedSearchQuery;
 use App\Models\SearchQuery;
+use App\Services\AccessService;
+use App\Services\B2bCenterSearchService;
+use App\Services\CachedMonitoringMatchService;
+use App\Services\MonitoringStatusService;
+use App\Services\PublicTenderSources;
 use App\Services\RostenderManualCheckService;
 use App\Services\SearchQueryPresenter;
 use App\Tenders\RostenderAccessDisabledException;
@@ -26,6 +31,33 @@ final class SavedSearchRunController extends Controller
             404,
         );
 
+        abort_unless(app(AccessService::class)->hasActiveAccess($request->user()), 403);
+        $public = app(PublicTenderSources::class);
+        $public->synchronize();
+        if ($public->feeds()->isNotEmpty() && $query->status === QueryStatus::Active) {
+            app(B2bCenterSearchService::class)->synchronize($query);
+            $queued = $public->dispatchDueChecks($query);
+            app(CachedMonitoringMatchService::class)->fill($query);
+            $feed = RostenderFeedSearchQuery::query()->where('search_query_id', $query->id)->with('feed')->first()?->feed;
+            if ($feed !== null) {
+                try {
+                    $rostender->queue($request->user(), $feed);
+                    $queued = true;
+                } catch (RostenderAccessDisabledException|RuntimeException) {
+                    // Public feeds continue independently of RosTender's quota.
+                }
+            }
+
+            return response()->json([
+                'queued' => $queued,
+                'message' => $queued
+                    ? 'Проверяем подключённые источники. Результаты появятся в вашей ленте.'
+                    : 'Источники уже проверены или ожидают следующей попытки. Доступные результаты добавлены в вашу ленту.',
+                'query' => [...$presenter->toArray($query),
+                    'source_statuses' => app(MonitoringStatusService::class)->forQueries(collect([$query]))[$query->id]],
+            ], $queued ? 202 : 200);
+        }
+
         $feed = RostenderFeedSearchQuery::query()
             ->where('search_query_id', $query->id)
             ->with('feed')
@@ -33,7 +65,9 @@ final class SavedSearchRunController extends Controller
 
         if ($feed === null) {
             throw ValidationException::withMessages([
-                'query' => 'Этот старый мониторинг не подключён к RosTender. Выберите шаблон источника в настройках.',
+                'query' => $query->status !== QueryStatus::Active
+                    ? 'Возобновите мониторинг, чтобы проверить источники.'
+                    : 'У мониторинга нет доступного источника. Проверьте настройки.',
             ]);
         }
 

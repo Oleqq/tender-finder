@@ -10,7 +10,8 @@ class RostenderPollingDispatcher
 {
     public function __construct(private readonly RostenderAccessGate $gate) {}
 
-    public function dispatchOneDueFeed(): bool
+    /** @param list<int>|null $feedIds */
+    public function dispatchOneDueFeed(?array $feedIds = null): bool
     {
         if (! $this->gate->allowsDataProcessing()) {
             return false;
@@ -27,6 +28,7 @@ class RostenderPollingDispatcher
             $feed = SourceFeed::query()
                 ->where('source', 'rostender')
                 ->where('status', 'active')
+                ->when($feedIds !== null, fn ($query) => $query->whereIn('id', $feedIds))
                 ->where(function ($query): void {
                     $query->whereNull('next_poll_at')->orWhere('next_poll_at', '<=', now());
                 })

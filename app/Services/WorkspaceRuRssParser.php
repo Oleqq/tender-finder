@@ -21,11 +21,14 @@ final class WorkspaceRuRssParser
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
-        if (! $loaded) {
+        if (! $loaded || $document->documentElement?->tagName !== 'rss') {
             throw new WorkspaceRuException('invalid_feed');
         }
 
         $xpath = new DOMXPath($document);
+        if ((int) $xpath->evaluate('count(/rss/channel)') !== 1) {
+            throw new WorkspaceRuException('invalid_feed');
+        }
         $nodes = $xpath->query('/rss/channel/item');
 
         if ($nodes === false) {
@@ -81,6 +84,10 @@ final class WorkspaceRuRssParser
                     ],
                 ],
             );
+        }
+
+        if ($nodes->length > 0 && $items === []) {
+            throw new WorkspaceRuException('invalid_feed');
         }
 
         return new SourceFetchResult(array_values($items), count($items));

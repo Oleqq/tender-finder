@@ -25,7 +25,9 @@ class TenderMatchingService
         $mode = $this->matchMode($query);
         $matchedKeywords = array_values(array_filter(
             $keywords,
-            fn (string $keyword): bool => str_contains($haystack, $this->lower($keyword)),
+            fn (string $keyword): bool => $mode === QueryMatchMode::Exact
+                ? str_contains($haystack, $this->lower($keyword))
+                : app(TenderKeywordMatcher::class)->contains($haystack, $keyword),
         ));
         $missingKeywords = array_values(array_diff($keywords, $matchedKeywords));
         $matchesKeywords = match ($mode) {
@@ -42,7 +44,7 @@ class TenderMatchingService
         }
 
         $minusKeywords = array_filter($query->minus_keywords ?? [], 'is_string');
-        $matchedMinusKeywords = array_values(array_filter($minusKeywords, fn (string $keyword): bool => str_contains($haystack, $this->lower($keyword))));
+        $matchedMinusKeywords = array_values(array_filter($minusKeywords, fn (string $keyword): bool => app(TenderKeywordMatcher::class)->contains($haystack, $keyword)));
 
         if ($matchedMinusKeywords !== []) {
             return new TenderMatchResult(false, ['excluded_by' => 'minus_keyword', 'matched_minus_keywords' => $matchedMinusKeywords]);

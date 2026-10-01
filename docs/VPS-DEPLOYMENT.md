@@ -32,6 +32,15 @@ migrations, starts the services, and removes unused image layers. Shell scripts
 are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
+## Pending release: multi-source search, 1 October 2026
+
+The new public-source search is locally verified but has not been installed
+on production. SSH from the Mac repeatedly times out during banner exchange,
+before authentication. Production environment flags have not been changed.
+See [MULTISOURCE-SEARCH-QA](MULTISOURCE-SEARCH-QA.md) for the exact scope,
+checks, network findings and remaining release steps. Existing release
+records below remain the last verified production state.
+
 ## Latest verified release
 
 On 30 September 2026, commit `9f27f15` changed the personal search button

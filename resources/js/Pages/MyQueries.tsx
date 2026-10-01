@@ -40,7 +40,7 @@ type QueryDto = {
 };
 
 type SourceStatus = {
-    source: 'rostender';
+    source: 'rostender' | 'workspace_ru' | 'sber_ast' | 'b2b_center';
     state: 'ok' | 'empty' | 'error' | 'queued' | 'paused' | 'pending';
     message: string;
     last_success_at: string | null;
@@ -72,6 +72,7 @@ type TenderDto = {
 };
 
 type QueryRunResponse = {
+    message?: string;
     queued?: boolean;
     preview?: QueryRunSummary;
     tenders?: TenderDto[];
@@ -112,6 +113,7 @@ type QueryPayload = {
 };
 
 type MyQueriesProps = {
+    publicSources?: string[];
     queries: QueryDto[];
     rostenderTemplates: Array<{ id: number; name: string }>;
 };
@@ -133,6 +135,7 @@ export default function MyQueries() {
     const {
         auth,
         queries: initialQueries,
+        publicSources = [],
         rostenderTemplates,
     } = usePage<PageProps<MyQueriesProps>>().props;
     const [queries, setQueries] = useState<QueryDto[]>(initialQueries);
@@ -325,9 +328,10 @@ export default function MyQueries() {
             );
             replaceQuery(response.data.query);
 
-            if (response.data.queued) {
+            if (response.data.message || response.data.queued) {
                 setActionNotice(
-                    'Проверка RosTender поставлена в очередь. Карточки появятся в ленте после синхронизации.',
+                    response.data.message ||
+                        'Проверка источников поставлена в очередь. Карточки появятся в ленте после синхронизации.',
                 );
                 return;
             }
@@ -431,7 +435,8 @@ export default function MyQueries() {
                                 <h2>Что искать?</h2>
                             </div>
                         </div>
-                        {rostenderTemplates.length === 0 ? (
+                        {rostenderTemplates.length === 0 &&
+                        publicSources.length === 0 ? (
                             <InlineAlert
                                 title="Источник пока недоступен"
                                 tone="warning"
@@ -448,15 +453,19 @@ export default function MyQueries() {
                                     form={createForm}
                                     onChange={updateForm(setCreateForm)}
                                     rostenderTemplates={rostenderTemplates}
+                                    publicSources={publicSources}
                                     step={step}
                                 />
                             )}
                             payload={toQueryPayload(createForm)}
-                            sourceSelected={rostenderTemplates.some(
-                                (template) =>
-                                    String(template.id) ===
-                                    createForm.rostenderTemplateId,
-                            )}
+                            sourceSelected={
+                                publicSources.length > 0 ||
+                                rostenderTemplates.some(
+                                    (template) =>
+                                        String(template.id) ===
+                                        createForm.rostenderTemplateId,
+                                )
+                            }
                             saving={isCreating}
                             error={createError}
                             onSubmit={createQuery}
@@ -476,7 +485,7 @@ export default function MyQueries() {
                 ) : null}
 
                 {actionNotice ? (
-                    <InlineAlert title="Проверка запланирована" tone="success">
+                    <InlineAlert title="Состояние проверки" tone="success">
                         {actionNotice}
                     </InlineAlert>
                 ) : null}
@@ -491,10 +500,11 @@ export default function MyQueries() {
                         </div>
                         {queries.map((query) => {
                             const details = queryDetails(query, rostenderTemplates);
-                            const manualRetryBlocked =
-                                query.source_statuses?.some(
-                                    (status) => status.manual_retry_blocked,
-                                ) ?? false;
+                            const manualRetryBlocked = query.source_statuses?.length
+                                ? query.source_statuses.every(
+                                      (status) => status.manual_retry_blocked,
+                                  )
+                                : false;
 
                             return (
                                 <GlassCard
@@ -647,6 +657,7 @@ export default function MyQueries() {
                         form={editForm}
                         onChange={updateForm(setEditForm)}
                         rostenderTemplates={rostenderTemplates}
+                        publicSources={publicSources}
                     />
                     {editError ? <FieldError>{editError}</FieldError> : null}
                     <Button
@@ -682,6 +693,7 @@ export default function MyQueries() {
                         form={editForm}
                         onChange={updateForm(setEditForm)}
                         rostenderTemplates={rostenderTemplates}
+                        publicSources={publicSources}
                     />
                     {editError ? <FieldError>{editError}</FieldError> : null}
                     <Button
@@ -750,8 +762,8 @@ function QueryRunSummaryCard({ query }: { query: QueryDto }) {
             <div className="query-card__run query-card__run--empty">
                 <Icon name="search" size={18} />
                 <p>
-                    Первый поиск ещё не завершён. Состояние источника и время следующей
-                    попытки указаны ниже.
+                    Состояние каждой площадки и время следующей проверки указаны ниже.
+                    Найденные закупки доступны в вашей ленте.
                 </p>
             </div>
         );
@@ -898,7 +910,14 @@ function SourceStatusCards({ statuses }: { statuses: SourceStatus[] }) {
 }
 
 function sourceLabel(source: SourceStatus['source']): string {
-    return source === 'rostender' ? 'RosTender' : 'Источник';
+    return (
+        {
+            rostender: 'RosTender',
+            workspace_ru: 'Workspace.ru',
+            sber_ast: 'Сбер АСТ',
+            b2b_center: 'B2B-Center',
+        }[source] ?? 'Источник'
+    );
 }
 
 function sourceStateLabel(state: SourceStatus['state']): string {
@@ -1010,8 +1029,10 @@ function QueryFields({
     form,
     onChange,
     rostenderTemplates,
+    publicSources = [],
     step,
 }: {
+    publicSources?: string[];
     step?: number;
     form: QueryFormValues;
     onChange: (field: keyof QueryFormValues, value: string) => void;
@@ -1021,14 +1042,18 @@ function QueryFields({
         <>
             <div hidden={step !== undefined && step !== 3}>
                 <label className="form-field">
-                    <span>Площадка для мониторинга</span>
+                    <span>Дополнительный шаблон RosTender</span>
                     <select
                         onChange={(event) =>
                             onChange('rostenderTemplateId', event.target.value)
                         }
                         value={form.rostenderTemplateId ?? ''}
                     >
-                        <option value="">Выберите шаблон RosTender</option>
+                        <option value="">
+                            {publicSources.length > 0
+                                ? 'Подключённые публичные источники'
+                                : 'Выберите шаблон RosTender'}
+                        </option>
                         {rostenderTemplates.map((template) => (
                             <option key={template.id} value={String(template.id)}>
                                 RosTender · {template.name}
@@ -1036,7 +1061,17 @@ function QueryFields({
                         ))}
                     </select>
                 </label>
-                {rostenderTemplates.length > 0 ? (
+                {publicSources.length > 0 ? (
+                    <p className="query-create__hint">
+                        Поиск также проверяет:{' '}
+                        {publicSources
+                            .map((source) =>
+                                sourceLabel(source as SourceStatus['source']),
+                            )
+                            .join(', ')}
+                        . Новые совпадения попадут в вашу личную ленту.
+                    </p>
+                ) : rostenderTemplates.length > 0 ? (
                     <p className="query-create__hint">
                         Шаблон задаёт удалённую выдачу RosTender; ваши ключевые слова и
                         фильтры дополнительно отберут подходящие карточки в

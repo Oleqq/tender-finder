@@ -150,8 +150,8 @@ class TenderFeedController extends Controller
             ->when($queryId !== null, fn (Builder $query) => $query->whereKey($queryId))
             ->latest()
             ->first();
-        $monitoringStatus = $monitoring === null ? null :
-            (app(MonitoringStatusService::class)->forQueries(collect([$monitoring]))[$monitoring->id][0] ?? null);
+        $monitoringStatuses = $monitoring === null ? [] :
+            app(MonitoringStatusService::class)->forQueries(collect([$monitoring]))[$monitoring->id];
 
         return Inertia::render('Tenders', [
             'tenderMatches' => $paginator,
@@ -181,7 +181,8 @@ class TenderFeedController extends Controller
             'savedViews' => $user->tenderFeedViews()
                 ->latest()
                 ->get(['id', 'name', 'filters']),
-            'monitoringStatus' => $monitoringStatus,
+            'monitoringStatus' => $monitoringStatuses[0] ?? null,
+            'monitoringStatuses' => $monitoringStatuses,
             'monitoringName' => $monitoring?->name,
             'searchStarted' => $monitoring !== null && $queryId === $monitoring->id && $request->boolean('started'),
         ]);
