@@ -559,15 +559,6 @@ export default function Tenders() {
                     {hasExplicitFilters ? <Badge tone="accent">Фильтр</Badge> : null}
                 </GlassCard>
 
-                {!team ? (
-                    <SourceHealthNotice
-                        name={monitoringName}
-                        started={searchStarted}
-                        status={monitoringStatus}
-                        statuses={monitoringStatuses}
-                    />
-                ) : null}
-
                 <GlassCard className="tender-feed-controls page-enter page-enter--delay">
                     <form className="tender-feed-search" onSubmit={submitSearch}>
                         <SearchInput
@@ -847,6 +838,15 @@ export default function Tenders() {
                         </div>
                     </details>
                 </GlassCard>
+
+                {!team ? (
+                    <SourceHealthNotice
+                        name={monitoringName}
+                        started={searchStarted}
+                        status={monitoringStatus}
+                        statuses={monitoringStatuses}
+                    />
+                ) : null}
 
                 {team && canEdit && tenderMatches.data.length ? (
                     <GlassCard className="team-feed-bulk" tone="quiet">
