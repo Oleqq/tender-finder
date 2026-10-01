@@ -79,6 +79,27 @@ it('keeps a queued source distinct from an unavailable source and stops schedule
         ->where('queries.0.source_statuses.0.next_attempt_at', null));
 });
 
+it('does not describe an old shared snapshot or a stalled queue as a fresh answer', function () {
+    $user = User::factory()->create();
+    $feed = monitoredFeed();
+    app(TenderSourceImportService::class)->import($feed, new SourceFetchResult([], 0), 'rostender', false);
+    $this->travel(5)->minutes();
+    $query = monitoredQuery($user);
+    RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+
+    $this->actingAs($user)->get('/queries')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('queries.0.source_statuses.0.state', 'cached')
+        ->where('queries.0.source_statuses.0.last_success_items_seen', 0));
+
+    $feed->forceFill(['last_attempt_at' => now()->subMinutes(3)])->save();
+    $this->get('/queries')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('queries.0.source_statuses.0.state', 'stalled'));
+
+    app(TenderSourceImportService::class)->import($feed->fresh(), new SourceFetchResult([], 0), 'rostender', false);
+    $this->get('/queries')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('queries.0.source_statuses.0.state', 'empty'));
+});
+
 it('marks a quota cooldown as unavailable for manual retry in monitoring status', function () {
     $user = User::factory()->create();
     $query = monitoredQuery($user);

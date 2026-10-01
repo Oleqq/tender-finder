@@ -23,7 +23,15 @@ import type { PageProps } from '../types';
 
 type SourceHealth = {
     source: string;
-    state: 'ok' | 'empty' | 'error' | 'queued' | 'paused' | 'pending';
+    state:
+        | 'ok'
+        | 'empty'
+        | 'error'
+        | 'queued'
+        | 'stalled'
+        | 'cached'
+        | 'paused'
+        | 'pending';
     message: string;
     last_success_at: string | null;
     next_attempt_at: string | null;
@@ -426,10 +434,18 @@ export default function Tenders() {
                                   )
                                     ? 'Ищем подходящие тендеры'
                                     : monitoringStatuses.some(
-                                            (item) => item?.state === 'error',
+                                            (item) => item?.state === 'stalled',
                                         )
-                                      ? 'Ждём ответа источников'
-                                      : 'Пока нет совпадений'
+                                      ? 'Проверка источника задерживается'
+                                      : monitoringStatuses.some(
+                                              (item) => item?.state === 'cached',
+                                          )
+                                        ? 'Новый ответ ещё ожидается'
+                                        : monitoringStatuses.some(
+                                                (item) => item?.state === 'error',
+                                            )
+                                          ? 'Ждём ответа источников'
+                                          : 'Пока нет совпадений'
                                 : 'Найдите тендеры по теме'}
                         </h2>
                         <p>
@@ -2095,7 +2111,9 @@ function SourceHealthNotice({
         (item): item is NonNullable<SourceHealth> => item != null,
     );
     if (sources.length === 0 && !started) return null;
-    const delayed = sources.some((item) => item.state === 'error');
+    const delayed = sources.some(
+        (item) => item.state === 'error' || item.state === 'stalled',
+    );
     const waiting = sources.some(
         (item) => item.state === 'queued' || item.state === 'pending',
     );
@@ -2108,9 +2126,11 @@ function SourceHealthNotice({
                 ? sources.every((item) => item.state === 'error')
                     ? 'Источники пока не ответили'
                     : 'Часть источников задерживает ответ'
-                : started
-                  ? 'Автоматический поиск включён'
-                  : 'Состояние поиска';
+                : sources.some((item) => item.state === 'cached')
+                  ? 'Есть снимок прошлой проверки'
+                  : started || name
+                    ? 'Автоматический поиск включён'
+                    : 'Состояние поиска';
     return (
         <aside
             className={`inline-alert inline-alert--${delayed ? 'warning' : 'neutral'}`}

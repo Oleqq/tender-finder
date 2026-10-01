@@ -88,6 +88,13 @@ class TenderSourceImportService
                 $tender->save();
                 if (! $isNewTender) {
                     app(TenderFollowUpService::class)->recordChanges($tender, $before);
+                    if ($source === 'b2b_center' && $tender->wasChanged('title')) {
+                        $tender->matches()->with('searchQuery')->each(function ($match) use ($tender): void {
+                            if (! app(TenderMatchingService::class)->evaluate($match->searchQuery, $tender)->matches) {
+                                $match->delete();
+                            }
+                        });
+                    }
                 }
 
                 if ($isNewTender) {

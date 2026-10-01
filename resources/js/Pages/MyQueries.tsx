@@ -41,7 +41,15 @@ type QueryDto = {
 
 type SourceStatus = {
     source: 'rostender' | 'workspace_ru' | 'sber_ast' | 'b2b_center';
-    state: 'ok' | 'empty' | 'error' | 'queued' | 'paused' | 'pending';
+    state:
+        | 'ok'
+        | 'empty'
+        | 'error'
+        | 'queued'
+        | 'stalled'
+        | 'cached'
+        | 'paused'
+        | 'pending';
     message: string;
     last_success_at: string | null;
     last_success_items_seen: number | null;
@@ -811,7 +819,9 @@ function MonitoringHealth({ query }: { query: QueryDto }) {
     const requiresAttention =
         statuses.length === 0 ||
         statuses.some((status) =>
-            ['error', 'queued', 'paused', 'pending'].includes(status.state),
+            ['error', 'stalled', 'queued', 'cached', 'paused', 'pending'].includes(
+                status.state,
+            ),
         );
     const summary = monitoringHealthSummary(statuses);
 
@@ -839,8 +849,10 @@ function monitoringHealthSummary(statuses: SourceStatus[]): {
 
     const state =
         statuses.find((status) => status.state === 'error')?.state ??
+        statuses.find((status) => status.state === 'stalled')?.state ??
         statuses.find((status) => status.state === 'queued')?.state ??
         statuses.find((status) => status.state === 'pending')?.state ??
+        statuses.find((status) => status.state === 'cached')?.state ??
         statuses.find((status) => status.state === 'paused')?.state ??
         statuses[0].state;
 
@@ -925,7 +937,9 @@ function sourceStateLabel(state: SourceStatus['state']): string {
         ok: 'Ответ получен',
         empty: 'Новых записей нет',
         error: 'Источник недоступен',
+        stalled: 'Проверка задерживается',
         queued: 'Ожидает очереди',
+        cached: 'Прежний снимок',
         paused: 'Остановлен',
         pending: 'Первый опрос',
     }[state];
@@ -938,7 +952,10 @@ function sourceTone(
         ? 'success'
         : state === 'error'
           ? 'danger'
-          : state === 'queued' || state === 'pending'
+          : state === 'stalled' ||
+              state === 'queued' ||
+              state === 'pending' ||
+              state === 'cached'
             ? 'warning'
             : 'neutral';
 }

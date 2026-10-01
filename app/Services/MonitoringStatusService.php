@@ -61,11 +61,16 @@ final class MonitoringStatusService
         $waitingForQueue = ! $hasCurrentFailure
             && $feed->last_attempt_at !== null
             && ($lastSuccessAt === null || $feed->last_attempt_at->gt($lastSuccessAt));
+        $queueStalled = $waitingForQueue && $feed->last_attempt_at->lte(now()->subMinutes(2));
+        $olderSnapshot = $lastSuccessAt !== null && $query->monitoring_started_at !== null
+            && $lastSuccessAt->lt($query->monitoring_started_at);
 
         [$state, $message] = match (true) {
             $query->status !== QueryStatus::Active => ['paused', 'Мониторинг остановлен, поэтому новый опрос для него не планируется.'],
             $hasCurrentFailure => ['error', $this->failureMessage($feed->source, $failure->error_code)],
+            $queueStalled => ['stalled', 'Опрос задерживается в очереди. Нового ответа источника пока нет.'],
             $waitingForQueue => ['queued', 'Опрос поставлен в очередь. Источник ещё не подтвердил ответ.'],
+            $olderSnapshot => ['cached', 'Есть прежний снимок источника. После включения этого мониторинга нового ответа ещё не было.'],
             $success !== null && $success->items_seen === 0 => ['empty', 'Источник ответил: новых записей в последнем ответе нет.'],
             $success !== null => ['ok', 'Источник ответил. Совпадения показываются отдельно в результатах мониторинга.'],
             default => ['pending', 'Первый опрос ещё не завершён.'],

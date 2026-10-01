@@ -70,7 +70,7 @@ final class B2bCenterHtmlParser
 
             $descriptionNodes = $xpath->query(".//*[contains(concat(' ', normalize-space(@class), ' '), ' search-results-title-desc ')]", $link);
             $descriptionNode = $descriptionNodes === false ? null : $descriptionNodes->item(0);
-            $title = $descriptionNode instanceof DOMNode ? $this->text($descriptionNode) : null;
+            $title = $descriptionNode instanceof DOMElement ? $this->headline($descriptionNode) : null;
             $linkText = $this->text($link);
             $procedureType = $this->procedureType($linkText, $externalId);
 
@@ -177,6 +177,22 @@ final class B2bCenterHtmlParser
     private function text(DOMNode $node): string
     {
         return trim((string) preg_replace('/\\s+/u', ' ', html_entity_decode($node->textContent, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+    }
+
+    private function headline(DOMElement $description): string
+    {
+        $headline = $description->cloneNode(true);
+        if (! $headline instanceof DOMElement) {
+            return '';
+        }
+
+        // B2B sometimes nests the procedure number, organizer and category
+        // inside the title element. That metadata must not become search text.
+        while (($details = $headline->getElementsByTagName('div')->item(0)) instanceof DOMElement) {
+            $details->parentNode?->removeChild($details);
+        }
+
+        return $this->text($headline);
     }
 
     private function date(string $value): ?CarbonImmutable

@@ -1,14 +1,26 @@
 <?php
 
+use App\Jobs\DeliverTelegramNotification;
 use App\Jobs\MatchTender;
 use App\Jobs\PollB2bCenterFeed;
+use App\Models\Entitlement;
+use App\Models\NotificationDelivery;
+use App\Models\SearchQuery;
 use App\Models\SourceFeed;
+use App\Models\SourceFeedSearchQuery;
 use App\Models\Tender;
+use App\Models\TenderQueryMatch;
+use App\Models\TenderUserState;
+use App\Models\User;
+use App\Services\AccessService;
 use App\Services\B2bCenterHtmlParser;
 use App\Services\B2bCenterPollingDispatcher;
 use App\Services\B2bCenterSource;
+use App\Services\TelegramBotClient;
+use App\Services\TenderMatchingService;
 use App\Services\TenderSourceImportService;
 use App\Tenders\B2bCenterException;
+use App\Tenders\SourceFetchResult;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -52,6 +64,44 @@ it('collapses a repeated public B2B title into one readable heading', function (
     $item = app(B2bCenterHtmlParser::class)->parse($html, 'https://www.b2b-center.ru/market/')->items[0];
 
     expect($item->title)->toBe('Разработка сайта для перевозчика');
+});
+
+it('excludes nested organizer and category metadata from a B2B title and removes false matches on reimport', function () {
+    $html = str_replace(
+        'Ремонт производственного здания</div>',
+        'Аренда ДГУ<div style="color:#888">4609184 Заказчик Строительство</div></div>',
+        b2bCenterHtml(),
+    );
+    $result = app(B2bCenterHtmlParser::class)->parse($html, 'https://www.b2b-center.ru/market/');
+    expect($result->items[1]->title)->toBe('Аренда ДГУ');
+
+    $user = User::factory()->create();
+    $query = SearchQuery::query()->create([
+        'user_id' => $user->id, 'name' => 'Строительство',
+        'keywords' => ['строительство'], 'status' => 'active',
+        'filters' => ['relevance' => ['match_mode' => 'phrase']],
+    ]);
+    $tender = Tender::query()->create([
+        'source' => 'b2b_center', 'external_id' => '4609184',
+        'canonical_url' => $result->items[1]->canonicalUrl,
+        'canonical_url_hash' => $result->items[1]->urlHash,
+        'title' => 'Аренда ДГУ 4609184 Заказчик Строительство',
+        'currency' => 'RUB',
+    ]);
+    TenderQueryMatch::query()->create([
+        'search_query_id' => $query->id, 'tender_id' => $tender->id,
+        'match_reasons' => ['keywords' => ['строительство']], 'matched_at' => now(),
+    ]);
+    TenderUserState::query()->create([
+        'user_id' => $user->id, 'tender_id' => $tender->id,
+        'status' => 'favorite',
+    ]);
+
+    app(TenderSourceImportService::class)->import(b2bCenterFeed(), $result, 'b2b_center', false);
+
+    expect($tender->fresh()->title)->toBe('Аренда ДГУ')
+        ->and(TenderQueryMatch::query()->where('tender_id', $tender->id)->exists())->toBeFalse()
+        ->and(TenderUserState::query()->where('tender_id', $tender->id)->exists())->toBeTrue();
 });
 
 it('rejects a changed B2B-Center catalog layout instead of accepting an empty snapshot', function () {
@@ -147,6 +197,49 @@ it('rematches previously imported public cards without repeating historical noti
     expect(Tender::query()->count())->toBe(2);
     Queue::assertPushed(MatchTender::class, 2);
     Queue::assertNotPushed(MatchTender::class, fn (MatchTender $job) => $job->queueNotifications);
+});
+
+it('queues a newly discovered B2B match only for the linked user and delivers it once', function () {
+    Queue::fake();
+    $first = User::factory()->create(['telegram_id' => 'recipient-one']);
+    $other = User::factory()->create(['telegram_id' => 'recipient-two']);
+    foreach ([$first, $other] as $user) {
+        Entitlement::query()->create([
+            'user_id' => $user->id, 'code' => 'active_queries', 'status' => 'active',
+            'value' => 3, 'starts_at' => now()->subDay(), 'ends_at' => now()->addDay(),
+        ]);
+    }
+    $feed = b2bCenterFeed();
+    $query = SearchQuery::query()->create([
+        'user_id' => $first->id, 'name' => 'Закупка',
+        'keywords' => ['закупка'], 'status' => 'active',
+        'monitoring_started_at' => now()->subMinute(),
+    ]);
+    SearchQuery::query()->create([
+        'user_id' => $other->id, 'name' => 'Закупка',
+        'keywords' => ['закупка'], 'status' => 'active',
+        'monitoring_started_at' => now()->subMinute(),
+    ]);
+    SourceFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+    $importer = app(TenderSourceImportService::class);
+    $importer->import($feed, new SourceFetchResult([], 0), 'b2b_center', false);
+    $result = app(B2bCenterHtmlParser::class)->parse(b2bCenterHtml(), $feed->canonical_url);
+    $importer->import($feed->fresh(), $result, 'b2b_center');
+    $tender = Tender::query()->where('external_id', '4616894')->sole();
+    (new MatchTender($tender->id))->handle(app(TenderMatchingService::class));
+
+    $delivery = NotificationDelivery::query()->where('type', 'tender_card')->sole();
+    expect($delivery->user_id)->toBe($first->id);
+    $bot = Mockery::mock(TelegramBotClient::class);
+    $bot->shouldReceive('sendNotification')->once()->with('recipient-one', Mockery::on(
+        fn (string $text): bool => str_contains($text, 'Закупка цинкооксидных поглотителей'),
+    ));
+    (new DeliverTelegramNotification($delivery->id))->handle($bot, app(AccessService::class));
+    expect($delivery->fresh()->status->value)->toBe('sent');
+
+    $importer->import($feed->fresh(), $result, 'b2b_center');
+    (new MatchTender($tender->id))->handle(app(TenderMatchingService::class));
+    expect(NotificationDelivery::query()->where('type', 'tender_card')->count())->toBe(1);
 });
 
 function b2bCenterFeed(): SourceFeed
