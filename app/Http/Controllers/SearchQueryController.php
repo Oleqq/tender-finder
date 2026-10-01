@@ -6,6 +6,7 @@ use App\Enums\QueryStatus;
 use App\Models\RostenderFeedSearchQuery;
 use App\Models\SearchQuery;
 use App\Models\SourceFeed;
+use App\Models\TenderQueryMatch;
 use App\Services\AccessService;
 use App\Services\B2bCenterSearchService;
 use App\Services\CachedMonitoringMatchService;
@@ -20,6 +21,7 @@ use App\Services\RostenderQuotaGuard;
 use App\Services\RostenderTemplateCatalog;
 use App\Services\SearchQueryPresenter;
 use App\Services\SearchQueryService;
+use App\Services\TenderMatchingService;
 use App\Tenders\RostenderAccessDisabledException;
 use App\Tenders\RostenderApiException;
 use App\Tenders\RostenderQuotaExceededException;
@@ -151,9 +153,18 @@ class SearchQueryController extends Controller
         $existing = SearchQuery::query()->where('user_id', $request->user()->id)
             ->where('status', 'active')->where('name', $phrase)->get()
             ->first(fn (SearchQuery $query): bool => $query->keywords === $keywords
+                && ($query->minus_keywords === null || $query->minus_keywords === [])
+                && $query->region === null && $query->budget_min === null && $query->budget_max === null
+                && $query->deadline_from === null && $query->deadline_to === null
+                && array_diff(array_keys($query->filters ?? []), ['source', 'relevance']) === []
+                && in_array(($query->filters['relevance']['match_mode'] ?? null), [null, 'phrase'], true)
                 && (($query->filters['source']['rostender_template_id'] ?? null) === $templateId
                     || (! $rostenderEnabled && $hasPublicSources)));
         if ($existing !== null) {
+            if (($existing->filters['relevance']['match_mode'] ?? null) !== 'phrase') {
+                $existing = $queries->update($existing, ['filters' => ['relevance' => ['match_mode' => 'phrase']]]);
+            }
+            $this->pruneUnrelatedMatches($existing);
             app(B2bCenterSearchService::class)->synchronize($existing);
 
             return response()->json([
@@ -167,7 +178,10 @@ class SearchQueryController extends Controller
             $query = $queries->create($request->user(), [
                 'name' => $phrase,
                 'keywords' => $keywords,
-                'filters' => ['source' => ['rostender_template_id' => $templateId]],
+                'filters' => [
+                    'source' => ['rostender_template_id' => $templateId],
+                    'relevance' => ['match_mode' => 'phrase'],
+                ],
             ]);
         } catch (QueryAccessDeniedException|QueryLimitReachedException|RostenderAccessDisabledException) {
             throw ValidationException::withMessages([
@@ -193,6 +207,18 @@ class SearchQueryController extends Controller
     {
         return [...$this->presenter->toArray($query),
             'source_statuses' => app(MonitoringStatusService::class)->forQueries(collect([$query]))[$query->id]];
+    }
+
+    private function pruneUnrelatedMatches(SearchQuery $query): void
+    {
+        TenderQueryMatch::query()->where('search_query_id', $query->id)
+            ->with('tender')->chunkById(100, function ($matches) use ($query): void {
+                foreach ($matches as $match) {
+                    if (! app(TenderMatchingService::class)->evaluate($query, $match->tender)->matches) {
+                        $match->delete();
+                    }
+                }
+            });
     }
 
     private function dispatchDueSourceCheck(SearchQuery $query): bool
@@ -300,7 +326,7 @@ class SearchQueryController extends Controller
             'filters.excluded_customers' => ['sometimes', 'array', 'max:50'],
             'filters.excluded_customers.*' => ['required', 'string', 'max:200', 'distinct'],
             'filters.relevance' => ['nullable', 'array:match_mode'],
-            'filters.relevance.match_mode' => ['nullable', 'string', 'in:all,any,exact'],
+            'filters.relevance.match_mode' => ['nullable', 'string', 'in:all,any,exact,phrase'],
             'filters.source' => [$isPartialUpdate ? 'sometimes' : 'required', 'array:rostender_template_id'],
             'filters.source.rostender_template_id' => ['nullable', 'integer', 'min:1'],
         ]);

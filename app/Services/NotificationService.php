@@ -63,7 +63,7 @@ class NotificationService
                 'type' => 'tender_card',
                 'status' => NotificationStatus::Queued,
                 'payload' => [
-                    'title' => mb_substr($tender->title, 0, 500),
+                    'title' => mb_substr(TenderTitle::display($tender->title), 0, 500),
                     'url' => $tender->canonical_url,
                 ],
                 'scheduled_at' => now(),

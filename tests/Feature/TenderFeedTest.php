@@ -113,6 +113,32 @@ it('filters sorts and paginates the signed-in users tender feed', function () {
             ->where('tenderMatches.data.0.tags', ['приоритет']));
 });
 
+it('opens the latest personal search instead of mixing older topics by default', function () {
+    $user = User::factory()->create();
+    $older = SearchQuery::query()->create([
+        'user_id' => $user->id, 'name' => 'Строительство',
+        'keywords' => ['строительство'], 'status' => 'active',
+    ]);
+    $latest = SearchQuery::query()->create([
+        'user_id' => $user->id, 'name' => 'Разработка сайта',
+        'keywords' => ['разработка', 'сайта'], 'status' => 'active',
+    ]);
+    foreach ([$older, $latest] as $query) {
+        $tender = tenderForFeed('topic-'.$query->id, $query->name);
+        TenderQueryMatch::query()->create([
+            'search_query_id' => $query->id, 'tender_id' => $tender->id,
+            'match_reasons' => ['keywords' => $query->keywords], 'matched_at' => now(),
+        ]);
+    }
+
+    $this->actingAs($user)->get('/tenders')->assertInertia(fn (Assert $page) => $page
+        ->where('filters.query_id', $latest->id)
+        ->where('tenderMatches.total', 1)
+        ->where('tenderMatches.data.0.title', 'Разработка сайта'));
+    $this->get('/tenders?query_id=0')->assertInertia(fn (Assert $page) => $page
+        ->where('filters.query_id', 0)->where('tenderMatches.total', 2));
+});
+
 it('can scope the personal tender feed to RosTender matches', function () {
     $user = User::factory()->create(['telegram_id' => '9301']);
     $query = SearchQuery::query()->create([

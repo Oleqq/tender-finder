@@ -86,6 +86,7 @@ it('starts an individual monitoring, shows current matches and reports a delayed
     ])->assertCreated()->assertJsonPath('cached_matches', 1)->json('query.id');
 
     expect(SearchQuery::query()->findOrFail($queryId)->status->value)->toBe('active')
+        ->and(SearchQuery::query()->findOrFail($queryId)->filters['relevance']['match_mode'])->toBe('phrase')
         ->and(TenderQueryMatch::query()->where('search_query_id', $queryId)->where('tender_id', $matching->id)->exists())->toBeTrue();
     Http::assertNothingSent();
 
@@ -310,6 +311,96 @@ it('handles common Russian endings while preserving exact phrase matching', func
     $query->filters = ['relevance' => ['match_mode' => 'exact']];
     expect($matcher->evaluate($query, $tender)->matches)->toBeFalse();
     expect(app(TenderKeywordMatcher::class)->contains('Разработка приложения', 'сайт'))->toBeFalse();
+});
+
+it('does not treat a Workspace category or an unrelated project as a phrase match', function () {
+    $query = new SearchQuery([
+        'keywords' => ['разработка', 'сайта'],
+        'filters' => ['relevance' => ['match_mode' => 'phrase']],
+    ]);
+    $matcher = app(TenderMatchingService::class);
+
+    $unrelated = new Tender([
+        'source' => 'workspace_ru',
+        'title' => 'Система приёма донатов в USDT',
+        'description' => "Требуемая услуга: разработка сайтов под ключ\n\nНужна интеграция криптоплатежей.",
+    ]);
+    $otherService = new Tender([
+        'source' => 'workspace_ru',
+        'title' => 'PR-сопровождение запуска продукта',
+        'description' => "Требуемая услуга: PR\n\nРазработка сайта уже поручена другой команде.",
+    ]);
+    $relevant = new Tender([
+        'source' => 'workspace_ru',
+        'title' => 'Новый сайт для отеля',
+        'description' => "Требуемая услуга: разработка сайтов\n\nНужна разработка нового сайта с бронированием.",
+    ]);
+
+    expect($matcher->evaluate($query, $unrelated)->matches)->toBeFalse()
+        ->and($matcher->evaluate($query, $otherService)->matches)->toBeFalse()
+        ->and($matcher->evaluate($query, $relevant)->matches)->toBeTrue();
+});
+
+it('upgrades a reused quick search and removes derived matches outside its phrase', function () {
+    config()->set('tender.rostender.enabled', false);
+    config()->set('tender.workspace_ru.enabled', true);
+    Queue::fake();
+    $user = discoveryUser();
+    $query = SearchQuery::query()->create([
+        'user_id' => $user->id, 'name' => 'разработка сайта',
+        'keywords' => ['разработка', 'сайта'], 'status' => 'active',
+        'filters' => ['source' => ['rostender_template_id' => null]],
+    ]);
+    $unrelated = Tender::query()->create([
+        'source' => 'workspace_ru', 'external_id' => 'wrong-category',
+        'canonical_url' => 'https://workspace.ru/tenders/wrong-category/',
+        'canonical_url_hash' => hash('sha256', 'wrong-category'),
+        'title' => 'Система приёма донатов',
+        'description' => "Требуемая услуга: разработка сайтов\n\nНужны криптоплатежи.",
+        'currency' => 'RUB',
+    ]);
+    TenderQueryMatch::query()->create([
+        'search_query_id' => $query->id, 'tender_id' => $unrelated->id,
+        'match_reasons' => ['keywords' => $query->keywords], 'matched_at' => now(),
+    ]);
+
+    $this->actingAs($user)->postJson('/queries/quick', ['phrase' => 'разработка сайта'])
+        ->assertOk()->assertJsonPath('reused', true);
+    expect($query->fresh()->filters['relevance']['match_mode'])->toBe('phrase')
+        ->and(TenderQueryMatch::query()->where('search_query_id', $query->id)->count())->toBe(0)
+        ->and(Tender::query()->whereKey($unrelated->id)->exists())->toBeTrue();
+});
+
+it('does not distribute a B2B search result to a different keyword feed', function () {
+    $first = SearchQuery::query()->create([
+        'user_id' => User::factory()->create()->id,
+        'name' => 'Первый', 'keywords' => ['сайт'], 'status' => 'active',
+    ]);
+    $second = SearchQuery::query()->create([
+        'user_id' => User::factory()->create()->id,
+        'name' => 'Второй', 'keywords' => ['сайт'], 'status' => 'active',
+    ]);
+    $feed = SourceFeed::query()->create([
+        'source' => 'b2b_center', 'canonical_url' => 'https://www.b2b-center.ru/market/?f_keyword=сайт&searching=1',
+        'url_hash' => hash('sha256', 'first-b2b'), 'status' => 'active', 'poll_interval_seconds' => 3600,
+    ]);
+    SourceFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $first->id]);
+    SourceFeedItem::query()->create([
+        'source_feed_id' => $feed->id, 'external_id' => 'first-only',
+        'canonical_url' => 'https://www.b2b-center.ru/market/tender-first-only/',
+        'url_hash' => hash('sha256', 'first-only'), 'title' => 'Разработка сайта',
+        'content_hash' => hash('sha256', 'first-only-content'), 'discovered_at' => now(),
+    ]);
+    $tender = Tender::query()->create([
+        'source' => 'b2b_center', 'external_id' => 'first-only',
+        'canonical_url' => 'https://www.b2b-center.ru/market/tender-first-only/',
+        'canonical_url_hash' => hash('sha256', 'first-only'),
+        'title' => 'Разработка сайта', 'currency' => 'RUB',
+    ]);
+
+    app(TenderMatchingService::class)->matchTender($tender, false);
+    expect(TenderQueryMatch::query()->where('search_query_id', $first->id)->count())->toBe(1)
+        ->and(TenderQueryMatch::query()->where('search_query_id', $second->id)->count())->toBe(0);
 });
 
 it('finds a cached public card even after another shared feed updates its canonical pointer', function () {

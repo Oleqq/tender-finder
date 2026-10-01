@@ -81,6 +81,7 @@ final class B2bCenterHtmlParser
             if ($title === '') {
                 continue;
             }
+            $title = TenderTitle::display($title);
 
             $categoryNodes = $xpath->query('./td[1]/small[1]', $row);
             $categoryNode = $categoryNodes === false ? null : $categoryNodes->item(0);

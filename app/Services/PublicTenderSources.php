@@ -27,8 +27,8 @@ final class PublicTenderSources
 
         return SourceFeed::query()->whereIn('source', $this->enabled())
             ->where(fn ($feeds) => $feeds->where('source', '!=', 'b2b_center')
-                ->orWhere(fn ($b2b) => $b2b->where('source', 'b2b_center')->where(function ($b2b) use ($searchFeeds): void {
-                    if ($searchFeeds !== []) {
+                ->orWhere(fn ($b2b) => $b2b->where('source', 'b2b_center')->where(function ($b2b) use ($query, $searchFeeds): void {
+                    if ($query !== null) {
                         $b2b->whereIn('id', $searchFeeds);
                     } else {
                         $b2b->where('canonical_url', config('tender.b2b_center.catalog_url'));

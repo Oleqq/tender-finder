@@ -15,6 +15,7 @@ use App\Services\MonitoringStatusService;
 use App\Services\TeamWorkflowService;
 use App\Services\TeamWorkspaceService;
 use App\Services\TenderFacts;
+use App\Services\TenderTitle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +51,11 @@ class TenderFeedController extends Controller
         $search = trim((string) ($filters['q'] ?? ''));
         $status = (string) ($filters['status'] ?? 'all');
         $tag = trim((string) ($filters['tag'] ?? ''));
-        $queryId = isset($filters['query_id']) ? (int) $filters['query_id'] : null;
+        $queryId = isset($filters['query_id']) ? (int) $filters['query_id'] :
+            (SearchQuery::query()->where('user_id', $user->id)
+                ->where('status', QueryStatus::Active)->latest('id')->value('id')
+                ?? SearchQuery::query()->where('user_id', $user->id)
+                    ->where('status', '!=', QueryStatus::Deleted->value)->latest('id')->value('id'));
         $source = (string) ($filters['source'] ?? 'all');
         $sort = (string) ($filters['sort'] ?? 'matched_desc');
 
@@ -58,7 +63,7 @@ class TenderFeedController extends Controller
             ->whereHas('searchQuery', function (Builder $query) use ($user, $queryId): void {
                 $query->where('user_id', $user->id);
 
-                if ($queryId !== null) {
+                if ($queryId !== null && $queryId > 0) {
                     $query->whereKey($queryId);
                 }
             })
@@ -120,7 +125,7 @@ class TenderFeedController extends Controller
             return [
                 'id' => $match->id,
                 'tender_id' => $match->tender->id,
-                'title' => $match->tender->title,
+                'title' => TenderTitle::display($match->tender->title),
                 'description' => $match->tender->description,
                 'canonical_url' => $match->tender->canonical_url,
                 'reg_number' => $match->tender->reg_number,
@@ -144,7 +149,7 @@ class TenderFeedController extends Controller
             ];
         });
 
-        $monitoring = SearchQuery::query()
+        $monitoring = $queryId === 0 ? null : SearchQuery::query()
             ->where('user_id', $user->id)
             ->where('status', '!=', QueryStatus::Deleted->value)
             ->when($queryId !== null, fn (Builder $query) => $query->whereKey($queryId))
@@ -266,7 +271,7 @@ class TenderFeedController extends Controller
             return [
                 'id' => $tender->id,
                 'tender_id' => $tender->id,
-                'title' => $tender->title,
+                'title' => TenderTitle::display($tender->title),
                 'description' => $tender->description,
                 'canonical_url' => $tender->canonical_url,
                 'reg_number' => $tender->reg_number,

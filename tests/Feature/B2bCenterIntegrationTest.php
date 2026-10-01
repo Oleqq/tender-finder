@@ -43,6 +43,17 @@ it('parses public B2B-Center catalog rows and strips tracking fragments', functi
         ->toBe('https://www.b2b-center.ru/app/market-next/remont/tender-4609184/');
 });
 
+it('collapses a repeated public B2B title into one readable heading', function () {
+    $html = str_replace(
+        'Закупка цинкооксидных поглотителей для загрузки системы',
+        'Разработка сайта для перевозчика Разработка сайта для перевозчика',
+        b2bCenterHtml(),
+    );
+    $item = app(B2bCenterHtmlParser::class)->parse($html, 'https://www.b2b-center.ru/market/')->items[0];
+
+    expect($item->title)->toBe('Разработка сайта для перевозчика');
+});
+
 it('rejects a changed B2B-Center catalog layout instead of accepting an empty snapshot', function () {
     expect(fn () => app(B2bCenterHtmlParser::class)->parse('<html><body>Changed</body></html>', 'https://www.b2b-center.ru/market/'))
         ->toThrow(B2bCenterException::class, 'catalog_layout_changed');

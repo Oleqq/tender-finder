@@ -525,7 +525,9 @@ export default function Tenders() {
                         <p>
                             {team
                                 ? 'Общая очередь разбора'
-                                : 'Совпадения по мониторингам'}
+                                : filters.query_id === 0
+                                  ? 'Все мои темы'
+                                  : `Поиск: ${monitoringName ?? 'моя тема'}`}
                         </p>
                         <strong>
                             {tenderMatches.total === 0
@@ -659,7 +661,7 @@ export default function Tenders() {
                                         })
                                     }
                                     options={[
-                                        { value: '', label: 'Все мониторинги' },
+                                        { value: '0', label: 'Все мои темы' },
                                         ...filterOptions.queries.map((query) => ({
                                             value: String(query.id),
                                             label: query.name,

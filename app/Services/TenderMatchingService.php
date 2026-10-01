@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Enums\QueryMatchMode;
 use App\Enums\QueryStatus;
 use App\Models\SearchQuery;
+use App\Models\SourceFeedItem;
+use App\Models\SourceFeedSearchQuery;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 
@@ -20,7 +22,11 @@ class TenderMatchingService
             return new TenderMatchResult(false, ['excluded_by' => 'customer']);
         }
 
-        $haystack = $this->lower($tender->title.' '.$tender->description);
+        $description = $tender->source === 'b2b_center' ? '' : (string) $tender->description;
+        if ($tender->source === 'workspace_ru') {
+            $description = preg_replace('/^Требуемая услуга:[^\n]*\n*/u', '', $description) ?? $description;
+        }
+        $haystack = $this->lower($tender->title.' '.$description);
         $keywords = array_filter($query->keywords ?? [], 'is_string');
         $mode = $this->matchMode($query);
         $matchedKeywords = array_values(array_filter(
@@ -37,6 +43,9 @@ class TenderMatchingService
                 $haystack,
                 $this->lower(implode(' ', $keywords)),
             ),
+            QueryMatchMode::Phrase => count(array_filter($keywords, fn (string $keyword): bool => app(TenderKeywordMatcher::class)->contains($tender->title, $keyword))) > 0
+                && (app(TenderKeywordMatcher::class)->containsPhrase($tender->title, array_values($keywords))
+                    || app(TenderKeywordMatcher::class)->containsPhrase($description, array_values($keywords))),
         };
 
         if (! $matchesKeywords) {
@@ -94,8 +103,18 @@ class TenderMatchingService
     {
         $matches = 0;
 
+        $queryIds = null;
+        if ($tender->source === 'b2b_center') {
+            $feedIds = SourceFeedItem::query()->where('external_id', $tender->external_id)
+                ->whereHas('feed', fn ($feeds) => $feeds->where('source', 'b2b_center'))
+                ->pluck('source_feed_id');
+            $queryIds = SourceFeedSearchQuery::query()->whereIn('source_feed_id', $feedIds)
+                ->pluck('search_query_id');
+        }
+
         SearchQuery::query()
             ->where('status', QueryStatus::Active)
+            ->when($queryIds !== null, fn ($queries) => $queries->whereIn('id', $queryIds))
             ->each(function (SearchQuery $query) use ($tender, $queueNotifications, &$matches): void {
                 $matches += $this->matchTenderForQuery($tender, $query, $queueNotifications);
             });

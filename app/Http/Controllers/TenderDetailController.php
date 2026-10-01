@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Services\TenderFacts;
+use App\Services\TenderTitle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -44,7 +45,7 @@ final class TenderDetailController extends Controller
         return Inertia::render('TenderDetail', [
             'tender' => [
                 'id' => $tender->id,
-                'title' => $tender->title,
+                'title' => TenderTitle::display($tender->title),
                 'description' => $tender->description,
                 'reg_number' => $tender->reg_number,
                 'customer' => TenderFacts::customer($tender),
