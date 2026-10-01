@@ -32,6 +32,21 @@ migrations, starts the services, and removes unused image layers. Shell scripts
 are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
+## Release 2 October 2026: Telegram Mini App session
+
+Commit `9cf4c24` passed CI in both repositories before the manual release.
+The fresh PostgreSQL backup passed `gzip -t`, and the tracked source archive
+had the same SHA-256 on Mac and VPS. The existing `.env.production` was not
+replaced: only `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS` changed from `300` to
+`86400`; mode remained `600`. `sh deploy/vps-deploy.sh` completed with
+`Nothing to migrate`. Caddy, web, queue, scheduler, PostgreSQL and Redis are
+running; queue depth is zero. The running app reports the new limit and
+accepts a valid 12-hour-old signed payload without creating an account.
+External HTTPS `/health` returned 200, while some connections from the Mac
+timed out before the TLS handshake. Local and public-path requests issued on
+the VPS returned 200 quickly. The remote network-path issue remains under
+observation.
+
 ## Release 1 October 2026: focused keyword search
 
 Commit `64434a1` corrected unrelated matches caused by Workspace.ru service
