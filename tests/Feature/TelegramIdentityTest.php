@@ -91,11 +91,31 @@ it('rejects forged and expired telegram init data', function () {
 
     $this->postJson('/telegram/session', ['init_data' => $forged])
         ->assertUnprocessable()
+        ->assertJsonPath('code', 'telegram_session_invalid')
         ->assertJsonValidationErrors('init_data');
 
     $expired = signedTelegramInitData(['id' => 2, 'first_name' => 'Old'], Carbon::now()->subSeconds(301)->timestamp);
 
     $this->postJson('/telegram/session', ['init_data' => $expired])
         ->assertUnprocessable()
+        ->assertJsonPath('code', 'telegram_session_expired')
         ->assertJsonValidationErrors('init_data');
+});
+
+it('accepts signed init data from an earlier Mini App opening within the configured day', function () {
+    config()->set('tender.telegram.init_data_max_age_seconds', 86400);
+
+    $this->postJson('/telegram/session', [
+        'init_data' => signedTelegramInitData(
+            ['id' => 345678, 'first_name' => 'Desktop user'],
+            Carbon::now()->subHours(12)->timestamp,
+        ),
+    ])->assertOk()->assertJsonPath('session_refreshed', true);
+
+    $this->postJson('/telegram/session', [
+        'init_data' => signedTelegramInitData(
+            ['id' => 345678, 'first_name' => 'Desktop user'],
+            Carbon::now()->subDay()->subSecond()->timestamp,
+        ),
+    ])->assertUnprocessable()->assertJsonPath('code', 'telegram_session_expired');
 });

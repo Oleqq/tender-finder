@@ -20,8 +20,9 @@ createInertiaApp({
 
         root.render(
             <>
-                <TelegramSetup />
-                <App {...props} />
+                <TelegramSetup>
+                    <App {...props} />
+                </TelegramSetup>
             </>,
         );
     },

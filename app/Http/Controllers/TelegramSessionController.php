@@ -10,7 +10,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 
 class TelegramSessionController extends Controller
 {
@@ -31,9 +30,15 @@ class TelegramSessionController extends Controller
                 'reason' => $exception->getMessage(),
             ]);
 
-            throw ValidationException::withMessages([
-                'init_data' => 'Не удалось подтвердить Telegram-сессию. Откройте приложение заново в Telegram.',
-            ]);
+            return response()->json([
+                'message' => 'Не удалось подтвердить Telegram-сессию.',
+                'code' => $exception->getMessage() === 'Telegram auth data has expired.'
+                    ? 'telegram_session_expired'
+                    : 'telegram_session_invalid',
+                'errors' => [
+                    'init_data' => ['Не удалось подтвердить Telegram-сессию. Откройте приложение заново в Telegram.'],
+                ],
+            ], 422);
         }
 
         $user = $identityService->findOrCreate($identity);

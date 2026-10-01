@@ -1,44 +1,85 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTelegramWebApp } from '../lib/telegram';
+import { TelegramSessionContext } from '../lib/telegramSession';
+import type { TelegramSessionState } from '../lib/telegramSession';
 
-export function TelegramSetup() {
-    const webApp = useTelegramWebApp();
+export function TelegramSetup({ children }: { children: ReactNode }) {
+    useTelegramWebApp();
+    const [state, setState] = useState<TelegramSessionState>('checking');
 
     useEffect(() => {
-        const initData = webApp?.initData;
+        let cancelled = false;
+        let checking = false;
+        setState('checking');
 
-        if (!initData) {
-            return;
-        }
+        const authenticate = (initData: string): void => {
+            if (checking) return;
+            checking = true;
+            clearInterval(poll);
+            clearTimeout(timeout);
 
-        void window.axios
-            .post('/telegram/session', { init_data: initData })
-            .then(({ data }) => {
-                const identityKey = `${data.user.id}:${data.user.role}`;
-                const synchronizedIdentity = window.sessionStorage.getItem(
-                    'tender-finder.telegram-identity',
-                );
+            void window.axios
+                .post('/telegram/session', { init_data: initData }, { timeout: 15000 })
+                .then(({ data }) => {
+                    if (cancelled) return;
+                    const identityKey = `${data.user.id}:${data.user.role}`;
+                    let synchronizedIdentity: string | null = null;
+                    try {
+                        synchronizedIdentity = window.sessionStorage.getItem(
+                            'tender-finder.telegram-identity',
+                        );
+                        window.sessionStorage.setItem(
+                            'tender-finder.telegram-identity',
+                            identityKey,
+                        );
+                    } catch {
+                        // Session storage may be disabled in a Telegram WebView.
+                        synchronizedIdentity = identityKey;
+                    }
 
-                if (
-                    data.session_refreshed === true ||
-                    synchronizedIdentity !== identityKey
-                ) {
-                    // The Laravel session may have changed, or a Railway role setting
-                    // may have promoted/demoted the same Telegram user since the
-                    // current GET. Reload once to receive both the current CSRF token
-                    // and the current Inertia auth props.
-                    window.sessionStorage.setItem(
-                        'tender-finder.telegram-identity',
-                        identityKey,
+                    if (
+                        data.session_refreshed === true ||
+                        synchronizedIdentity !== identityKey
+                    ) {
+                        // Reload to receive the current CSRF token and Inertia auth props.
+                        window.location.reload();
+                    } else {
+                        setState('ready');
+                    }
+                })
+                .catch((error: { response?: { data?: { code?: string } } }) => {
+                    if (cancelled) return;
+                    setState(
+                        error.response?.data?.code === 'telegram_session_expired'
+                            ? 'expired'
+                            : 'failed',
                     );
-                    window.location.reload();
-                }
-            })
-            .catch(() => {
-                // Regular browser sessions and old Telegram clients remain anonymous.
-                // The server has already recorded no trust in client-side fields.
-            });
-    }, [webApp]);
+                });
+        };
 
-    return null;
+        // Some desktop WebViews expose WebApp before initData is populated.
+        const check = (): void => {
+            const initData = window.Telegram?.WebApp?.initData;
+            if (initData) authenticate(initData);
+        };
+        const poll = window.setInterval(check, 200);
+        const timeout = window.setTimeout(() => {
+            clearInterval(poll);
+            if (!checking && !cancelled) setState('missing');
+        }, 3000);
+        check();
+
+        return () => {
+            cancelled = true;
+            clearInterval(poll);
+            clearTimeout(timeout);
+        };
+    }, []);
+
+    return (
+        <TelegramSessionContext.Provider value={state}>
+            {children}
+        </TelegramSessionContext.Provider>
+    );
 }

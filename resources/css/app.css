@@ -422,6 +422,7 @@ input:focus-visible {
 .onboarding-intro p,
 .consent-intro p { max-width: 460px; margin: var(--space-5) 0 0; color: var(--app-muted); font-size: 15px; line-height: 1.5; }
 .onboarding-actions { margin-top: var(--space-8); }
+.onboarding-retry { margin-top: var(--space-3); }
 .step-dots { display: flex; justify-content: center; gap: 6px; margin-top: var(--space-4); }
 .step-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--tf-line); }
 .step-dots span.is-active { width: 20px; border-radius: var(--radius-pill); background: var(--tf-accent); }

@@ -43,7 +43,7 @@ class TelegramInitDataVerifier
         }
 
         $now = CarbonImmutable::now()->timestamp;
-        $maxAge = max(1, (int) config('tender.telegram.init_data_max_age_seconds', 300));
+        $maxAge = max(1, (int) config('tender.telegram.init_data_max_age_seconds', 86400));
 
         if ($authDate > $now + 30 || $now - $authDate > $maxAge) {
             throw new TelegramInitDataException('Telegram auth data has expired.');
