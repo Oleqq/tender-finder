@@ -16,6 +16,7 @@ type TenderDetailProps = {
         published_at: string | null;
         deadline_at: string | null;
         canonical_url: string;
+        platform_url: string | null;
         source_label: string;
         query_name: string;
         match_reasons: string[];
@@ -104,8 +105,19 @@ export default function TenderDetail() {
                     <GlassCard className="tender-detail-source" tone="quiet">
                         <p>Сверьте окончательные условия и документы на площадке.</p>
                         <a href={tender.canonical_url} rel="noreferrer" target="_blank">
-                            Открыть карточку на {tender.source_label} ↗
+                            {tender.platform_url
+                                ? 'Открыть карточку в B2B-Center ↗'
+                                : `Открыть карточку на ${tender.source_label} ↗`}
                         </a>
+                        {tender.platform_url ? (
+                            <a
+                                href={tender.platform_url}
+                                rel="noreferrer"
+                                target="_blank"
+                            >
+                                Открыть исходное извещение ↗
+                            </a>
+                        ) : null}
                     </GlassCard>
                 </section>
             </AppShell>

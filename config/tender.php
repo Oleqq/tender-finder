@@ -130,4 +130,15 @@ return [
         'user_agent' => env('B2B_CENTER_USER_AGENT', 'TenderFinder/1.0 (+public tender catalog monitoring)'),
     ],
 
+    'platform_catalog' => [
+        // Platform-specific public search pages operated by B2B-RTS.
+        // Coverage is limited to the cards exposed by these pages.
+        'roseltorg' => ['enabled' => (bool) env('ROSELTORG_CATALOG_ENABLED', false)],
+        'rts_tender' => ['enabled' => (bool) env('RTS_TENDER_CATALOG_ENABLED', false)],
+        'pages_per_poll' => (int) env('PLATFORM_CATALOG_PAGES_PER_POLL', 5),
+        'request_timeout_seconds' => (int) env('PLATFORM_CATALOG_REQUEST_TIMEOUT_SECONDS', 15),
+        'poll_interval_seconds' => (int) env('PLATFORM_CATALOG_POLL_INTERVAL_SECONDS', 1800),
+        'user_agent' => env('PLATFORM_CATALOG_USER_AGENT', 'TenderFinder/1.0 (+public platform catalog monitoring)'),
+    ],
+
 ];

@@ -205,6 +205,16 @@ const sourceOptions = [
         label: 'B2B-Center',
         description: 'Открытый каталог коммерческих закупок',
     },
+    {
+        value: 'roseltorg',
+        label: 'Росэлторг',
+        description: 'Закупки АО «ЕЭТП» через каталог B2B-Center',
+    },
+    {
+        value: 'rts_tender',
+        label: 'РТС-Тендер',
+        description: 'Закупки РТС через каталог B2B-Center',
+    },
 ];
 
 export default function Tenders() {
@@ -1395,6 +1405,8 @@ function TeamWorkflowPanel({
                             <option value="sber_ast">Сбер АСТ</option>
                             <option value="workspace_ru">Workspace.ru</option>
                             <option value="b2b_center">B2B-Center</option>
+                            <option value="roseltorg">Росэлторг</option>
+                            <option value="rts_tender">РТС-Тендер</option>
                         </select>
                         <select
                             value={rule.search_query_id}
@@ -1586,6 +1598,10 @@ function TeamFeedTenderCard({
                     <Badge tone="accent">Workspace.ru</Badge>
                 ) : match.source === 'b2b_center' ? (
                     <Badge tone="accent">B2B-Center</Badge>
+                ) : match.source === 'roseltorg' ? (
+                    <Badge tone="accent">Росэлторг</Badge>
+                ) : match.source === 'rts_tender' ? (
+                    <Badge tone="accent">РТС-Тендер</Badge>
                 ) : null}
                 {review.overdue ? <Badge tone="warning">SLA просрочен</Badge> : null}
                 <span>
@@ -1824,6 +1840,10 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                         <Badge tone="accent">Workspace.ru</Badge>
                     ) : match.source === 'b2b_center' ? (
                         <Badge tone="accent">B2B-Center</Badge>
+                    ) : match.source === 'roseltorg' ? (
+                        <Badge tone="accent">Росэлторг</Badge>
+                    ) : match.source === 'rts_tender' ? (
+                        <Badge tone="accent">РТС-Тендер</Badge>
                     ) : null}
                 </div>
                 <span className="tender-feed-card__match">

@@ -22,7 +22,7 @@ class TenderMatchingService
             return new TenderMatchResult(false, ['excluded_by' => 'customer']);
         }
 
-        $description = $tender->source === 'b2b_center' ? '' : (string) $tender->description;
+        $description = in_array($tender->source, ['b2b_center', 'roseltorg', 'rts_tender'], true) ? '' : (string) $tender->description;
         if ($tender->source === 'workspace_ru') {
             $description = preg_replace('/^Требуемая услуга:[^\n]*\n*/u', '', $description) ?? $description;
         }

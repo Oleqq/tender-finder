@@ -40,7 +40,13 @@ type QueryDto = {
 };
 
 type SourceStatus = {
-    source: 'rostender' | 'workspace_ru' | 'sber_ast' | 'b2b_center';
+    source:
+        | 'rostender'
+        | 'workspace_ru'
+        | 'sber_ast'
+        | 'b2b_center'
+        | 'roseltorg'
+        | 'rts_tender';
     state:
         | 'ok'
         | 'empty'
@@ -928,6 +934,8 @@ function sourceLabel(source: SourceStatus['source']): string {
             workspace_ru: 'Workspace.ru',
             sber_ast: 'Сбер АСТ',
             b2b_center: 'B2B-Center',
+            roseltorg: 'Росэлторг',
+            rts_tender: 'РТС-Тендер',
         }[source] ?? 'Источник'
     );
 }

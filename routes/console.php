@@ -12,6 +12,7 @@ Schedule::command('tenders:dispatch-rostender')->everyMinute()->withoutOverlappi
 Schedule::command('tenders:dispatch-sber-ast')->everyMinute()->withoutOverlapping();
 Schedule::command('tenders:dispatch-workspace-ru')->everyMinute()->withoutOverlapping();
 Schedule::command('tenders:dispatch-b2b-center')->everyMinute()->withoutOverlapping();
+Schedule::command('tenders:dispatch-platform-catalog')->everyMinute()->withoutOverlapping();
 Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();
 Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverlapping();
 
