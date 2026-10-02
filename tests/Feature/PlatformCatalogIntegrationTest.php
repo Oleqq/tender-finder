@@ -14,6 +14,7 @@ use App\Services\PlatformCatalogSource;
 use App\Services\TenderMatchingService;
 use App\Services\TenderSourceImportService;
 use App\Tenders\PlatformCatalogException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -85,6 +86,24 @@ it('dispatches each enabled platform only when its feed is due', function () {
         ->and($dispatcher->dispatchDueFeed('rts_tender'))->toBeTrue();
     Queue::assertPushed(PollPlatformCatalogFeed::class, 2);
     expect(SourceFeed::query()->whereIn('source', ['roseltorg', 'rts_tender'])->count())->toBe(2);
+});
+
+it('retries a transient connection failure within the same poll', function () {
+    config()->set('tender.platform_catalog.pages_per_poll', 1);
+    $attempts = 0;
+    Http::fake(function () use (&$attempts) {
+        $attempts++;
+        if ($attempts === 1) {
+            throw new ConnectionException('temporary timeout');
+        }
+
+        return Http::response(platformCatalogHtml('rts_tender'));
+    });
+
+    $feed = app(PlatformCatalogFeedService::class)->configuredFeed('rts_tender');
+    $result = app(PlatformCatalogSource::class)->fetch($feed);
+
+    expect($attempts)->toBe(2)->and($result->items)->toHaveCount(1);
 });
 
 function platformCatalogHtml(string $source, string $cardId = ''): string
