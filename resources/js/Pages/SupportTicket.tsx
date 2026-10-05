@@ -25,6 +25,7 @@ export default function SupportTicket() {
         <>
             <Head title={`Обращение #${ticket.id}`} />
             <AppShell
+                activeNav="/profile"
                 backHref="/support"
                 eyebrow={categoryLabel[ticket.category]}
                 title={`Обращение #${ticket.id}`}
@@ -41,8 +42,9 @@ export default function SupportTicket() {
                         </Button>
                     </div>
                     <p className="text-sm text-[var(--app-muted)]">
-                        Ответ поддержки появится в этой переписке. Вы можете добавить
-                        уточнение в любой момент.
+                        {ticket.status === 'resolved'
+                            ? 'Обращение решено. Если проблема осталась, добавьте уточнение.'
+                            : 'Ответ поддержки появится здесь. Вы можете добавить уточнение.'}
                     </p>
                     <ol className="space-y-3">
                         {ticket.messages.map((message) => (
@@ -78,7 +80,12 @@ export default function SupportTicket() {
                                 />
                             </label>
                             {form.errors.body ? <p>{form.errors.body}</p> : null}
-                            <Button disabled={form.processing} type="submit">
+                            <Button
+                                disabled={
+                                    form.processing || form.data.body.trim().length < 2
+                                }
+                                type="submit"
+                            >
                                 Отправить
                             </Button>
                         </form>

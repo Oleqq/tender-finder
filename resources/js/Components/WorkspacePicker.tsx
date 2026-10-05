@@ -49,9 +49,11 @@ export function WorkspacePicker({ path }: { path: string }) {
                     ))}
                 </select>
             </label>
-            <Link className="workspace-picker__manage" href="/teams">
-                Команды <Icon name="chevron-right" size={16} />
-            </Link>
+            {path !== '/teams' ? (
+                <Link className="workspace-picker__manage" href="/teams">
+                    Команды <Icon name="chevron-right" size={16} />
+                </Link>
+            ) : null}
             {team && (
                 <p className="workspace-picker__help">
                     Общие заявки команды «{team.name}».{' '}

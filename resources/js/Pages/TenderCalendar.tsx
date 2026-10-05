@@ -147,7 +147,15 @@ export default function TenderCalendar() {
                         <p>Планирование</p>
                         <h2>Сроки под контролем</h2>
                         <span>
-                            Подача заявок, личные действия и задачи · {timezone}
+                            Подача заявок, личные действия и задачи ·{' '}
+                            {(
+                                {
+                                    'Europe/Moscow': 'Москва (UTC+3)',
+                                    'Asia/Yekaterinburg': 'Екатеринбург (UTC+5)',
+                                    'Asia/Novosibirsk': 'Новосибирск (UTC+7)',
+                                    'Asia/Vladivostok': 'Владивосток (UTC+10)',
+                                } as Record<string, string>
+                            )[timezone] ?? timezone}
                         </span>
                     </div>
                 </section>
@@ -242,80 +250,7 @@ export default function TenderCalendar() {
                         изменения и удалённые задачи не синхронизируются автоматически.
                     </p>
                 </GlassCard>
-                <GlassCard className="work-card calendar-subscription">
-                    <div>
-                        <h2>Обновляемая подписка</h2>
-                        <p>
-                            Добавьте приватную ссылку в Google Calendar, Apple Calendar
-                            или другое приложение. Сроки обновляются при следующей
-                            синхронизации календаря.
-                        </p>
-                    </div>
-                    {subscription.url ? (
-                        <label className="work-subscription-url">
-                            Приватная ICS-ссылка
-                            <input
-                                readOnly
-                                value={subscription.url}
-                                onFocus={(event) => event.currentTarget.select()}
-                            />
-                        </label>
-                    ) : (
-                        <p>Активной ссылки пока нет.</p>
-                    )}
-                    <p className="work-help">
-                        Ссылка открывает названия и сроки доступных вам заявок без
-                        входа. Не публикуйте её и перевыпустите при подозрении на
-                        утечку. Лента включает события с прошлого месяца на 18 месяцев
-                        вперёд.
-                    </p>
-                    {subscriptionNotice ? (
-                        <p className="work-success">{subscriptionNotice}</p>
-                    ) : null}
-                    {subscriptionError ? (
-                        <p className="work-error">{subscriptionError}</p>
-                    ) : null}
-                    <div className="work-actions">
-                        {subscription.active ? (
-                            <>
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    disabled={subscriptionBusy}
-                                    onClick={() => void copySubscription()}
-                                >
-                                    Скопировать ссылку
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    disabled={subscriptionBusy}
-                                    onClick={() => void rotateSubscription()}
-                                >
-                                    Перевыпустить
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    disabled={subscriptionBusy}
-                                    onClick={() => void revokeSubscription()}
-                                >
-                                    Отключить
-                                </Button>
-                            </>
-                        ) : (
-                            <Button
-                                type="button"
-                                disabled={subscriptionBusy}
-                                onClick={() => void rotateSubscription()}
-                            >
-                                {subscriptionBusy
-                                    ? 'Создаём…'
-                                    : 'Создать приватную ссылку'}
-                            </Button>
-                        )}
-                    </div>
-                </GlassCard>
+
                 <div className="work-form">
                     <label>
                         Показать
@@ -365,6 +300,83 @@ export default function TenderCalendar() {
                         </GlassCard>
                     ))}
                 </section>
+                <details className="calendar-export">
+                    <summary>Подписка на календарь</summary>
+                    <GlassCard className="work-card calendar-subscription">
+                        <div>
+                            <h2>Обновляемая подписка</h2>
+                            <p>
+                                Добавьте приватную ссылку в Google Calendar, Apple
+                                Calendar или другое приложение. Сроки обновляются при
+                                следующей синхронизации календаря.
+                            </p>
+                        </div>
+                        {subscription.url ? (
+                            <label className="work-subscription-url">
+                                Приватная ICS-ссылка
+                                <input
+                                    readOnly
+                                    value={subscription.url}
+                                    onFocus={(event) => event.currentTarget.select()}
+                                />
+                            </label>
+                        ) : (
+                            <p>Активной ссылки пока нет.</p>
+                        )}
+                        <p className="work-help">
+                            Ссылка открывает названия и сроки доступных вам заявок без
+                            входа. Не публикуйте её и перевыпустите при подозрении на
+                            утечку. Лента включает события с прошлого месяца на 18
+                            месяцев вперёд.
+                        </p>
+                        {subscriptionNotice ? (
+                            <p className="work-success">{subscriptionNotice}</p>
+                        ) : null}
+                        {subscriptionError ? (
+                            <p className="work-error">{subscriptionError}</p>
+                        ) : null}
+                        <div className="work-actions">
+                            {subscription.active ? (
+                                <>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        disabled={subscriptionBusy}
+                                        onClick={() => void copySubscription()}
+                                    >
+                                        Скопировать ссылку
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        disabled={subscriptionBusy}
+                                        onClick={() => void rotateSubscription()}
+                                    >
+                                        Перевыпустить
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        disabled={subscriptionBusy}
+                                        onClick={() => void revokeSubscription()}
+                                    >
+                                        Отключить
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    type="button"
+                                    disabled={subscriptionBusy}
+                                    onClick={() => void rotateSubscription()}
+                                >
+                                    {subscriptionBusy
+                                        ? 'Создаём…'
+                                        : 'Создать приватную ссылку'}
+                                </Button>
+                            )}
+                        </div>
+                    </GlassCard>{' '}
+                </details>
             </AppShell>
         </>
     );

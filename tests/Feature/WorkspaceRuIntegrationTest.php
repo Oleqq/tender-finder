@@ -74,6 +74,10 @@ it('imports Workspace cards and suppresses notifications for the initial RSS sna
 
     expect(Tender::query()->where('source', 'workspace_ru')->count())->toBe(2)
         ->and($feed->fresh()->initialized_at)->not->toBeNull();
+    $tender = Tender::query()->where('external_id', '18973')->sole();
+    expect($tender->published_at?->utc()->format('Y-m-d H:i:s'))->toBe('2026-09-25 14:37:37')
+        ->and($tender->deadline_at?->utc()->format('Y-m-d H:i:s'))->toBe('2026-10-01 20:59:59')
+        ->and($tender->deadline_at?->setTimezone('Europe/Moscow')->format('Y-m-d H:i:s'))->toBe('2026-10-01 23:59:59');
     Queue::assertPushed(MatchTender::class, 2);
     Queue::assertPushed(MatchTender::class, fn (MatchTender $job): bool => $job->queueNotifications === false);
 });

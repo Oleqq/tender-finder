@@ -37,7 +37,7 @@ class TenderSourceImportService
                     'canonical_url' => $item->canonicalUrl,
                     'title' => $item->title,
                     'summary' => $item->summary,
-                    'published_at' => $item->publishedAt,
+                    'published_at' => $item->publishedAt?->utc(),
                     'content_hash' => $item->contentHash,
                 ]);
 
@@ -73,17 +73,17 @@ class TenderSourceImportService
                     'region' => $item->region,
                     'budget_amount' => $item->budgetAmount ?? $tender->budget_amount,
                     'currency' => $item->currency,
-                    'published_at' => $item->publishedAt,
-                    'deadline_at' => $item->deadlineAt ?? $tender->deadline_at,
+                    'published_at' => $item->publishedAt?->utc(),
+                    'deadline_at' => $item->deadlineAt?->utc() ?? $tender->deadline_at,
                     'metadata' => $metadata === [] ? null : $metadata,
                 ]);
 
                 if ($item->externalUpdatedAt !== null) {
-                    $tender->external_updated_at = Carbon::instance($item->externalUpdatedAt);
+                    $tender->external_updated_at = Carbon::instance($item->externalUpdatedAt)->utc();
                 }
 
                 if ($item->detailsFetchedAt !== null) {
-                    $tender->details_fetched_at = Carbon::instance($item->detailsFetchedAt);
+                    $tender->details_fetched_at = Carbon::instance($item->detailsFetchedAt)->utc();
                 }
                 $tender->save();
                 if (! $isNewTender) {

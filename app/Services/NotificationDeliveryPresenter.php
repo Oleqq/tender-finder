@@ -66,7 +66,7 @@ final class NotificationDeliveryPresenter
         return match ($failureCode) {
             'telegram_chat_blocked', 'telegram_chat_unavailable' => 'Откройте личный чат с ботом Tender Finder и нажмите Start — после этого новые уведомления снова смогут прийти.',
             'telegram_bot_not_configured', 'telegram_bot_auth_failed' => 'Сервис уведомлений временно недоступен. Мониторинги продолжают работать.',
-            default => 'Не удалось доставить уведомление. Повторная попытка будет выполнена автоматически.',
+            default => 'Не удалось доставить уведомление. Найденные закупки доступны в ленте.',
         };
     }
 }

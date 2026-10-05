@@ -1,6 +1,17 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
+
+// Remember only actual page transitions, not background refreshes of this page.
+let previousAppUrl: string | null = null;
+router.on('before', (event) => {
+    if (
+        event.detail.visit.method === 'get' &&
+        event.detail.visit.url.href !== window.location.href
+    ) {
+        previousAppUrl = window.location.href;
+    }
+});
 
 type NavigationItem = {
     href: string;
@@ -53,6 +64,25 @@ export function AppShell({
                                 aria-label="Назад"
                                 className="icon-button"
                                 href={backHref}
+                                onClick={(event) => {
+                                    if (
+                                        event.ctrlKey ||
+                                        event.metaKey ||
+                                        event.shiftKey ||
+                                        event.altKey
+                                    )
+                                        return;
+                                    if (
+                                        previousAppUrl &&
+                                        new URL(previousAppUrl).pathname ===
+                                            new URL(backHref, window.location.href)
+                                                .pathname
+                                    ) {
+                                        event.preventDefault();
+                                        previousAppUrl = null;
+                                        window.history.back();
+                                    }
+                                }}
                             >
                                 <Icon name="arrow-left" size={21} />
                             </Link>
@@ -94,7 +124,6 @@ function BottomNavigation({ activeNav, wide }: { activeNav?: string; wide: boole
                     className={`bottom-navigation__item ${activeNav === item.href ? 'is-active' : ''}`}
                     href={item.href}
                     key={item.href}
-                    preserveScroll
                 >
                     <Icon name={item.icon} size={21} />
                     <span>{item.label}</span>

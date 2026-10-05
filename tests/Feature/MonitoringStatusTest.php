@@ -153,7 +153,7 @@ it('shows only the current users delivery statuses without payloads or foreign a
         ->has('notificationDeliveries', 1)
         ->where('notificationDeliveries.0.type', 'Новое совпадение')
         ->where('notificationDeliveries.0.status', 'failed')
-        ->where('notificationDeliveries.0.message', 'Не удалось доставить уведомление. Повторная попытка будет выполнена автоматически.')
+        ->where('notificationDeliveries.0.message', 'Не удалось доставить уведомление. Найденные закупки доступны в ленте.')
         ->missing('notificationDeliveries.0.payload')
         ->missing('notificationDeliveries.0.failure_code'));
 });

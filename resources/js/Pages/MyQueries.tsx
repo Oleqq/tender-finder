@@ -426,7 +426,7 @@ export default function MyQueries() {
             <AppShell
                 activeNav="/tenders"
                 className="queries-page"
-                eyebrow="Защищённый раздел"
+                eyebrow="Условия поиска"
                 title="Мониторинги"
             >
                 {queries.length > 0 || !canCreate ? (

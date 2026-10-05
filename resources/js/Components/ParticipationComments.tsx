@@ -79,10 +79,16 @@ export function ParticipationComments({
 
     return (
         <GlassCard className="work-card comments-card">
-            <h2>Обсуждение</h2>
-            <p>Комментарии видны участникам выбранного рабочего пространства.</p>
+            <h2>{team ? 'Обсуждение' : 'Личные заметки'}</h2>
+            <p>
+                {team
+                    ? 'Комментарии видны участникам команды.'
+                    : 'Эти заметки видны только вам.'}
+            </p>
             {comments.length === 0 ? (
-                <p className="work-help">Обсуждение ещё не началось.</p>
+                <p className="work-help">
+                    {team ? 'Обсуждение ещё не началось.' : 'Заметок пока нет.'}
+                </p>
             ) : (
                 <div className="comments-list">
                     {comments.map((comment) => (
@@ -108,7 +114,11 @@ export function ParticipationComments({
                             disabled={busy}
                             value={body}
                             onChange={(event) => setBody(event.target.value)}
-                            placeholder="Напишите сообщение команде"
+                            placeholder={
+                                team
+                                    ? 'Напишите сообщение команде'
+                                    : 'Добавьте заметку по закупке'
+                            }
                         />
                     </label>
                     {team ? (

@@ -26,7 +26,12 @@ export default function Support() {
     return (
         <>
             <Head title="Поддержка" />
-            <AppShell backHref="/profile" eyebrow="Помощь" title="Поддержка">
+            <AppShell
+                activeNav="/profile"
+                backHref="/profile"
+                eyebrow="Помощь"
+                title="Поддержка"
+            >
                 <div className="space-y-5">
                     <InlineAlert title="Опишите проблему" tone="neutral">
                         Не добавляйте пароли, токены, поисковые фразы и содержимое
@@ -73,7 +78,15 @@ export default function Support() {
                                     {form.errors.body}
                                 </p>
                             ) : null}
-                            <Button disabled={form.processing} type="submit">
+                            <p className="work-help">
+                                Опишите проблему минимум в 20 символах.
+                            </p>
+                            <Button
+                                disabled={
+                                    form.processing || form.data.body.trim().length < 20
+                                }
+                                type="submit"
+                            >
                                 Отправить обращение
                             </Button>
                         </form>

@@ -32,7 +32,7 @@ export function presentAccess(access: Access | null): AccessPresentation {
                         ? 'Про (Developer Mode)'
                         : 'Доступ активен',
                 title: 'Рабочее пространство открыто',
-                description: 'Доступ подтверждён сервером для этой сессии.',
+                description: 'Поиск, мониторинги и работа с закупками доступны.',
                 detail: period,
                 tone: 'success',
             };

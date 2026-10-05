@@ -101,6 +101,31 @@ export default function Dashboard() {
                     </div>
                 </section>
 
+                {canUseMonitoring ? (
+                    <section
+                        className="dashboard-shortcuts"
+                        aria-label="Быстрые переходы"
+                    >
+                        <Link href="/queries">
+                            <Icon name="layers" size={20} />
+                            Мониторинги
+                            <small>Условия поиска и состояние источников</small>
+                        </Link>
+                        <Link href="/participation">
+                            <Icon name="check" size={20} />
+                            Участие<small>Заявки, документы и задачи</small>
+                        </Link>
+                        <Link href="/calendar">
+                            <Icon name="calendar" size={20} />
+                            Календарь<small>Сроки подачи и ближайшие действия</small>
+                        </Link>
+                        <Link href="/participation/analytics">
+                            <Icon name="chart" size={20} />
+                            Аналитика<small>Результаты участия и экономика</small>
+                        </Link>
+                    </section>
+                ) : null}
+
                 {nextActions.items.length > 0 ? (
                     <section className="dashboard-section next-actions page-enter page-enter--later">
                         <div className="section-heading">

@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Button, FieldError } from './ui';
 
 type Preview = {
@@ -41,6 +41,16 @@ export function MonitoringWizard({
     onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 }) {
     const [step, setStep] = useState(0);
+    const formRef = useRef<HTMLFormElement>(null);
+    const previousStep = useRef(step);
+    useEffect(() => {
+        if (previousStep.current === step) return;
+        previousStep.current = step;
+        formRef.current?.scrollIntoView({ block: 'start' });
+        formRef.current
+            ?.querySelector<HTMLElement>('legend')
+            ?.focus({ preventScroll: true });
+    }, [step]);
     const [loading, setLoading] = useState(false);
     const [previewError, setPreviewError] = useState('');
     const [result, setResult] = useState<{ key: string; preview: Preview } | null>(
@@ -80,6 +90,7 @@ export function MonitoringWizard({
 
     return (
         <form
+            ref={formRef}
             onSubmit={(event) => {
                 if (step < 4) {
                     event.preventDefault();
@@ -105,7 +116,7 @@ export function MonitoringWizard({
                 disabled={saving || loading}
                 className="monitoring-wizard__fields"
             >
-                <legend>{steps[step]}</legend>
+                <legend tabIndex={-1}>{steps[step]}</legend>
                 {step < 4 ? (
                     fields(step)
                 ) : (

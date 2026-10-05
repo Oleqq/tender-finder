@@ -669,7 +669,7 @@ export function ProgressBar({
     max?: number;
     detail?: string;
 }) {
-    const percentage = Math.max(0, Math.min(100, (value / max) * 100));
+    const percentage = Math.max(0, Math.min(100, max > 0 ? (value / max) * 100 : 0));
 
     return (
         <div className="progress-bar">

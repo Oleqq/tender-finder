@@ -80,9 +80,21 @@ export default function Profile() {
                             {isSuperAdmin ? 'Расширенный доступ' : 'Аккаунт'}
                         </Badge>
                         <h2>{auth.user?.name ?? 'Ваш профиль'}</h2>
-                        <p>Роль и доступ подтверждаются серверной сессией.</p>
+                        <p>Настройте поиск, уведомления и доступ.</p>
                     </div>
                 </section>
+
+                <GlassCard className="profile-shortcuts">
+                    <Link href="/queries">
+                        Мониторинги <Icon name="chevron-right" size={17} />
+                    </Link>
+                    <Link href="/teams">
+                        Команды <Icon name="chevron-right" size={17} />
+                    </Link>
+                    <Link href="/plans">
+                        Доступ и тарифы <Icon name="chevron-right" size={17} />
+                    </Link>
+                </GlassCard>
 
                 <GlassCard className="profile-support-entry page-enter page-enter--delay">
                     <div>
@@ -108,6 +120,24 @@ export default function Profile() {
                             <Icon name="chevron-right" size={17} />
                         </Link>
                     ) : null}
+                </GlassCard>
+
+                <GlassCard
+                    className="profile-plan page-enter page-enter--delay"
+                    tone="accent"
+                >
+                    <div className="profile-plan__header">
+                        <span>
+                            <Icon name="spark" size={19} /> Статус доступа
+                        </span>
+                        <Badge tone={access.tone}>{access.badge}</Badge>
+                    </div>
+                    <h3>{access.title}</h3>
+                    <p>{access.description}</p>
+                    <div className="profile-plan__line">
+                        <span>Период</span>
+                        <strong>{access.detail}</strong>
+                    </div>
                 </GlassCard>
 
                 <section className="profile-section page-enter page-enter--later">
@@ -213,13 +243,10 @@ export default function Profile() {
                     <NotificationStatus preferences={preferences} />
                 </section>
 
-                <section className="profile-section page-enter page-enter--later">
-                    <div className="section-heading">
-                        <div>
-                            <p>Доставка</p>
-                            <h2>История уведомлений</h2>
-                        </div>
-                    </div>
+                <details className="profile-section delivery-details">
+                    <summary>
+                        История уведомлений · {notificationDeliveries.length}
+                    </summary>
                     {notificationDeliveries.some(
                         (delivery) => delivery.status === 'failed',
                     ) ? (
@@ -228,59 +255,21 @@ export default function Profile() {
                             tone="neutral"
                         >
                             Недоставленное сообщение не отменяет новые проверки.
-                            Следующая попытка или новое уведомление будут обработаны
-                            автоматически.
+                            Найденные закупки доступны в ленте приложения.
                         </InlineAlert>
                     ) : null}
                     <NotificationDeliveryHistory deliveries={notificationDeliveries} />
-                </section>
+                </details>
 
-                <GlassCard
-                    className="profile-plan page-enter page-enter--delay"
-                    tone="accent"
-                >
-                    <div className="profile-plan__header">
-                        <span>
-                            <Icon name="spark" size={19} /> Статус доступа
-                        </span>
-                        <Badge tone={access.tone}>{access.badge}</Badge>
-                    </div>
-                    <h3>{access.title}</h3>
-                    <p>{access.description}</p>
-                    <div className="profile-plan__line">
-                        <span>Период</span>
-                        <strong>{access.detail}</strong>
-                    </div>
+                <GlassCard className="settings-list">
+                    <Link className="profile-support-entry__link" href="/offer">
+                        Оферта <Icon name="chevron-right" size={17} />
+                    </Link>
+                    <Link className="profile-support-entry__link" href="/privacy">
+                        Политика конфиденциальности{' '}
+                        <Icon name="chevron-right" size={17} />
+                    </Link>
                 </GlassCard>
-
-                <section className="profile-section page-enter page-enter--later">
-                    <div className="section-heading">
-                        <div>
-                            <p>Аккаунт</p>
-                            <h2>Данные и доступ</h2>
-                        </div>
-                    </div>
-                    <GlassCard className="settings-list">
-                        <div className="settings-row">
-                            <span>
-                                <strong>Безопасность сессии</strong>
-                                <small>
-                                    Telegram ID и технические данные не показываются в
-                                    интерфейсе.
-                                </small>
-                            </span>
-                            <Icon name="shield" size={19} />
-                        </div>
-                    </GlassCard>
-                </section>
-
-                <section className="profile-help page-enter page-enter--later">
-                    <Icon name="shield" size={18} />
-                    <p>
-                        Доступ рассчитывается на сервере. Этот экран не изменяет его
-                        локальными настройками.
-                    </p>
-                </section>
 
                 {isSuperAdmin ? (
                     <details className="profile-admin">

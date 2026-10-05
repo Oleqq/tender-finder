@@ -707,11 +707,11 @@
     .work-nav__copy strong {
         font-size: 10px;
     }
-    .workspace-picker { grid-template-columns: minmax(0, 1fr); }
+    .workspace-picker { grid-template-columns: minmax(0, 1fr) auto; }
     .workspace-picker__manage { justify-content: center; }
-    .work-page-hero { grid-template-columns: minmax(0, 1fr); }
+    .work-page-hero { grid-template-columns: auto minmax(0, 1fr); padding: 14px; gap: 10px; }
     .work-page-hero__icon { width: 46px; height: 46px; border-radius: 15px; }
-    .analytics-summary { grid-template-columns: minmax(0, 1fr); }
+    .analytics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .analytics-summary .glass-card { min-height: 116px; }
     .work-calendar { gap: 3px; }
     .work-calendar button { min-height: 46px; border-radius: 10px; }
@@ -728,4 +728,17 @@
     height: 22px;
     min-height: 22px;
     flex: 0 0 22px;
+}
+
+.work-progress progress { appearance: none; -webkit-appearance: none; border: 0; border-radius: 999px; overflow: hidden; background: var(--tf-line); }
+.work-progress progress::-webkit-progress-bar { background: var(--tf-line); }
+.work-progress progress::-webkit-progress-value { background: var(--tf-success); }
+.work-progress progress::-moz-progress-bar { background: var(--tf-success); }
+.calendar-export > summary { min-height: 44px; display: flex; align-items: center; color: var(--app-link); cursor: pointer; }
+@media (max-width: 480px) {
+    .work-nav a { min-height: 48px; padding: 5px; }
+    .work-nav__icon { width: 24px; height: 24px; flex-basis: 24px; border-radius: 8px; }
+    .work-page-hero h2 { font-size: 20px; }
+    .work-page-hero p { display: none; }
+    .work-page-hero > div > span { margin-top: 5px; font-size: 11px; }
 }
