@@ -255,18 +255,28 @@ export default function Tenders() {
     const [bulkError, setBulkError] = useState('');
 
     useEffect(() => {
-        if (!searchStarted || !filters.query_id || team) return;
+        if (!filters.query_id || team) return;
+        let active = true;
         let checks = 0;
-        const timer = window.setInterval(() => {
+        let timer: number;
+        const reload = (): void => {
+            if (!active) return;
             checks += 1;
-            if (checks >= 20) window.clearInterval(timer);
             if (document.visibilityState === 'visible') {
                 router.reload({
                     only: ['tenderMatches', 'monitoringStatus', 'monitoringStatuses'],
                 });
             }
-        }, 3000);
-        return () => window.clearInterval(timer);
+            timer = window.setTimeout(
+                reload,
+                searchStarted && checks < 20 ? 3000 : 30000,
+            );
+        };
+        timer = window.setTimeout(reload, searchStarted ? 3000 : 30000);
+        return () => {
+            active = false;
+            window.clearTimeout(timer);
+        };
     }, [searchStarted, filters.query_id, team]);
 
     const visit = (next: Partial<FeedFilters>): void => {

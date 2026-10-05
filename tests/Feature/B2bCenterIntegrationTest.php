@@ -145,6 +145,18 @@ it('follows the current catalog pagination up to the configured bound', function
     Http::assertSentCount(2);
 });
 
+it('stops when the guest catalog repeats the first page', function () {
+    config()->set('tender.b2b_center.pages_per_poll', 5);
+    $data = b2bCenterApiFixture();
+    $data['page_count'] = 100;
+    Http::fake(fn () => Http::response($data));
+
+    $result = app(B2bCenterSource::class)->fetch(b2bCenterFeed());
+
+    expect($result->items)->toHaveCount(2);
+    Http::assertSentCount(2);
+});
+
 it('never requests a non-official URL even when it is present in configuration', function () {
     Http::fake();
     config()->set('tender.b2b_center.catalog_url', 'https://example.test/market/');

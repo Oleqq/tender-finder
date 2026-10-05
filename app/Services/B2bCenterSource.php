@@ -35,6 +35,7 @@ final class B2bCenterSource implements TenderSource
         parse_str((string) parse_url($feed->canonical_url, PHP_URL_QUERY), $parameters);
         $phrase = $parameters['f_keyword'] ?? null;
         $items = [];
+        $previousPageIds = null;
         $maxPages = max(1, min(10, (int) config('tender.b2b_center.pages_per_poll', 5)));
         for ($page = 1; $page <= $maxPages; $page++) {
             try {
@@ -62,6 +63,13 @@ final class B2bCenterSource implements TenderSource
                 throw new B2bCenterException('invalid_catalog');
             }
             $result = $this->parser->parse($data);
+            $pageIds = array_map(fn ($item) => $item->externalId, $result['items']);
+            if ($pageIds === $previousPageIds) {
+                // The guest search currently ignores page/page_size and can
+                // repeat its first page while reporting many pages available.
+                break;
+            }
+            $previousPageIds = $pageIds;
             foreach ($result['items'] as $item) {
                 $items[$item->externalId] = $item;
             }
