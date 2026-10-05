@@ -45,7 +45,8 @@ class TenderMatchingService
             ),
             QueryMatchMode::Phrase => count(array_filter($keywords, fn (string $keyword): bool => app(TenderKeywordMatcher::class)->contains($tender->title, $keyword))) > 0
                 && (app(TenderKeywordMatcher::class)->containsPhrase($tender->title, array_values($keywords))
-                    || app(TenderKeywordMatcher::class)->containsPhrase($description, array_values($keywords))),
+                    || app(TenderKeywordMatcher::class)->containsPhrase($description, array_values($keywords)))
+                || $this->isWebsiteCreationSynonym($keywords, $tender->title),
         };
 
         if (! $matchesKeywords) {
@@ -161,6 +162,28 @@ class TenderMatchingService
     private function lower(?string $value): string
     {
         return mb_strtolower($value ?? '');
+    }
+
+    /** @param array<int, string> $keywords */
+    private function isWebsiteCreationSynonym(array $keywords, string $title): bool
+    {
+        if (preg_match('/^разработк[а-я]* сайт[а-я]*$/u', $this->lower(implode(' ', $keywords))) !== 1) {
+            return false;
+        }
+
+        // A website build may be titled "создание сайта". Keep this expansion in
+        // the title and reject tasks to build a widget or another part for a site.
+        if (preg_match_all('/\bсоздани[еяю]\b(?<between>(?:[^\p{L}]+\p{L}+){0,4})[^\p{L}]+сайт[а-я]*\b/u', $this->lower($title), $matches) === false) {
+            return false;
+        }
+
+        foreach ($matches['between'] as $between) {
+            if (preg_match('/\b(?:виджет|модул|плагин|интеграц|раздел|страниц|для)\p{L}*\b/u', $between) !== 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function matchMode(SearchQuery $query): QueryMatchMode

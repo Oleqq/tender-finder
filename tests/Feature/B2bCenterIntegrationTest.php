@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\AccessService;
 use App\Services\B2bCenterHtmlParser;
 use App\Services\B2bCenterPollingDispatcher;
+use App\Services\B2bCenterSearchApiParser;
 use App\Services\B2bCenterSource;
 use App\Services\TelegramBotClient;
 use App\Services\TenderMatchingService;
@@ -110,18 +111,38 @@ it('rejects a changed B2B-Center catalog layout instead of accepting an empty sn
 });
 
 it('requests only the configured public catalog without account credentials', function () {
-    Http::fake([
-        'https://www.b2b-center.ru/market/' => Http::response(b2bCenterHtml()),
-    ]);
+    Http::fake(fn () => Http::response(b2bCenterApiFixture()));
     $feed = b2bCenterFeed();
 
     $result = app(B2bCenterSource::class)->fetch($feed);
 
     expect($result->items)->toHaveCount(2);
-    Http::assertSent(fn (Request $request): bool => $request->url() === $feed->canonical_url
+    Http::assertSent(fn (Request $request): bool => str_starts_with($request->url(), 'https://www.b2b-center.ru/site/api/v1/market-search/?')
+        && $request['tab'] === 'actual' && $request['page'] == 1
         && $request->hasHeader('User-Agent', 'TenderFinder tests')
         && ! $request->hasHeader('Authorization')
         && ! $request->hasHeader('Cookie'));
+});
+
+it('follows the current catalog pagination up to the configured bound', function () {
+    config()->set('tender.b2b_center.pages_per_poll', 2);
+    Http::fake(function (Request $request) {
+        $page = (int) $request['page'];
+        $data = b2bCenterApiFixture();
+        $data['page_count'] = 3;
+        $data['tabs'][0]['count'] = 3;
+        $data['trades'] = [$data['trades'][0]];
+        $data['trades'][0]['trade_id'] = 4616410 + $page;
+        $data['trades'][0]['url'] = '/market/razrabotka-saita/tender-'.(4616410 + $page).'/';
+
+        return Http::response($data);
+    });
+
+    $result = app(B2bCenterSource::class)->fetch(b2bCenterFeed());
+
+    expect($result->items)->toHaveCount(2)
+        ->and(array_map(fn ($item) => $item->externalId, $result->items))->toBe(['4616411', '4616412']);
+    Http::assertSentCount(2);
 });
 
 it('never requests a non-official URL even when it is present in configuration', function () {
@@ -142,9 +163,7 @@ it('never requests a non-official URL even when it is present in configuration',
 
 it('imports B2B-Center cards and suppresses notifications for the initial catalog snapshot', function () {
     Queue::fake();
-    Http::fake([
-        'https://www.b2b-center.ru/market/' => Http::response(b2bCenterHtml()),
-    ]);
+    Http::fake(fn () => Http::response(b2bCenterApiFixture()));
     $feed = b2bCenterFeed();
 
     (new PollB2bCenterFeed($feed->id))->handle(app(B2bCenterSource::class), app(TenderSourceImportService::class));
@@ -153,6 +172,17 @@ it('imports B2B-Center cards and suppresses notifications for the initial catalo
         ->and($feed->fresh()->initialized_at)->not->toBeNull();
     Queue::assertPushed(MatchTender::class, 2);
     Queue::assertPushed(MatchTender::class, fn (MatchTender $job): bool => $job->queueNotifications === false);
+});
+
+it('parses the current public JSON search and rejects a broken response', function () {
+    $parser = app(B2bCenterSearchApiParser::class);
+    $result = $parser->parse(b2bCenterApiFixture());
+
+    expect($result['items'])->toHaveCount(2)
+        ->and($result['items'][0]->canonicalUrl)->toBe('https://www.b2b-center.ru/market/razrabotka-saita/tender-4616411/')
+        ->and($result['items'][0]->title)->toBe('Разработка сайта для перевозчика')
+        ->and($result['items'][0]->metadata['customer'])->toBe('ООО «Заказчик»');
+    expect(fn () => $parser->parse(['trades' => []]))->toThrow(B2bCenterException::class, 'catalog_layout_changed');
 });
 
 it('creates and dispatches the configured B2B-Center catalog when due', function () {
@@ -274,4 +304,36 @@ function b2bCenterHtml(): string
 </tbody></table>
 </body></html>
 HTML;
+}
+
+/** @return array<string, mixed> */
+function b2bCenterApiFixture(): array
+{
+    return [
+        'current_tab' => 'actual',
+        'page_count' => 1,
+        'tabs' => [['type' => 'actual', 'count' => 2]],
+        'trades' => [
+            [
+                'trade_id' => 4616411,
+                'description' => 'Разработка <mark>сайта</mark> для перевозчика Разработка <mark>сайта</mark> для перевозчика',
+                'url' => '/market/razrabotka-saita/tender-4616411/#tracking',
+                'date_published' => '05.10.2026 10:00',
+                'date_actual' => '15.10.2026 12:00',
+                'org_name_short' => 'ООО &laquo;Заказчик&raquo;',
+                'price' => '100 000,00 руб.',
+                'region' => 'Москва',
+            ],
+            [
+                'trade_id' => 4616412,
+                'description' => 'Закупка оборудования',
+                'url' => '/app/market-next/zakupka-oborudovaniya/tender-4616412/',
+                'date_published' => '05.10.2026 11:00',
+                'date_actual' => '16.10.2026 12:00',
+                'org_name_short' => 'АО «Заказчик»',
+                'price' => 'Без указания цены',
+                'region' => '',
+            ],
+        ],
+    ];
 }

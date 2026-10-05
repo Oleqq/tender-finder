@@ -274,8 +274,7 @@ it('requests B2B by the user keywords and shares the source check without sharin
     config()->set('tender.rostender.enabled', false);
     config()->set('tender.b2b_center.enabled', true);
     Queue::fake();
-    $html = str_replace('Закупка цинкооксидных поглотителей для загрузки системы', 'Услуги разработки сайта по техническому заданию', b2bCenterHtml());
-    Http::fake(['https://www.b2b-center.ru/market/?*' => Http::response($html)]);
+    Http::fake(fn () => Http::response(b2bCenterApiFixture()));
     $user = discoveryUser();
     $other = discoveryUser();
     $first = $this->actingAs($user)->postJson('/queries/quick', ['phrase' => 'разработка сайта'])
@@ -291,7 +290,7 @@ it('requests B2B by the user keywords and shares the source check without sharin
     }
     expect(TenderQueryMatch::query()->where('search_query_id', $first)->count())->toBe(1)
         ->and(TenderQueryMatch::query()->where('search_query_id', $second)->count())->toBe(1);
-    Http::assertSent(fn ($request) => $request['f_keyword'] === 'разработка сайта' && ! $request->hasHeader('Cookie') && ! $request->hasHeader('Authorization'));
+    Http::assertSent(fn ($request) => $request['query'] === 'разработка сайта' && ! $request->hasHeader('Cookie') && ! $request->hasHeader('Authorization'));
     $this->actingAs($user)->postJson('/queries/'.$first.'/pause')->assertOk();
     expect($feed->fresh()->status)->toBe('active');
     $this->actingAs($other)->postJson('/queries/'.$second.'/pause')->assertOk();
@@ -339,6 +338,20 @@ it('does not treat a Workspace category or an unrelated project as a phrase matc
     expect($matcher->evaluate($query, $unrelated)->matches)->toBeFalse()
         ->and($matcher->evaluate($query, $otherService)->matches)->toBeFalse()
         ->and($matcher->evaluate($query, $relevant)->matches)->toBeTrue();
+});
+
+it('includes a website creation tender in a website development search without including widgets', function () {
+    $query = new SearchQuery([
+        'keywords' => ['разработка', 'сайта'],
+        'filters' => ['relevance' => ['match_mode' => 'phrase']],
+    ]);
+    $matcher = app(TenderMatchingService::class);
+
+    $website = new Tender(['source' => 'workspace_ru', 'title' => 'Создание и SEO-продвижение сайта-зеркала для магазина дверей']);
+    $widget = new Tender(['source' => 'workspace_ru', 'title' => 'Создание виджета для сайта IT-агентства']);
+
+    expect($matcher->evaluate($query, $website)->matches)->toBeTrue()
+        ->and($matcher->evaluate($query, $widget)->matches)->toBeFalse();
 });
 
 it('upgrades a reused quick search and removes derived matches outside its phrase', function () {
