@@ -101,7 +101,7 @@ class TenderSourceImportService
                     $itemsCreated++;
                 }
 
-                if ($queueMatches && ($isNewTender || in_array($source, ['workspace_ru', 'sber_ast', 'b2b_center', 'roseltorg', 'rts_tender'], true))) {
+                if ($queueMatches && ($isNewTender || in_array($source, ['workspace_ru', 'sber_ast', 'b2b_center', 'roseltorg', 'rts_tender', 'sber_ast_catalog'], true))) {
                     // The first import builds the user's initial feed but must not
                     // send a burst of notifications for historic procurements.
                     MatchTender::dispatch(

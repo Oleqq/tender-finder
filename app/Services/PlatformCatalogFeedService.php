@@ -9,6 +9,7 @@ final class PlatformCatalogFeedService
     public const URLS = [
         'roseltorg' => 'https://www.b2b-center.ru/search/etps/ao-eetp/',
         'rts_tender' => 'https://www.b2b-center.ru/search/etps/rts-tender/',
+        'sber_ast_catalog' => 'https://www.b2b-center.ru/search/etps/ao-sberbank-ast/',
     ];
 
     public function configuredFeed(string $source): ?SourceFeed

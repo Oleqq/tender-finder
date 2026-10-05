@@ -23,7 +23,7 @@ class MatchTender implements ShouldQueue
     {
         $tender = Tender::query()->find($this->tenderId);
 
-        if ($tender !== null && ! (in_array($tender->source, ['workspace_ru', 'sber_ast', 'b2b_center', 'roseltorg', 'rts_tender'], true)
+        if ($tender !== null && ! (in_array($tender->source, ['workspace_ru', 'sber_ast', 'b2b_center', 'roseltorg', 'rts_tender', 'sber_ast_catalog'], true)
             && $tender->deadline_at?->isPast())) {
             $matching->matchTender($tender, $this->queueNotifications);
         }

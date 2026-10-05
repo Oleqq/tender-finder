@@ -192,8 +192,8 @@ const sourceOptions = [
     { value: 'rostender', label: 'RosTender', description: 'Подключённые шаблоны' },
     {
         value: 'sber_ast',
-        label: 'Сбер АСТ',
-        description: 'Публичные реестры площадки',
+        label: 'Сбер АСТ (прямой реестр)',
+        description: 'Прямой источник площадки',
     },
     {
         value: 'workspace_ru',
@@ -214,6 +214,11 @@ const sourceOptions = [
         value: 'rts_tender',
         label: 'РТС-Тендер',
         description: 'Закупки РТС через каталог B2B-Center',
+    },
+    {
+        value: 'sber_ast_catalog',
+        label: 'Сбер АСТ (каталог)',
+        description: 'Закупки Сбер АСТ через каталог B2B-Center',
     },
 ];
 
@@ -1402,11 +1407,12 @@ function TeamWorkflowPanel({
                         >
                             <option value="">Любой источник</option>
                             <option value="rostender">RosTender</option>
-                            <option value="sber_ast">Сбер АСТ</option>
+                            <option value="sber_ast">Сбер АСТ (прямой реестр)</option>
                             <option value="workspace_ru">Workspace.ru</option>
                             <option value="b2b_center">B2B-Center</option>
                             <option value="roseltorg">Росэлторг</option>
                             <option value="rts_tender">РТС-Тендер</option>
+                            <option value="sber_ast_catalog">Сбер АСТ (каталог)</option>
                         </select>
                         <select
                             value={rule.search_query_id}
@@ -1602,6 +1608,8 @@ function TeamFeedTenderCard({
                     <Badge tone="accent">Росэлторг</Badge>
                 ) : match.source === 'rts_tender' ? (
                     <Badge tone="accent">РТС-Тендер</Badge>
+                ) : match.source === 'sber_ast_catalog' ? (
+                    <Badge tone="accent">Сбер АСТ</Badge>
                 ) : null}
                 {review.overdue ? <Badge tone="warning">SLA просрочен</Badge> : null}
                 <span>
@@ -1844,6 +1852,8 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                         <Badge tone="accent">Росэлторг</Badge>
                     ) : match.source === 'rts_tender' ? (
                         <Badge tone="accent">РТС-Тендер</Badge>
+                    ) : match.source === 'sber_ast_catalog' ? (
+                        <Badge tone="accent">Сбер АСТ</Badge>
                     ) : null}
                 </div>
                 <span className="tender-feed-card__match">

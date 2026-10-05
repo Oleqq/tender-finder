@@ -14,8 +14,8 @@ final class PublicTenderSources
     public function enabled(): array
     {
         return array_values(array_filter(
-            ['sber_ast', 'workspace_ru', 'b2b_center', 'roseltorg', 'rts_tender'],
-            fn (string $source): bool => (bool) config(in_array($source, ['roseltorg', 'rts_tender'], true)
+            ['sber_ast', 'workspace_ru', 'b2b_center', 'roseltorg', 'rts_tender', 'sber_ast_catalog'],
+            fn (string $source): bool => (bool) config(in_array($source, array_keys(PlatformCatalogFeedService::URLS), true)
                 ? "tender.platform_catalog.{$source}.enabled" : "tender.{$source}.enabled"),
         ));
     }
@@ -50,7 +50,7 @@ final class PublicTenderSources
         if (config('tender.b2b_center.enabled')) {
             app(B2bCenterFeedService::class)->configuredFeed();
         }
-        foreach (['roseltorg', 'rts_tender'] as $source) {
+        foreach (array_keys(PlatformCatalogFeedService::URLS) as $source) {
             app(PlatformCatalogFeedService::class)->configuredFeed($source);
         }
     }
@@ -70,7 +70,7 @@ final class PublicTenderSources
             $queued = app(B2bCenterPollingDispatcher::class)->dispatchDueFeed($feed->id) || $queued;
         }
 
-        foreach (['roseltorg', 'rts_tender'] as $source) {
+        foreach (array_keys(PlatformCatalogFeedService::URLS) as $source) {
             $queued = app(PlatformCatalogPollingDispatcher::class)->dispatchDueFeed($source) || $queued;
         }
 

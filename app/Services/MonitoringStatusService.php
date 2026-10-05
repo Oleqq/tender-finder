@@ -107,6 +107,7 @@ final class MonitoringStatusService
             'b2b_center' => 'B2B-Center',
             'roseltorg' => 'Росэлторг',
             'rts_tender' => 'РТС-Тендер',
+            'sber_ast_catalog' => 'Сбер АСТ (каталог)',
             default => 'Источник',
         };
 

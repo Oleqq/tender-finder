@@ -46,7 +46,8 @@ type SourceStatus = {
         | 'sber_ast'
         | 'b2b_center'
         | 'roseltorg'
-        | 'rts_tender';
+        | 'rts_tender'
+        | 'sber_ast_catalog';
     state:
         | 'ok'
         | 'empty'
@@ -936,6 +937,7 @@ function sourceLabel(source: SourceStatus['source']): string {
             b2b_center: 'B2B-Center',
             roseltorg: 'Росэлторг',
             rts_tender: 'РТС-Тендер',
+            sber_ast_catalog: 'Сбер АСТ (каталог)',
         }[source] ?? 'Источник'
     );
 }

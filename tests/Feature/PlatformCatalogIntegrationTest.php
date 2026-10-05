@@ -23,6 +23,7 @@ beforeEach(function (): void {
     config()->set([
         'tender.platform_catalog.roseltorg.enabled' => true,
         'tender.platform_catalog.rts_tender.enabled' => true,
+        'tender.platform_catalog.sber_ast_catalog.enabled' => true,
         'tender.platform_catalog.pages_per_poll' => 2,
         'tender.platform_catalog.poll_interval_seconds' => 1800,
         'tender.platform_catalog.request_timeout_seconds' => 15,
@@ -33,6 +34,7 @@ beforeEach(function (): void {
 it('parses operator-specific cards and rejects a changed catalog', function () {
     $ros = app(PlatformCatalogParser::class)->parse(platformCatalogHtml('roseltorg'), 'roseltorg');
     $rts = app(PlatformCatalogParser::class)->parse(platformCatalogHtml('rts_tender'), 'rts_tender');
+    $sber = app(PlatformCatalogParser::class)->parse(platformCatalogHtml('sber_ast_catalog'), 'sber_ast_catalog');
 
     expect($ros->items)->toHaveCount(1)
         ->and($ros->items[0]->regNumber)->toBe('057270000012601050')
@@ -41,7 +43,10 @@ it('parses operator-specific cards and rejects a changed catalog', function () {
         ->and($ros->items[0]->metadata['platform'])->toBe('Росэлторг')
         ->and($rts->items)->toHaveCount(1)
         ->and($rts->items[0]->regNumber)->toBe('10727596')
-        ->and($rts->items[0]->metadata['platform'])->toBe('РТС-Тендер');
+        ->and($rts->items[0]->metadata['platform'])->toBe('РТС-Тендер')
+        ->and($sber->items)->toHaveCount(1)
+        ->and($sber->items[0]->metadata['platform'])->toBe('Сбер АСТ')
+        ->and($sber->items[0]->metadata['platform_url'])->toContain('zakupki.gov.ru');
 
     expect(fn () => app(PlatformCatalogParser::class)->parse('<h1>Проверяем ваш браузер</h1>', 'rts_tender'))
         ->toThrow(PlatformCatalogException::class, 'catalog_layout_changed');
@@ -77,6 +82,21 @@ it('fetches bounded public pages, imports platform tenders, and suppresses initi
         && ! $request->hasHeader('Cookie'));
 });
 
+it('imports Sber AST catalog cards separately from the direct Sber source', function () {
+    Queue::fake();
+    config()->set('tender.platform_catalog.pages_per_poll', 1);
+    $url = PlatformCatalogFeedService::URLS['sber_ast_catalog'];
+    Http::fake([$url => Http::response(platformCatalogHtml('sber_ast_catalog'))]);
+    $feed = app(PlatformCatalogFeedService::class)->configuredFeed('sber_ast_catalog');
+
+    (new PollPlatformCatalogFeed($feed->id))->handle(app(PlatformCatalogSource::class), app(TenderSourceImportService::class));
+
+    expect(Tender::query()->where('source', 'sber_ast_catalog')->count())->toBe(1)
+        ->and(Tender::query()->where('source', 'sber_ast')->count())->toBe(0)
+        ->and($feed->fresh()->last_success_at)->not->toBeNull();
+    Queue::assertPushed(MatchTender::class, fn (MatchTender $job): bool => $job->queueNotifications === false);
+});
+
 it('dispatches each enabled platform only when its feed is due', function () {
     Queue::fake();
     $dispatcher = app(PlatformCatalogPollingDispatcher::class);
@@ -84,8 +104,9 @@ it('dispatches each enabled platform only when its feed is due', function () {
     expect($dispatcher->dispatchDueFeed('roseltorg'))->toBeTrue()
         ->and($dispatcher->dispatchDueFeed('roseltorg'))->toBeFalse()
         ->and($dispatcher->dispatchDueFeed('rts_tender'))->toBeTrue();
-    Queue::assertPushed(PollPlatformCatalogFeed::class, 2);
-    expect(SourceFeed::query()->whereIn('source', ['roseltorg', 'rts_tender'])->count())->toBe(2);
+    expect($dispatcher->dispatchDueFeed('sber_ast_catalog'))->toBeTrue();
+    Queue::assertPushed(PollPlatformCatalogFeed::class, 3);
+    expect(SourceFeed::query()->whereIn('source', ['roseltorg', 'rts_tender', 'sber_ast_catalog'])->count())->toBe(3);
 });
 
 it('retries a transient connection failure within the same poll', function () {
@@ -109,12 +130,14 @@ it('retries a transient connection failure within the same poll', function () {
 function platformCatalogHtml(string $source, string $cardId = ''): string
 {
     $ros = $source === 'roseltorg';
-    $id = $cardId !== '' ? $cardId : ($ros ? 'l057270000012601050-1' : 'l15256734-3-9-1');
-    $name = $ros ? 'АО «ЕЭТП»' : 'РТС-тендер';
-    $number = $ros ? '057270000012601050' : '10727596';
+    $sber = $source === 'sber_ast_catalog';
+    $id = $cardId !== '' ? $cardId : ($ros ? 'l057270000012601050-1' : ($sber ? 'l0325300000726000310-1' : 'l15256734-3-9-1'));
+    $name = $ros ? 'АО «ЕЭТП»' : ($sber ? 'АО «Сбербанк-АСТ»' : 'РТС-тендер');
+    $number = $ros ? '057270000012601050' : ($sber ? '0325300000726000310' : '10727596');
     $native = $ros
         ? 'https://zakupki.gov.ru/epz/order/notice/ea615/view/common-info.html?regNumber='.$number
-        : 'https://market-lk.rts-tender.ru/supplier/lk/Handlers/EntityUrlHandler.ashx?Id='.$number;
+        : ($sber ? 'http://zakupki.gov.ru/epz/order/notice/view/common-info.html?regNumber='.$number
+            : 'https://market-lk.rts-tender.ru/supplier/lk/Handlers/EntityUrlHandler.ashx?Id='.$number);
     $native = htmlspecialchars($native, ENT_QUOTES);
 
     return <<<HTML

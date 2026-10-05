@@ -31,7 +31,12 @@ final class PlatformCatalogParser
         }
 
         $xpath = new DOMXPath($document);
-        $expected = $source === 'roseltorg' ? 'АО «ЕЭТП»' : 'РТС-тендер';
+        $expected = match ($source) {
+            'roseltorg' => 'АО «ЕЭТП»',
+            'rts_tender' => 'РТС-тендер',
+            'sber_ast_catalog' => 'АО «Сбербанк-АСТ»',
+            default => throw new PlatformCatalogException('source_disabled'),
+        };
         $heading = $xpath->query('//h1')->item(0);
         if (! $heading instanceof DOMElement || ! str_contains($this->text($heading), $expected)) {
             throw new PlatformCatalogException('catalog_layout_changed');
@@ -62,9 +67,13 @@ final class PlatformCatalogParser
             $externalId = $match[1];
             $linkScheme = strtolower((string) parse_url($nativeLink ?? '', PHP_URL_SCHEME));
             $linkHost = strtolower((string) parse_url($nativeLink ?? '', PHP_URL_HOST));
-            $allowedHost = $source === 'roseltorg'
-                ? ($linkHost === 'zakupki.gov.ru' || $linkHost === 'roseltorg.ru' || str_ends_with($linkHost, '.roseltorg.ru'))
-                : ($linkHost === 'zakupki.gov.ru' || $linkHost === 'rts-tender.ru' || str_ends_with($linkHost, '.rts-tender.ru'));
+            $platformHost = match ($source) {
+                'roseltorg' => 'roseltorg.ru',
+                'rts_tender' => 'rts-tender.ru',
+                'sber_ast_catalog' => 'sberbank-ast.ru',
+            };
+            $allowedHost = $linkHost === 'zakupki.gov.ru'
+                || $linkHost === $platformHost || str_ends_with($linkHost, '.'.$platformHost);
             if (! in_array($linkScheme, ['http', 'https'], true) || ! $allowedHost) {
                 // A platform filter returning another operator must not be
                 // silently imported under the wrong source label.
@@ -82,7 +91,11 @@ final class PlatformCatalogParser
             $title = TenderTitle::display(trim((string) preg_replace('/\s+/u', ' ', $title)));
             $metadata = [
                 'customer' => $customer,
-                'platform' => $source === 'roseltorg' ? 'Росэлторг' : 'РТС-Тендер',
+                'platform' => match ($source) {
+                    'roseltorg' => 'Росэлторг',
+                    'rts_tender' => 'РТС-Тендер',
+                    'sber_ast_catalog' => 'Сбер АСТ',
+                },
                 'platform_url' => $nativeLink,
                 'catalog_provider' => 'B2B-Center',
             ];

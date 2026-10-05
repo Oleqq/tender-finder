@@ -41,6 +41,7 @@ final class TenderDetailController extends Controller
             'b2b_center' => 'B2B-Center',
             'roseltorg' => 'Росэлторг',
             'rts_tender' => 'РТС-Тендер',
+            'sber_ast_catalog' => 'Сбер АСТ',
             default => 'Источник закупки',
         };
 
@@ -57,7 +58,7 @@ final class TenderDetailController extends Controller
                 'published_at' => $tender->published_at?->toAtomString(),
                 'deadline_at' => $tender->deadline_at?->toAtomString(),
                 'canonical_url' => $tender->canonical_url,
-                'platform_url' => in_array($tender->source, ['roseltorg', 'rts_tender'], true)
+                'platform_url' => in_array($tender->source, ['roseltorg', 'rts_tender', 'sber_ast_catalog'], true)
                     ? ($tender->metadata['platform_url'] ?? null) : null,
                 'source_label' => $sourceLabel,
                 'query_name' => $match->searchQuery->name,

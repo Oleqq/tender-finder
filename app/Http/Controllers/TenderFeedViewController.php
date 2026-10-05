@@ -44,7 +44,7 @@ class TenderFeedViewController extends Controller
             'filters.query_id' => ['nullable', 'integer'],
             'filters.sort' => ['nullable', Rule::in(['matched_desc', 'deadline_asc', 'budget_desc', 'budget_asc'])],
             'filters.assignee_id' => ['nullable', 'integer'],
-            'filters.source' => ['nullable', Rule::in(['all', 'rostender', 'sber_ast', 'workspace_ru', 'b2b_center', 'roseltorg', 'rts_tender'])],
+            'filters.source' => ['nullable', Rule::in(['all', 'rostender', 'sber_ast', 'workspace_ru', 'b2b_center', 'roseltorg', 'rts_tender', 'sber_ast_catalog'])],
             'filters.overdue' => ['nullable', 'boolean'],
         ]);
 
