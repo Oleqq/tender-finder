@@ -33,6 +33,7 @@ type AppShellProps = {
     eyebrow?: string;
     activeNav?: string;
     backHref?: string;
+    backToPrevious?: boolean;
     action?: ReactNode;
     navigationVisible?: boolean;
     className?: string;
@@ -47,6 +48,7 @@ export function AppShell({
     eyebrow,
     activeNav,
     backHref,
+    backToPrevious = false,
     action,
     navigationVisible = true,
     className,
@@ -74,9 +76,10 @@ export function AppShell({
                                         return;
                                     if (
                                         previousAppUrl &&
-                                        new URL(previousAppUrl).pathname ===
-                                            new URL(backHref, window.location.href)
-                                                .pathname
+                                        (backToPrevious ||
+                                            new URL(previousAppUrl).pathname ===
+                                                new URL(backHref, window.location.href)
+                                                    .pathname)
                                     ) {
                                         event.preventDefault();
                                         previousAppUrl = null;

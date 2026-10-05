@@ -205,10 +205,13 @@
     min-width: 0;
     min-height: 44px;
     color: var(--app-ink);
-    background: var(--tf-surface-strong);
+    background-color: var(--tf-surface-strong);
     border: 1px solid var(--tf-line);
     border-radius: var(--radius-xs);
     padding: 10px;
+}
+.work-form select {
+    padding-right: 36px;
 }
 .work-form textarea {
     min-height: 100px;

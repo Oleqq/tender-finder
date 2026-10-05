@@ -46,7 +46,8 @@ export function MonitoringWizard({
     useEffect(() => {
         if (previousStep.current === step) return;
         previousStep.current = step;
-        formRef.current?.scrollIntoView({ block: 'start' });
+        const card = formRef.current?.closest('.query-create');
+        (card ?? formRef.current)?.scrollIntoView({ block: 'start' });
         formRef.current
             ?.querySelector<HTMLElement>('legend')
             ?.focus({ preventScroll: true });

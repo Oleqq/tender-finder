@@ -89,6 +89,7 @@ export default function LegalDocument({ document }: LegalDocumentProps) {
             <Head title={document.title} />
             <AppShell
                 backHref="/"
+                backToPrevious
                 navigationVisible={false}
                 title={document.title}
                 eyebrow={draft.eyebrow}
