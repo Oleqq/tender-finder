@@ -354,6 +354,25 @@ it('includes a website creation tender in a website development search without i
         ->and($matcher->evaluate($query, $widget)->matches)->toBeFalse();
 });
 
+it('excludes software licenses for website builders from website work searches', function () {
+    $matcher = app(TenderMatchingService::class);
+    $titles = [
+        'Программное обеспечение для создания и ведения сайта Конструктор школьных сайтов',
+        'Оказание услуг по предоставлению прав (продление) использования программы (неисключительная лицензия) для ЭВМ «Программа для создания (управления) официальным сайтом образовательной организации»',
+    ];
+
+    foreach ([['разработка', 'сайта'], ['создание', 'сайта']] as $keywords) {
+        $query = new SearchQuery([
+            'keywords' => $keywords,
+            'filters' => ['relevance' => ['match_mode' => 'phrase']],
+        ]);
+        foreach ($titles as $title) {
+            expect($matcher->evaluate($query, new Tender(['title' => $title]))->matches)->toBeFalse();
+        }
+        expect($matcher->evaluate($query, new Tender(['title' => 'Создание сайта для школы с передачей прав на результат']))->matches)->toBeTrue();
+    }
+});
+
 it('upgrades a reused quick search and removes derived matches outside its phrase', function () {
     config()->set('tender.rostender.enabled', false);
     config()->set('tender.workspace_ru.enabled', true);

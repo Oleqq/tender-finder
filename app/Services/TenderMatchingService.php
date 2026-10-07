@@ -29,6 +29,11 @@ class TenderMatchingService
         $haystack = $this->lower($tender->title.' '.$description);
         $keywords = array_filter($query->keywords ?? [], 'is_string');
         $mode = $this->matchMode($query);
+        if ($mode === QueryMatchMode::Phrase
+            && $this->isWebsiteBuildQuery($keywords)
+            && $this->isWebsiteSoftwareProcurement($tender->title)) {
+            return new TenderMatchResult(false, ['excluded_by' => 'keyword']);
+        }
         $matchedKeywords = array_values(array_filter(
             $keywords,
             fn (string $keyword): bool => $mode === QueryMatchMode::Exact
@@ -184,6 +189,17 @@ class TenderMatchingService
         }
 
         return false;
+    }
+
+    /** @param array<int, string> $keywords */
+    private function isWebsiteBuildQuery(array $keywords): bool
+    {
+        return preg_match('/^(?:разработк[а-я]*|создани[еяю]) сайт[а-я]*$/u', $this->lower(implode(' ', $keywords))) === 1;
+    }
+
+    private function isWebsiteSoftwareProcurement(string $title): bool
+    {
+        return preg_match('/^(?:программно[ея] обеспечени[ея]|оказани[ея] услуг по предоставлени[юя] прав|(?:поставк[аи]|закупк[аи]|приобретени[ея]) (?:лицензи[а-я]*|программного обеспечени[я]))(?=$|[^\p{L}])/u', $this->lower($title)) === 1;
     }
 
     private function matchMode(SearchQuery $query): QueryMatchMode
