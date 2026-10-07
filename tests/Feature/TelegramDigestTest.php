@@ -21,7 +21,7 @@ afterEach(function (): void {
 
 it('queues one real daily digest with the user matching tender cards', function () {
     Queue::fake();
-    Carbon::setTestNow('2026-09-04 06:00:00 UTC');
+    Carbon::setTestNow('2026-09-04 06:00:03 UTC');
     $user = User::factory()->create(['telegram_id' => '91001']);
     Entitlement::query()->create([
         'user_id' => $user->id,
@@ -76,8 +76,10 @@ it('queues one real daily digest with the user matching tender cards', function 
     };
 
     $makeMatch('yesterday-afternoon', 'Вчера после дайджеста', now()->subHours(18));
+    $makeMatch('yesterday-second', 'После вчерашних 09:00', now()->subDay()->subSeconds(2));
     $makeMatch('too-old', 'До прошлого дайджеста', now()->subDay()->subMinute());
     $makeMatch('next-day', 'После текущего дайджеста', now()->addMinute());
+    $makeMatch('today-second', 'После сегодняшних 09:00', now()->subSeconds(2));
     $makeMatch('expired', 'Истёкший срок приёма', now()->subHours(2));
     Tender::query()->where('external_id', 'expired')->update(['deadline_at' => now()->subMinute()]);
 
@@ -88,18 +90,20 @@ it('queues one real daily digest with the user matching tender cards', function 
 
     expect($delivery->type)->toBe('tender_digest')
         ->and($delivery->status)->toBe(NotificationStatus::Queued)
-        ->and($delivery->payload['count'])->toBe(2)
+        ->and($delivery->payload['count'])->toBe(3)
         ->and(array_column($delivery->payload['tenders'], 'title'))->toContain('Вчера после дайджеста')
-        ->not->toContain('До прошлого дайджеста', 'После текущего дайджеста', 'Истёкший срок приёма');
+        ->toContain('После вчерашних 09:00')
+        ->not->toContain('До прошлого дайджеста', 'После текущего дайджеста', 'После сегодняшних 09:00', 'Истёкший срок приёма');
     Queue::assertPushed(DeliverTelegramNotification::class, 1);
 
-    Carbon::setTestNow('2026-09-05 06:00:00 UTC');
+    Carbon::setTestNow('2026-09-05 06:00:03 UTC');
     Artisan::call('notifications:send-due-digests');
 
     $nextDelivery = NotificationDelivery::query()
         ->where('idempotency_key', 'daily-digest:'.$user->id.':20260905')
         ->sole();
-    expect($nextDelivery->payload['count'])->toBe(1)
-        ->and($nextDelivery->payload['tenders'][0]['title'])->toBe('После текущего дайджеста');
+    expect($nextDelivery->payload['count'])->toBe(2)
+        ->and(array_column($nextDelivery->payload['tenders'], 'title'))
+        ->toContain('После текущего дайджеста', 'После сегодняшних 09:00');
     Queue::assertPushed(DeliverTelegramNotification::class, 2);
 });

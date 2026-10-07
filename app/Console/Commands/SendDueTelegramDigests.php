@@ -34,8 +34,9 @@ class SendDueTelegramDigests extends Command
                     return;
                 }
 
-                $windowStart = $localNow->copy()->subDay()->utc();
-                $windowEnd = $localNow->copy()->utc();
+                $scheduledAt = $localNow->copy()->startOfMinute();
+                $windowStart = $scheduledAt->copy()->subDay()->utc();
+                $windowEnd = $scheduledAt->copy()->utc();
                 $matches = TenderQueryMatch::query()
                     ->with('tender')
                     ->whereHas('searchQuery', fn ($query) => $query->where('user_id', $user->id))
