@@ -57,6 +57,7 @@ final class TenderDetailController extends Controller
                 'currency' => $tender->currency,
                 'published_at' => $tender->published_at?->toAtomString(),
                 'deadline_at' => $tender->deadline_at?->toAtomString(),
+                'is_expired' => $tender->deadline_at?->isPast() ?? false,
                 'canonical_url' => $tender->canonical_url,
                 'platform_url' => in_array($tender->source, ['roseltorg', 'rts_tender', 'sber_ast_catalog'], true)
                     ? ($tender->metadata['platform_url'] ?? null) : null,

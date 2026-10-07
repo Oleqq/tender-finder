@@ -25,6 +25,7 @@ it('keeps each server-backed tender feed limited to the signed-in users matches'
         'monitoring_started_at' => now(),
     ]);
     $ownerTender = tenderForFeed('feed-owner', 'Поддержка корпоративного сайта');
+    $ownerTender->update(['deadline_at' => now()->subMinute()]);
     $otherTender = tenderForFeed('feed-other', 'Строительство объекта');
 
     TenderQueryMatch::query()->create([
@@ -48,6 +49,7 @@ it('keeps each server-backed tender feed limited to the signed-in users matches'
             ->where('tenderMatches.total', 1)
             ->has('tenderMatches.data', 1)
             ->where('tenderMatches.data.0.title', 'Поддержка корпоративного сайта')
+            ->where('tenderMatches.data.0.is_expired', true)
             ->where('tenderMatches.data.0.query_name', 'Поддержка сайтов')
             ->where('tenderMatches.data.0.status', 'new')
             ->where('tenderMatches.data.0.match_reasons', ['ключевые слова', 'регион']));

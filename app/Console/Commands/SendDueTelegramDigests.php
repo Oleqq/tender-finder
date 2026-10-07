@@ -34,12 +34,15 @@ class SendDueTelegramDigests extends Command
                     return;
                 }
 
-                $dayStart = $localNow->copy()->startOfDay()->utc();
-                $dayEnd = $localNow->copy()->endOfDay()->utc();
+                $windowStart = $localNow->copy()->subDay()->utc();
+                $windowEnd = $localNow->copy()->utc();
                 $matches = TenderQueryMatch::query()
                     ->with('tender')
                     ->whereHas('searchQuery', fn ($query) => $query->where('user_id', $user->id))
-                    ->whereBetween('matched_at', [$dayStart, $dayEnd])
+                    ->whereHas('tender', fn ($query) => $query->whereNull('deadline_at')
+                        ->orWhere('deadline_at', '>=', now()))
+                    ->where('matched_at', '>', $windowStart)
+                    ->where('matched_at', '<=', $windowEnd)
                     ->latest('matched_at')
                     ->get();
 

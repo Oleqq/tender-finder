@@ -55,6 +55,7 @@ type TenderMatch = {
     budget_amount: string | null;
     currency: string;
     deadline_at: string | null;
+    is_expired: boolean;
     matched_at: string;
     query_name?: string;
     query_names?: string[];
@@ -1622,6 +1623,7 @@ function TeamFeedTenderCard({
                     <Badge tone="accent">Сбер АСТ</Badge>
                 ) : null}
                 {review.overdue ? <Badge tone="warning">SLA просрочен</Badge> : null}
+                {match.is_expired ? <Badge tone="warning">Приём завершён</Badge> : null}
                 <span>
                     <Icon name="spark" size={14} /> {match.match_reasons.join(', ')}
                 </span>
@@ -1864,6 +1866,9 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                         <Badge tone="accent">РТС-Тендер</Badge>
                     ) : match.source === 'sber_ast_catalog' ? (
                         <Badge tone="accent">Сбер АСТ</Badge>
+                    ) : null}
+                    {match.is_expired ? (
+                        <Badge tone="warning">Приём завершён</Badge>
                     ) : null}
                 </div>
                 <span className="tender-feed-card__match">

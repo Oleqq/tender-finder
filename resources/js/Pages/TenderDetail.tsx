@@ -15,6 +15,7 @@ type TenderDetailProps = {
         currency: string;
         published_at: string | null;
         deadline_at: string | null;
+        is_expired: boolean;
         canonical_url: string;
         platform_url: string | null;
         source_label: string;
@@ -38,6 +39,9 @@ export default function TenderDetail() {
             >
                 <GlassCard className="tender-detail-main page-enter" tone="accent">
                     <Badge tone="accent">Совпало с мониторингом</Badge>
+                    {tender.is_expired ? (
+                        <Badge tone="warning">Приём завершён</Badge>
+                    ) : null}
                     <h2>{tender.title}</h2>
                     <p>
                         {tender.query_name} · {tender.match_reasons.join(', ')}
@@ -88,6 +92,10 @@ export default function TenderDetail() {
                     {!tender.deadline_at ? (
                         <InlineAlert title="Проверьте срок" tone="warning">
                             Источник не указал срок подачи. Уточните его на площадке.
+                        </InlineAlert>
+                    ) : tender.is_expired ? (
+                        <InlineAlert title="Приём заявок завершён" tone="warning">
+                            Указанный срок подачи прошёл. Проверьте актуальный статус на площадке.
                         </InlineAlert>
                     ) : null}
                 </section>
