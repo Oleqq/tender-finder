@@ -14,7 +14,7 @@ final class PublicTenderSources
     public function enabled(): array
     {
         return array_values(array_filter(
-            ['sber_ast', 'workspace_ru', 'b2b_center', 'roseltorg', 'rts_tender', 'sber_ast_catalog'],
+            ['sber_ast', 'workspace_ru', 'etp_gpb', 'b2b_center', 'roseltorg', 'rts_tender', 'sber_ast_catalog'],
             fn (string $source): bool => (bool) config(in_array($source, array_keys(PlatformCatalogFeedService::URLS), true)
                 ? "tender.platform_catalog.{$source}.enabled" : "tender.{$source}.enabled"),
         ));
@@ -47,6 +47,7 @@ final class PublicTenderSources
         if (config('tender.workspace_ru.enabled')) {
             app(WorkspaceRuFeedService::class)->configuredFeed();
         }
+        app(EtpGpbFeedService::class)->configuredFeed();
         if (config('tender.b2b_center.enabled')) {
             app(B2bCenterFeedService::class)->configuredFeed();
         }
@@ -65,6 +66,7 @@ final class PublicTenderSources
             $queued = app(SberAstPollingDispatcher::class)->dispatchOneDueFeed() || $queued;
         }
         $queued = app(WorkspaceRuPollingDispatcher::class)->dispatchDueFeed() || $queued;
+        $queued = app(EtpGpbPollingDispatcher::class)->dispatchDueFeed() || $queued;
 
         foreach ($this->feeds($query)->where('source', 'b2b_center') as $feed) {
             $queued = app(B2bCenterPollingDispatcher::class)->dispatchDueFeed($feed->id) || $queued;

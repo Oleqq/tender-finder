@@ -120,6 +120,15 @@ return [
         'user_agent' => env('WORKSPACE_RU_USER_AGENT', 'TenderFinder/1.0 (+public tender RSS monitoring)'),
     ],
 
+    'etp_gpb' => [
+        // Official RSS of public, currently active procedures. Enable after a live feed smoke check.
+        'enabled' => (bool) env('ETP_GPB_ENABLED', false),
+        'feed_url' => 'https://etpgpb.ru/procedures.rss',
+        'request_timeout_seconds' => (int) env('ETP_GPB_REQUEST_TIMEOUT_SECONDS', 15),
+        'poll_interval_seconds' => (int) env('ETP_GPB_POLL_INTERVAL_SECONDS', 3600),
+        'user_agent' => env('ETP_GPB_USER_AGENT', 'TenderFinder/1.0 (+public tender RSS monitoring)'),
+    ],
+
     'b2b_center' => [
         // The public search endpoint used by B2B-Center's website is read
         // without account credentials. This is a bounded catalog sample.

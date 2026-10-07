@@ -43,6 +43,7 @@ type SourceStatus = {
     source:
         | 'rostender'
         | 'workspace_ru'
+        | 'etp_gpb'
         | 'sber_ast'
         | 'b2b_center'
         | 'roseltorg'
@@ -933,6 +934,7 @@ function sourceLabel(source: SourceStatus['source']): string {
         {
             rostender: 'RosTender',
             workspace_ru: 'Workspace.ru',
+            etp_gpb: 'ЭТП ГПБ',
             sber_ast: 'Сбер АСТ',
             b2b_center: 'B2B-Center',
             roseltorg: 'Росэлторг',

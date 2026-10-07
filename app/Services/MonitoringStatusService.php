@@ -104,6 +104,7 @@ final class MonitoringStatusService
             'rostender' => 'RosTender',
             'sber_ast' => 'Сбер АСТ',
             'workspace_ru' => 'Workspace.ru',
+            'etp_gpb' => 'ЭТП ГПБ',
             'b2b_center' => 'B2B-Center',
             'roseltorg' => 'Росэлторг',
             'rts_tender' => 'РТС-Тендер',
