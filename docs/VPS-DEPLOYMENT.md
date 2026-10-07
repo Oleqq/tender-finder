@@ -32,6 +32,21 @@ migrations, starts the services, and removes unused image layers. Shell scripts
 are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
+## Release 7 October 2026: website search relevance
+
+Commit `ad96d45` passed CI in both repositories. A fresh PostgreSQL backup
+passed `gzip -t` and had mode `600`; the tracked release archive's SHA-256
+matched on the build host and VPS. The standard `sh deploy/vps-deploy.sh`
+finished with `Nothing to migrate` and restarted the application services.
+Web, PostgreSQL and Redis are healthy; HTTPS `/health` returned `ok` from the
+VPS and Redis queue depth was zero. The production matcher rejected exactly
+two previously stored website-builder software procurements while retaining
+five relevant matches for the active website-development search. Those two
+derived links were removed after checking there was no user state or
+participation. Tender records and sent-delivery history were preserved.
+The existing `.env.production` was not replaced and retained mode `600`.
+Visual Telegram acceptance and a controlled new-card delivery remain open.
+
 ## Release 2 October 2026: Telegram Mini App session
 
 Commit `9cf4c24` passed CI in both repositories before the manual release.
@@ -83,7 +98,7 @@ personal matches.
 Sber AST remained disabled because its public registry timed out from VPS.
 Roseltorg and RTS-Tender clients were not part of this release.
 
-## Latest verified release
+## Earlier verified release: 30 September 2026
 
 On 30 September 2026, commit `9f27f15` changed the personal search button
 into monitoring creation and showed source delays in the feed. CI passed in

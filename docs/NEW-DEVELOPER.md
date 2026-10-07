@@ -2,10 +2,11 @@
 
 ## За минуту
 
-Tender Finder — Laravel 12 + React/TypeScript Telegram Mini App. Основные
-пользовательские мониторинги работают через официальный API RosTender и
-сохранённые в нём шаблоны. Дополнительно реализованы отключённые по умолчанию
-публичные источники СБЕР АСТ, Workspace.ru и B2B-Center. Интеграции с `zakupki.gov.ru` в
+Tender Finder — Laravel 12 + React/TypeScript Telegram Mini App. Мониторинги
+могут работать с публичными источниками без шаблона RosTender. Официальный API
+RosTender подключается дополнительно; на VPS его опрос ограничен квотой.
+Работают Workspace.ru, B2B-Center и частичные каталоги трёх площадок через
+B2B-Center. Прямой реестр Сбер АСТ остаётся выключенным. Интеграции с `zakupki.gov.ru` в
 runtime нет: RSS-поиск, HTML/XML-парсеры, фоновые jobs и enrichment для него
 удалены.
 
@@ -14,7 +15,7 @@ runtime нет: RSS-поиск, HTML/XML-парсеры, фоновые jobs и 
 ## Где искать код
 
 - `app/Tenders/Rostender*` и `app/Services/Rostender*` — источник и квоты.
-- `app/Services/SberAst*`, `WorkspaceRu*` и `B2bCenter*` — публичные источники без
+- `app/Services/SberAst*`, `WorkspaceRu*`, `B2bCenter*` и `PlatformCatalog*` — публичные источники без
   пользовательской авторизации.
 - `SearchQueryController`, `SearchQueryService`, `MonitoringPreviewService` —
   создание, изменение и предварительная проверка мониторинга.
