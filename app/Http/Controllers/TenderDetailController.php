@@ -39,6 +39,8 @@ final class TenderDetailController extends Controller
             'sber_ast' => 'Сбер АСТ',
             'workspace_ru' => 'Workspace.ru',
             'etp_gpb' => 'ЭТП ГПБ',
+            'bidzaar' => 'Bidzaar',
+            'etp_region' => 'ЭТП РЕГИОН',
             'b2b_center' => 'B2B-Center',
             'roseltorg' => 'Росэлторг',
             'rts_tender' => 'РТС-Тендер',

@@ -8,6 +8,8 @@
 | [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус MVP, пользовательский путь и ближайшие этапы. |
 | [PROGRESS](PROGRESS.md) | Хронология этапов, фактические выпуски и оставшаяся приёмка. |
 | [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
+| [TEKTORG-FABRIKANT-DISCOVERY](TEKTORG-FABRIKANT-DISCOVERY.md) | Проверка прямых источников ТЭК-Торг и Фабриканта и блокеры подключения. |
+| [BIDZAAR-AND-REGION](BIDZAAR-AND-REGION.md) | Код источника Bidzaar, условия включения и статус ЭТП РЕГИОН. |
 | [EXTERNAL-SOURCE-DISCOVERY](EXTERNAL-SOURCE-DISCOVERY.md) | Что проверено по Росэлторгу и РТС-Тендер и какие разрешения ещё нужны. |
 | [SUPPORT-WORKSPACE](SUPPORT-WORKSPACE.md) | Возможности поддержки, границы доступа и статус production-выпуска. |
 | [VPS-DEPLOYMENT](VPS-DEPLOYMENT.md) | Фактический VPS-релиз, резервные копии и проверки production. |
