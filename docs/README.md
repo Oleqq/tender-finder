@@ -8,6 +8,8 @@
 | [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус MVP, пользовательский путь и ближайшие этапы. |
 | [PROGRESS](PROGRESS.md) | Хронология этапов, фактические выпуски и оставшаяся приёмка. |
 | [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
+| [TEKTORG-FABRIKANT-DISCOVERY](TEKTORG-FABRIKANT-DISCOVERY.md) | Проверка прямых источников ТЭК-Торг и Фабриканта и блокеры подключения. |
+| [BIDZAAR-AND-REGION](BIDZAAR-AND-REGION.md) | Код источника Bidzaar, условия включения и статус ЭТП РЕГИОН. |
 | [EXTERNAL-SOURCE-DISCOVERY](EXTERNAL-SOURCE-DISCOVERY.md) | Что проверено по Росэлторгу и РТС-Тендер и какие разрешения ещё нужны. |
 | [SUPPORT-WORKSPACE](SUPPORT-WORKSPACE.md) | Возможности поддержки, границы доступа и статус production-выпуска. |
 | [VPS-DEPLOYMENT](VPS-DEPLOYMENT.md) | Фактический VPS-релиз, резервные копии и проверки production. |
@@ -16,6 +18,7 @@
 | [LOCAL-RUNTIME](LOCAL-RUNTIME.md) | Запуск Docker и проверка мониторинга RosTender. |
 | [LOCAL-TELEGRAM-BOT](LOCAL-TELEGRAM-BOT.md) | Локальная проверка Laravel Telegram webhook, очереди и Mini App. |
 | [B2B-CENTER-SOURCE](B2B-CENTER-SOURCE.md) | Публичный каталог B2B-Center, настройки и ограничения. |
+| [ETP-GPB-SOURCE](ETP-GPB-SOURCE.md) | Официальный RSS ЭТП ГПБ, настройки и проверка перед включением. |
 | [RSS-MVP-SOURCE](RSS-MVP-SOURCE.md) | Архив выведенной из эксплуатации интеграции ЕИС. |
 | [PARTICIPATION-AND-CALENDAR](PARTICIPATION-AND-CALENDAR.md) | Участие, чек-листы, календарь, экспорт и проверка. |
 | [TEAM-WORKSPACES](TEAM-WORKSPACES.md) | Команды, роли, ответственные, шаблоны и напоминания по задачам. |

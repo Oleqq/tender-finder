@@ -202,6 +202,21 @@ const sourceOptions = [
         description: 'Digital-тендеры из официального RSS',
     },
     {
+        value: 'etp_gpb',
+        label: 'ЭТП ГПБ',
+        description: 'Открытые процедуры из официального RSS',
+    },
+    {
+        value: 'bidzaar',
+        label: 'Bidzaar',
+        description: 'Закупки из официального API площадки',
+    },
+    {
+        value: 'etp_region',
+        label: 'ЭТП РЕГИОН',
+        description: 'Недавние открытые закупки из поиска площадки',
+    },
+    {
         value: 'b2b_center',
         label: 'B2B-Center',
         description: 'Открытый каталог коммерческих закупок',
@@ -1421,6 +1436,9 @@ function TeamWorkflowPanel({
                             <option value="rostender">RosTender</option>
                             <option value="sber_ast">Сбер АСТ (прямой реестр)</option>
                             <option value="workspace_ru">Workspace.ru</option>
+                            <option value="etp_gpb">ЭТП ГПБ</option>
+                            <option value="bidzaar">Bidzaar</option>
+                            <option value="etp_region">ЭТП РЕГИОН</option>
                             <option value="b2b_center">B2B-Center</option>
                             <option value="roseltorg">Росэлторг</option>
                             <option value="rts_tender">РТС-Тендер</option>
@@ -1614,6 +1632,12 @@ function TeamFeedTenderCard({
                     <Badge tone="accent">Сбер АСТ</Badge>
                 ) : match.source === 'workspace_ru' ? (
                     <Badge tone="accent">Workspace.ru</Badge>
+                ) : match.source === 'etp_gpb' ? (
+                    <Badge tone="accent">ЭТП ГПБ</Badge>
+                ) : match.source === 'bidzaar' ? (
+                    <Badge tone="accent">Bidzaar</Badge>
+                ) : match.source === 'etp_region' ? (
+                    <Badge tone="accent">ЭТП РЕГИОН</Badge>
                 ) : match.source === 'b2b_center' ? (
                     <Badge tone="accent">B2B-Center</Badge>
                 ) : match.source === 'roseltorg' ? (
@@ -1859,6 +1883,12 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                         <Badge tone="accent">Сбер АСТ</Badge>
                     ) : match.source === 'workspace_ru' ? (
                         <Badge tone="accent">Workspace.ru</Badge>
+                    ) : match.source === 'etp_gpb' ? (
+                        <Badge tone="accent">ЭТП ГПБ</Badge>
+                    ) : match.source === 'bidzaar' ? (
+                        <Badge tone="accent">Bidzaar</Badge>
+                    ) : match.source === 'etp_region' ? (
+                        <Badge tone="accent">ЭТП РЕГИОН</Badge>
                     ) : match.source === 'b2b_center' ? (
                         <Badge tone="accent">B2B-Center</Badge>
                     ) : match.source === 'roseltorg' ? (

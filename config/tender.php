@@ -120,6 +120,33 @@ return [
         'user_agent' => env('WORKSPACE_RU_USER_AGENT', 'TenderFinder/1.0 (+public tender RSS monitoring)'),
     ],
 
+    'etp_gpb' => [
+        // Official RSS of public, currently active procedures. Enable after a live feed smoke check.
+        'enabled' => (bool) env('ETP_GPB_ENABLED', false),
+        'feed_url' => 'https://etpgpb.ru/procedures.rss',
+        'request_timeout_seconds' => (int) env('ETP_GPB_REQUEST_TIMEOUT_SECONDS', 15),
+        'poll_interval_seconds' => (int) env('ETP_GPB_POLL_INTERVAL_SECONDS', 3600),
+        'user_agent' => env('ETP_GPB_USER_AGENT', 'TenderFinder/1.0 (+public tender RSS monitoring)'),
+    ],
+
+    'bidzaar' => [
+        // The aggregator integration ID is issued by Bidzaar. This source only
+        // reads purchases from the published API and stays off until issued.
+        'enabled' => (bool) env('BIDZAAR_ENABLED', false),
+        'integrator_id' => env('BIDZAAR_INTEGRATOR_ID'),
+        'request_timeout_seconds' => (int) env('BIDZAAR_REQUEST_TIMEOUT_SECONDS', 15),
+        'poll_interval_seconds' => (int) env('BIDZAAR_POLL_INTERVAL_SECONDS', 900),
+        'user_agent' => env('BIDZAAR_USER_AGENT', 'TenderFinder/1.0 (+official tender API monitoring)'),
+    ],
+
+    'etp_region' => [
+        'enabled' => (bool) env('ETP_REGION_ENABLED', false),
+        'request_timeout_seconds' => (int) env('ETP_REGION_REQUEST_TIMEOUT_SECONDS', 15),
+        'poll_interval_seconds' => (int) env('ETP_REGION_POLL_INTERVAL_SECONDS', 3600),
+        'pages_per_poll' => (int) env('ETP_REGION_PAGES_PER_POLL', 10),
+        'user_agent' => env('ETP_REGION_USER_AGENT', 'TenderFinder/1.0 (+public procurement search monitoring)'),
+    ],
+
     'b2b_center' => [
         // The public search endpoint used by B2B-Center's website is read
         // without account credentials. This is a bounded catalog sample.
