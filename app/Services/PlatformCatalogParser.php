@@ -53,8 +53,10 @@ final class PlatformCatalogParser
                 continue;
             }
 
-            $url = $this->attribute($xpath, ".//meta[@itemprop='url']", 'content', $card);
-            $title = $this->attribute($xpath, ".//meta[@itemprop='name']", 'content', $card);
+            $url = $this->attribute($xpath, ".//*[@itemprop='seeks']/*[@itemprop='url']", 'href', $card)
+                ?? $this->attribute($xpath, ".//meta[@itemprop='url']", 'content', $card);
+            $title = $this->attribute($xpath, ".//*[@itemprop='seeks']/meta[@itemprop='name']", 'content', $card)
+                ?? $this->attribute($xpath, ".//meta[@itemprop='name']", 'content', $card);
             $nativeLink = $this->attribute($xpath, ".//div[contains(concat(' ', normalize-space(@class), ' '), ' card-item__about ')]//a[@href]", 'href', $card);
             $customer = $this->nodeText($xpath, ".//div[contains(concat(' ', normalize-space(@class), ' '), ' card-item__organization-name ')]", $card);
             $price = $this->money($this->attribute($xpath, ".//meta[@itemprop='price']", 'content', $card));
@@ -86,8 +88,10 @@ final class PlatformCatalogParser
                 $regNumber = $number[1];
             }
 
-            $published = $this->date($this->attribute($xpath, ".//meta[@itemprop='startDate']", 'content', $card));
-            $deadline = $this->date($this->attribute($xpath, ".//meta[@itemprop='endDate']", 'content', $card));
+            $published = $this->date($this->attribute($xpath, ".//*[@itemprop='seeks']/meta[@itemprop='validFrom']", 'content', $card)
+                ?? $this->attribute($xpath, ".//meta[@itemprop='startDate']", 'content', $card));
+            $deadline = $this->date($this->attribute($xpath, ".//*[@itemprop='seeks']/meta[@itemprop='validThrough']", 'content', $card)
+                ?? $this->attribute($xpath, ".//meta[@itemprop='endDate']", 'content', $card));
             $title = TenderTitle::display(trim((string) preg_replace('/\s+/u', ' ', $title)));
             $metadata = [
                 'customer' => $customer,
