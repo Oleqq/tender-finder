@@ -34,6 +34,17 @@ between Windows worktrees and the Linux VPS.
 
 ## Release 7 October 2026: website search relevance
 
+Follow-up release `47f2e5f` passed CI in both repositories. A fresh backup
+`tender-finder-2026-10-07T14-56-06Z.sql.gz` passed `gzip -t` and retained mode
+`600`. The tracked archive checksum matched on the build host and VPS. The
+standard deploy script completed; no migration was pending. Web, PostgreSQL
+and Redis are healthy, the Redis default queue is empty, and HTTPS `/health`
+returned `ok`. Real Telegram Desktop navigation confirmed the active search
+hint and the expired-deadline badge in both feed and tender detail. The daily
+digest now uses consecutive windows anchored to the selected local minute and
+skips tenders whose deadline has passed. Previous delivery history is kept;
+the next scheduled digest still needs a live observation.
+
 Commit `ad96d45` passed CI in both repositories. A fresh PostgreSQL backup
 passed `gzip -t` and had mode `600`; the tracked release archive's SHA-256
 matched on the build host and VPS. The standard `sh deploy/vps-deploy.sh`

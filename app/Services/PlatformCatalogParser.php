@@ -53,11 +53,17 @@ final class PlatformCatalogParser
                 continue;
             }
 
-            $url = $this->attribute($xpath, ".//meta[@itemprop='url']", 'content', $card);
-            $title = $this->attribute($xpath, ".//meta[@itemprop='name']", 'content', $card);
+            $url = $this->attribute($xpath, ".//*[@itemprop='seeks']/*[@itemprop='url']", 'href', $card)
+                ?? $this->attribute($xpath, ".//meta[@itemprop='url']", 'content', $card);
+            $demand = $xpath->query(".//*[@itemprop='seeks']", $card);
+            $title = $this->attribute($xpath, ".//*[@itemprop='seeks']/meta[@itemprop='name']", 'content', $card)
+                ?? $this->nodeText($xpath, ".//div[contains(concat(' ', normalize-space(@class), ' '), ' card-item__title ')]", $card)
+                ?? ($demand !== false && $demand->length === 0
+                    ? $this->attribute($xpath, ".//meta[@itemprop='name']", 'content', $card) : null);
             $nativeLink = $this->attribute($xpath, ".//div[contains(concat(' ', normalize-space(@class), ' '), ' card-item__about ')]//a[@href]", 'href', $card);
             $customer = $this->nodeText($xpath, ".//div[contains(concat(' ', normalize-space(@class), ' '), ' card-item__organization-name ')]", $card);
-            $price = $this->money($this->attribute($xpath, ".//meta[@itemprop='price']", 'content', $card));
+            $visiblePrice = $this->nodeText($xpath, ".//div[contains(concat(' ', normalize-space(@class), ' '), ' card-item__properties-cell ')][.//div[contains(concat(' ', normalize-space(@class), ' '), ' card-item__properties-name ') and contains(normalize-space(.), 'Начальная цена')]]//div[contains(concat(' ', normalize-space(@class), ' '), ' card-item__properties-desc ')]", $card);
+            $price = $this->money($visiblePrice ?? $this->attribute($xpath, ".//meta[@itemprop='price']", 'content', $card));
 
             if ($url === null || ! preg_match('~^https://www\.b2b-center\.ru/search/number/([a-z0-9-]+)/$~i', $url, $match)
                 || $title === null || $title === '') {
@@ -86,8 +92,10 @@ final class PlatformCatalogParser
                 $regNumber = $number[1];
             }
 
-            $published = $this->date($this->attribute($xpath, ".//meta[@itemprop='startDate']", 'content', $card));
-            $deadline = $this->date($this->attribute($xpath, ".//meta[@itemprop='endDate']", 'content', $card));
+            $published = $this->date($this->attribute($xpath, ".//*[@itemprop='seeks']/meta[@itemprop='validFrom']", 'content', $card)
+                ?? $this->attribute($xpath, ".//meta[@itemprop='startDate']", 'content', $card));
+            $deadline = $this->date($this->attribute($xpath, ".//*[@itemprop='seeks']/meta[@itemprop='validThrough']", 'content', $card)
+                ?? $this->attribute($xpath, ".//meta[@itemprop='endDate']", 'content', $card));
             $title = TenderTitle::display(trim((string) preg_replace('/\s+/u', ' ', $title)));
             $metadata = [
                 'customer' => $customer,
@@ -149,7 +157,9 @@ final class PlatformCatalogParser
         if ($value === null) {
             return null;
         }
-        $amount = str_replace(',', '.', (string) preg_replace('/[^\d,]/u', '', $value));
+        $amount = (string) preg_replace('/[^\d,.]/u', '', $value);
+        $amount = str_contains($amount, ',')
+            ? str_replace(',', '.', str_replace('.', '', $amount)) : $amount;
 
         return is_numeric($amount) && (float) $amount > 0 ? number_format((float) $amount, 2, '.', '') : null;
     }

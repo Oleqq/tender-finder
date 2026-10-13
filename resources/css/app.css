@@ -213,7 +213,7 @@ input:focus-visible {
 .icon-button:active { transform: scale(0.93); }
 .icon-button--soft { width: 36px; height: 36px; border-color: transparent; background: rgba(255, 255, 255, 0.18); box-shadow: none; }
 
-.page-content { display: flex; flex: 1; flex-direction: column; }
+.page-content { display: flex; min-width: 0; flex: 1; flex-direction: column; }
 
 .bottom-navigation {
     position: fixed;
@@ -701,6 +701,7 @@ input:focus-visible {
 .tenders-state-switch { margin: var(--space-4) 0 0; }
 .tenders-preview { display: grid; gap: var(--space-3); margin-top: var(--space-5); }
 .tenders-page > * { min-width: 0; max-width: 100%; }
+.tenders-page > .work-nav { margin-bottom: var(--space-5); }
 .tender-feed-controls { display: grid; gap: var(--space-4); margin-top: var(--space-4); padding: var(--space-4); }
 .tender-feed-advanced { border-top: 1px solid var(--tf-line); padding-top: var(--space-3); }
 .tender-feed-advanced > summary,
@@ -1360,4 +1361,4 @@ input:focus-visible {
 .delivery-details > summary { min-height: 48px; display: flex; align-items: center; color: var(--app-link); font-size: 14px; cursor: pointer; }
 .dashboard-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .dashboard-shortcuts a { display: grid; gap: 8px; border: 1px solid var(--tf-line); border-radius: 18px; background: var(--tf-surface); padding: 16px; color: var(--app-ink); font-size: 14px; font-weight: 700; }
-.dashboard-shortcuts small { color: var(--app-muted); font-size: 11px; font-weight: 400; line-height: 1.5; }
+.dashboard-shortcuts small { color: var(--app-muted); font-size: 12px; font-weight: 400; line-height: 1.45; }

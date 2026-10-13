@@ -1,5 +1,5 @@
 .work-page {
-    gap: 18px;
+    gap: var(--space-5);
 }
 .work-nav {
     display: grid;

@@ -243,7 +243,7 @@ it('rematches previously imported public cards without repeating historical noti
 });
 
 it('queues a newly discovered B2B match only for the linked user and delivers it once', function () {
-    $this->travelTo(Carbon::parse('2026-10-01 12:00:00'));
+    $this->travelTo(Carbon::parse('2026-10-11 12:00:00', 'Europe/Moscow'));
     Queue::fake();
     $first = User::factory()->create(['telegram_id' => 'recipient-one']);
     $other = User::factory()->create(['telegram_id' => 'recipient-two']);
