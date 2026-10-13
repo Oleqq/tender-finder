@@ -414,8 +414,9 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tf-accent) 20%, transparent);
 }
 .work-calendar button.is-selected {
+    border-color: var(--tf-button-end);
     color: #fff;
-    background: linear-gradient(135deg, var(--tf-accent), var(--tf-accent-deep));
+    background: linear-gradient(135deg, var(--tf-button-start), var(--tf-button-end));
     outline: none;
     box-shadow: 0 9px 20px color-mix(in srgb, var(--tf-accent) 24%, transparent);
 }

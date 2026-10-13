@@ -436,6 +436,7 @@ it('does not distribute a B2B search result to a different keyword feed', functi
 });
 
 it('finds a cached public card even after another shared feed updates its canonical pointer', function () {
+    $this->travelTo(Carbon::parse('2026-10-01 12:00:00'));
     config()->set('tender.rostender.enabled', false);
     config()->set('tender.b2b_center.enabled', true);
     Queue::fake();

@@ -95,7 +95,8 @@ export default function TenderDetail() {
                         </InlineAlert>
                     ) : tender.is_expired ? (
                         <InlineAlert title="Приём заявок завершён" tone="warning">
-                            Указанный срок подачи прошёл. Проверьте актуальный статус на площадке.
+                            Указанный срок подачи прошёл. Проверьте актуальный статус на
+                            площадке.
                         </InlineAlert>
                     ) : null}
                 </section>

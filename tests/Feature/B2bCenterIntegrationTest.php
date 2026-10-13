@@ -23,6 +23,7 @@ use App\Services\TenderSourceImportService;
 use App\Tenders\B2bCenterException;
 use App\Tenders\SourceFetchResult;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
@@ -242,6 +243,7 @@ it('rematches previously imported public cards without repeating historical noti
 });
 
 it('queues a newly discovered B2B match only for the linked user and delivers it once', function () {
+    $this->travelTo(Carbon::parse('2026-10-01 12:00:00'));
     Queue::fake();
     $first = User::factory()->create(['telegram_id' => 'recipient-one']);
     $other = User::factory()->create(['telegram_id' => 'recipient-two']);
