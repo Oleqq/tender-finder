@@ -62,7 +62,13 @@ it('parses current catalog schema without taking the organizer name as the tende
 <meta itemprop="name" content="Разработка сайта" />
 <meta itemprop="validFrom" content="2026-10-13T12:00:00+03:00" />
 <meta itemprop="validThrough" content="2026-10-20T12:00:00+03:00" />
-<div class="card-item"><div class="card-item__about"><a href="https://zakupki.gov.ru/epz/order/notice/view/common-info.html?regNumber=12345678901">Закупка №12345678901</a></div></div>
+<div class="card-item"><div class="card-item__about"><a href="https://zakupki.gov.ru/epz/order/notice/view/common-info.html?regNumber=12345678901">Закупка №12345678901</a></div>
+<div class="card-item__properties-cell"><div class="card-item__properties-name">Начальная цена</div><div class="card-item__properties-desc">1&#xA0;500&#xA0;000,00 ₽</div></div>
+<meta itemprop="price" content="673.67" /></div>
+</div></div>
+<div itemprop="item"><meta itemprop="name" content="Другой организатор" />
+<div itemprop="seeks"><link itemprop="url" href="https://www.b2b-center.ru/search/number/l12345-2/" />
+<div class="card-item__title"></div><div class="card-item__about"><a href="https://zakupki.gov.ru/epz/order/notice/view/common-info.html?regNumber=12345678902">Закупка №12345678902</a></div>
 </div></div></div></body></html>
 HTML;
 
@@ -71,6 +77,7 @@ HTML;
     expect($items)->toHaveCount(1)
         ->and($items[0]->title)->toBe('Разработка сайта')
         ->and($items[0]->canonicalUrl)->toBe('https://www.b2b-center.ru/search/number/l12345-1/')
+        ->and($items[0]->budgetAmount)->toBe('1500000.00')
         ->and($items[0]->publishedAt)->not->toBeNull()
         ->and($items[0]->deadlineAt)->not->toBeNull();
 });
