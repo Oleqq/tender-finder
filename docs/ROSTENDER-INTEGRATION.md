@@ -1,8 +1,42 @@
 # RosTender API integration
 
-> The production source is active as recorded in
-> [CURRENT-STATE](CURRENT-STATE.md). The permission and quota gates below
-> still apply to each environment.
+> The production feed is configured, but cannot currently import new cards:
+> on 14 October 2026 the authenticated, quota-free `info` endpoint reported
+> `daily_limit=0`, `used_today=0`, `remaining=0`. See the incident below.
+
+## Production diagnosis, 14 October 2026
+
+The VPS has a configured API key and one active saved-template feed (ID
+`2305550`). The last successful poll was 16 September. The latest poll failed
+with `remote_quota_or_access_denied`. A read-only `GET /api/tenders/get/info`
+from the production network returned HTTP 200 and `success=true`, so the key
+was accepted. Its reported `daily_limit=0`, `used_today=0`, and `remaining=0`
+explain why a data request is denied. This is an account/tariff entitlement
+problem, not a broken SSH connection or an exhausted 200-call allowance.
+
+The local `ROSTENDER_DAILY_QUOTA_LIMIT=200` is only our safety setting. It
+does **not** grant 200 requests at RosTender. Likewise, a local
+`rostender_api_usages.successful_requests=200` on a day with a remote 403 is
+not evidence of 200 successful calls: the guard reconciles a remote
+`X-RateLimit-Remaining: 0` against its configured 200-call limit. Read the
+supplier's `info` response or cabinet journal for actual entitlement and use.
+
+Next steps for the account owner:
+
+1. In the RosTender cabinet, check **Profile → Integrations → API** for the
+   active tariff/add-on, daily limit, and request journal. Ask RosTender
+   support to activate or renew Client API access if the limit remains zero.
+2. Confirm in writing that Tender Finder may display/import the data for its
+   users, export it, and send Telegram notifications under that tariff. Keep
+   the confirmation with the project agreement; do not share the login,
+   password, or full API key in chat.
+3. Once `info` reports a positive limit, set our daily limit no higher than
+   the real allowance, keep a reserve, and perform one controlled poll of
+   template `2305550`. Verify a successful source run, imported detail cards,
+   rate-limit headers, and the next scheduled poll before treating the source
+   as live.
+
+Official contract: [RosTender Client API](https://rostender.info/docs/api).
 
 ## Legal and operational boundary
 
