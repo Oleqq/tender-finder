@@ -32,6 +32,26 @@ migrations, starts the services, and removes unused image layers. Shell scripts
 are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
+## Release 14 October 2026: mobile UI and source diagnosis
+
+Commit `f15a707` includes the colleague's mobile spacing changes from
+`24f6fa0` and updated RosTender, Sber AST and current-state documentation.
+CI passed in both GitHub repositories. A fresh PostgreSQL backup
+`postgres-20261014T041158Z.sql.gz` passed `gzip -t`; the release tar SHA-256
+matched locally and on the VPS. The standard deploy script built the images,
+reported `Nothing to migrate`, and restarted web, queue and scheduler. All six
+services are running; web, PostgreSQL and Redis are healthy, and external
+HTTPS `/health` returned 200. The released CSS and integration document hashes
+match the local commit. `.env.production` retained mode `600`.
+
+The VPS's separate `/usr/local/sbin/tenderfinder-backup` script had been
+creating files with mode `644` inside a root-only `700` backup directory.
+Its `umask` is now `077`, and existing PostgreSQL dumps were set to mode
+`600`; the new backup was verified at mode `600`. The RosTender feed still
+reports `remote_quota_or_access_denied` and the direct Sber AST feed remains
+off. See [ROSTENDER-INTEGRATION](ROSTENDER-INTEGRATION.md) and
+[SBER-AST-SOURCE](SBER-AST-SOURCE.md) for the external blockers.
+
 ## Release 7 October 2026: website search relevance
 
 Follow-up release `47f2e5f` passed CI in both repositories. A fresh backup
