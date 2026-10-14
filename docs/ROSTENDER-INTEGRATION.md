@@ -14,6 +14,10 @@ was accepted. Its reported `daily_limit=0`, `used_today=0`, and `remaining=0`
 explain why a data request is denied. This is an account/tariff entitlement
 problem, not a broken SSH connection or an exhausted 200-call allowance.
 
+The same quota-free check was repeated at 17:35 Moscow time on 14 October:
+HTTP 200, `daily_limit=0`, `used_today=0`, `remaining=0`. No account change
+had taken effect by that time.
+
 The local `ROSTENDER_DAILY_QUOTA_LIMIT=200` is only our safety setting. It
 does **not** grant 200 requests at RosTender. Likewise, a local
 `rostender_api_usages.successful_requests=200` on a day with a remote 403 is
