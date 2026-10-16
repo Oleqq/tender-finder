@@ -28,6 +28,7 @@ final class BidzaarSource implements TenderSource
 
         $cursor = $since->utc()->format('Y-m-d\TH:i:s.u\Z');
         $pageSize = 500;
+        $initialSnapshot = $feed->initialized_at === null;
         $items = [];
         $returned = 0;
         for ($page = 0; $page < 100; $page++) {
@@ -60,6 +61,10 @@ final class BidzaarSource implements TenderSource
             $count = count($payload['items']);
             $returned += $count;
             foreach ($result->items as $item) {
+                if ($initialSnapshot && (($item->metadata['bidzaar']['status'] ?? null) !== 'proposal'
+                    || $item->deadlineAt?->isPast())) {
+                    continue;
+                }
                 $items[$item->externalId] = $item;
             }
             if ($count < $pageSize) {

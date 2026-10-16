@@ -42,7 +42,13 @@ it('parses the documented purchase response and refuses untrusted procedure link
 
 it('requests only the official purchase API and imports the initial snapshot silently', function () {
     Queue::fake();
-    Http::fake(['bidzaar.com/api/aggregator_integrator/*' => Http::response(bidzaarResponse())]);
+    $response = bidzaarResponse();
+    $ended = $response['items'][0];
+    $ended['number'] = '339-633';
+    $ended['link'] = 'https://bidzaar.com/process/light/019ea718-2d48-754d-b479-b5ad0d7a5a69';
+    $ended['status'] = 'ended';
+    $response['items'][] = $ended;
+    Http::fake(['bidzaar.com/api/aggregator_integrator/*' => Http::response($response)]);
     $feed = app(BidzaarFeedService::class)->configuredFeed();
 
     (new PollBidzaarFeed($feed->id))->handle(app(BidzaarSource::class), app(TenderSourceImportService::class));
@@ -121,7 +127,7 @@ function bidzaarResponse(): array
             'description' => 'Разработка сайта по техническому заданию',
             'publisherName' => 'ООО Заказчик',
             'publishDate' => '2026-10-11T09:00:00Z',
-            'acceptanceEndDate' => '2026-10-20T09:00:00Z',
+            'acceptanceEndDate' => now()->addDays(4)->utc()->format('Y-m-d\TH:i:s\Z'),
             'link' => 'https://bidzaar.com/process/light/019ea718-2d48-754d-b479-b5ad0d7a5a68',
             'currency' => 'RUB',
             'price' => 100000,
