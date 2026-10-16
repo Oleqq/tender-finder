@@ -42,8 +42,7 @@ it('parses the documented purchase response and refuses untrusted procedure link
 
 it('requests only the official purchase API and imports the initial snapshot silently', function () {
     Queue::fake();
-    Http::fake(['bidzaar.com/api/aggregator_integrator/*' => Http::sequence()
-        ->push(bidzaarResponse())->push(['pageSize' => 1000, 'items' => []])]);
+    Http::fake(['bidzaar.com/api/aggregator_integrator/*' => Http::response(bidzaarResponse())]);
     $feed = app(BidzaarFeedService::class)->configuredFeed();
 
     (new PollBidzaarFeed($feed->id))->handle(app(BidzaarSource::class), app(TenderSourceImportService::class));
@@ -51,11 +50,13 @@ it('requests only the official purchase API and imports the initial snapshot sil
     expect(Tender::query()->where('source', 'bidzaar')->count())->toBe(1)
         ->and($feed->fresh()->initialized_at)->not->toBeNull();
     Queue::assertPushed(MatchTender::class, fn (MatchTender $job): bool => $job->queueNotifications === false);
-    Http::assertSent(fn (Request $request): bool => str_starts_with($request->url(), $feed->canonical_url.'?')
-        && str_contains($request->url(), 'PageSize=1000')
+    Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/procedures/purchases?')
+        && str_contains($request->url(), 'PageSize=500')
+        && str_contains($request->url(), 'PageNumber=0')
         && $request->hasHeader('User-Agent', 'TenderFinder tests')
         && ! $request->hasHeader('Authorization')
         && ! $request->hasHeader('Cookie'));
+    expect($feed->canonical_url)->not->toContain(config('tender.bidzaar.integrator_id'));
 });
 
 it('records a source error instead of treating an HTML block page as an empty feed', function () {
@@ -69,10 +70,10 @@ it('records a source error instead of treating an HTML block page as an empty fe
         ->and(Tender::query()->where('source', 'bidzaar')->count())->toBe(0);
 });
 
-it('continues from the last modification cursor until the API returns an empty page', function () {
+it('advances FromDate after a full page while keeping PageNumber zero', function () {
     $first = bidzaarResponse();
     $first['items'] = [];
-    for ($index = 0; $index < 1000; $index++) {
+    for ($index = 0; $index < 500; $index++) {
         $row = bidzaarResponse()['items'][0];
         $row['number'] = '339-'.str_pad((string) $index, 4, '0', STR_PAD_LEFT);
         $row['lastModified'] = now()->subMinutes(5)->utc()->format('Y-m-d\TH:i:s\Z');
@@ -80,15 +81,20 @@ it('continues from the last modification cursor until the API returns an empty p
     }
     $second = bidzaarResponse();
     $second['items'][0]['lastModified'] = now()->subMinute()->utc()->format('Y-m-d\TH:i:s\Z');
+    $second['items'] = [$first['items'][499], $second['items'][0]];
 
     Http::fake(['bidzaar.com/api/aggregator_integrator/*' => Http::sequence()
-        ->push($first)->push($second)->push(['pageSize' => 1000, 'items' => []])]);
+        ->push($first)->push($second)]);
 
     $result = app(BidzaarSource::class)->fetch(app(BidzaarFeedService::class)->configuredFeed());
 
-    expect($result->items)->toHaveCount(1001)
-        ->and($result->itemsReturned)->toBe(1001);
-    Http::assertSentCount(3);
+    expect($result->items)->toHaveCount(501)
+        ->and($result->itemsReturned)->toBe(502);
+    Http::assertSentCount(2);
+    $requests = Http::recorded()->map(fn (array $entry): Request => $entry[0])->values();
+    expect($requests[0]->data()['FromDate'])->not->toBe($requests[1]->data()['FromDate'])
+        ->and($requests[0]->data()['PageNumber'])->toBe(0)
+        ->and($requests[1]->data()['PageNumber'])->toBe(0);
 });
 
 it('dispatches only when a valid integration id is configured and a poll is due', function () {
@@ -116,7 +122,7 @@ function bidzaarResponse(): array
             'publisherName' => 'ООО Заказчик',
             'publishDate' => '2026-10-11T09:00:00Z',
             'acceptanceEndDate' => '2026-10-20T09:00:00Z',
-            'link' => 'https://bidzaar.com/app/process/light/019ea718-2d48-754d-b479-b5ad0d7a5a68',
+            'link' => 'https://bidzaar.com/process/light/019ea718-2d48-754d-b479-b5ad0d7a5a68',
             'currency' => 'RUB',
             'price' => 100000,
             'status' => 'proposal',

@@ -30,7 +30,8 @@ final class BidzaarResponseParser
             if ($number === null || $title === null || $url === null || $parts === false
                 || ($parts['scheme'] ?? null) !== 'https'
                 || ! in_array(strtolower((string) ($parts['host'] ?? '')), ['bidzaar.com', 'www.bidzaar.com'], true)
-                || ! str_starts_with((string) ($parts['path'] ?? ''), '/app/process/')) {
+                || ! (str_starts_with((string) ($parts['path'] ?? ''), '/process/')
+                    || str_starts_with((string) ($parts['path'] ?? ''), '/app/process/'))) {
                 throw new BidzaarException('invalid_response');
             }
 

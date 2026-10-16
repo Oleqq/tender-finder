@@ -27,6 +27,7 @@ final class BidzaarSource implements TenderSource
         }
 
         $cursor = $since->utc()->format('Y-m-d\TH:i:s.u\Z');
+        $pageSize = 500;
         $items = [];
         $returned = 0;
         for ($page = 0; $page < 100; $page++) {
@@ -35,7 +36,10 @@ final class BidzaarSource implements TenderSource
                     ->withUserAgent((string) config('tender.bidzaar.user_agent'))
                     ->timeout(max(1, (int) config('tender.bidzaar.request_timeout_seconds', 15)))
                     ->withoutRedirecting()
-                    ->get($feed->canonical_url, ['PageSize' => 1000, 'FromDate' => $cursor]);
+                    ->get(
+                        'https://bidzaar.com/api/aggregator_integrator/'.config('tender.bidzaar.integrator_id').'/procedures/purchases',
+                        ['PageSize' => $pageSize, 'FromDate' => $cursor, 'PageNumber' => 0],
+                    );
             } catch (ConnectionException) {
                 throw new BidzaarException('connection_failed');
             }
@@ -58,10 +62,12 @@ final class BidzaarSource implements TenderSource
             foreach ($result->items as $item) {
                 $items[$item->externalId] = $item;
             }
-            if ($count === 0) {
+            if ($count < $pageSize) {
                 return new SourceFetchResult(array_values($items), $returned);
             }
 
+            // Bidzaar includes the last record again when FromDate equals its
+            // lastModified; PageNumber > 0 returned an empty response in live tests.
             $last = end($payload['items']);
             $modified = $last['lastModified'] ?? null;
             try {

@@ -16,7 +16,8 @@ final class BidzaarFeedService
             return null;
         }
 
-        $url = 'https://bidzaar.com/api/aggregator_integrator/'.$id.'/procedures/purchases';
+        // The integration ID grants API access and must not be stored in the feed URL.
+        $url = 'https://bidzaar.com/api/aggregator_integrator/procedures/purchases';
         SourceFeed::query()->where('source', 'bidzaar')->where('canonical_url', '!=', $url)
             ->update(['status' => 'paused']);
 
