@@ -19,6 +19,10 @@ final class PollBidzaarFeed implements ShouldQueue
 
     public int $tries = 3;
 
+    // The first 13-day snapshot can require multiple API pages and thousands
+    // of inserts. Keep Redis retry_after higher than this job timeout.
+    public int $timeout = 300;
+
     public function __construct(public readonly int $feedId) {}
 
     public function handle(BidzaarSource $source, TenderSourceImportService $importer): void

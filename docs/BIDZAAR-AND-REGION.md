@@ -49,6 +49,7 @@ Bidzaar `integratorId` в формате UUID.
    BIDZAAR_ENABLED=true
    BIDZAAR_INTEGRATOR_ID=<UUID, выданный Bidzaar>
    BIDZAAR_POLL_INTERVAL_SECONDS=900
+   REDIS_QUEUE_RETRY_AFTER=360
    ```
 
 6. Запустить один опрос командой
