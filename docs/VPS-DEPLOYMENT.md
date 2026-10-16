@@ -32,6 +32,26 @@ migrations, starts the services, and removes unused image layers. Shell scripts
 are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
+## Release 16 October 2026: Bidzaar sync and Telegram visibility
+
+The colleague's four Bidzaar commits through `8e978c4` were fast-forwarded
+into local `main`, pushed to both GitHub repositories, and verified against
+the already updated VPS. Production had Bidzaar enabled and polling every
+15 minutes. Its first import was intentionally silent; seven matches from
+that initial snapshot produced no notification deliveries.
+
+Commit `9d6169b` disables entry animations in Telegram WebView because
+Telegram Desktop could leave animated cards transparent. CI passed in both
+repositories. Before deployment, backup `postgres-20261016T051902Z.sql.gz`
+passed `gzip -t` with mode `600`. The release archive checksum matched on
+the VPS. The standard release script rebuilt the images, reported `Nothing
+to migrate`, and restarted all services. All six containers are running;
+web, PostgreSQL and Redis are healthy, external HTTPS `/health` returned 200,
+and `.env.production` retained mode `600`. After reopening the real Telegram
+Mini App, the feed, profile, monitorings and overview rendered their cards
+immediately. A new matching Bidzaar purchase has not yet occurred, so
+end-to-end personal notification delivery for this source is still pending.
+
 ## Release 14 October 2026: mobile UI and source diagnosis
 
 Commit `f15a707` includes the colleague's mobile spacing changes from
