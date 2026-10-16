@@ -248,10 +248,11 @@ entitlement. Новая миграция не нужна.
 5. Сделать закрытый Telegram smoke-test только после выпуска. Откат требует
    совместимости с уже применёнными миграциями, а не удаления schema.
 
-Миграции намеренно не включают будущие `payments`, `billing_events`,
-`campaigns`, `campaign_deliveries`, `admin_audit_logs` и aggregated
-`system_metrics`: их добавят вместе с реальной бизнес-функцией и тестами, а не
-заранее пустыми таблицами.
+Таблица `payments` уже добавлена как основа выключенного пока контура Telegram
+Stars. `billing_events`, `campaigns`, `campaign_deliveries`,
+`admin_audit_logs` и aggregated `system_metrics` пока отсутствуют: нужные
+таблицы добавляются вместе с конкретной функцией и тестами, а не заранее.
+План завершения оплаты — в [PAYMENTS-NEXT-STAGE](PAYMENTS-NEXT-STAGE.md).
 
 ## Локальная база для разработки
 

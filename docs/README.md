@@ -8,6 +8,7 @@
 | [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус MVP, пользовательский путь и ближайшие этапы. |
 | [PROGRESS](PROGRESS.md) | Хронология этапов, фактические выпуски и оставшаяся приёмка. |
 | [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
+| [PAYMENTS-NEXT-STAGE](PAYMENTS-NEXT-STAGE.md) | Полная техничка для следующего этапа оплаты Stars: решения владельца, задачи, тесты и выпуск. |
 | [TEKTORG-FABRIKANT-DISCOVERY](TEKTORG-FABRIKANT-DISCOVERY.md) | Проверка прямых источников ТЭК-Торг и Фабриканта и блокеры подключения. |
 | [BIDZAAR-AND-REGION](BIDZAAR-AND-REGION.md) | Порядок получения доступа и включения Bidzaar, статус ЭТП РЕГИОН. |
 | [EXTERNAL-SOURCE-DISCOVERY](EXTERNAL-SOURCE-DISCOVERY.md) | Что проверено по Росэлторгу и РТС-Тендер и какие разрешения ещё нужны. |
