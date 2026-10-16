@@ -2,16 +2,18 @@
 
 ## Current status
 
-On 16 October 2026, two colleague Telegram user IDs were added to the
-existing production `TELEGRAM_SUPERADMIN_IDS` setting. The setting and legacy
-owner ID were previously empty. The production environment file stayed on the
-VPS with mode `600` and was not committed. A fresh PostgreSQL backup passed
-`gzip -t` before the change. The `web`, `queue`, and `scheduler` containers
-were recreated so their entrypoints rebuilt the Laravel config cache. Runtime
-checks confirmed both IDs are configured, local full-access mode is off, and
-the operations and admin support routes carry server-side `super_admin`
-middleware. Neither colleague has entered the Mini App yet, so personal
-Telegram acceptance remains pending.
+On 16 October 2026, two colleague Telegram user IDs and then a third owner
+requested ID were added to the existing production `TELEGRAM_SUPERADMIN_IDS`
+setting. The setting and legacy owner ID were previously empty. The production
+environment file stayed on the VPS with mode `600` and was not committed.
+Fresh PostgreSQL backups passed `gzip -t` before each change. The `web`,
+`queue`, and `scheduler` containers were recreated so their entrypoints rebuilt
+the Laravel config cache. Runtime checks confirmed all three IDs are
+configured, local full-access mode is off, and the operations and admin
+support routes carry server-side `super_admin` middleware. The third account
+currently retains its subscriber role until its next verified Telegram login;
+the other two accounts do not yet exist. Personal Telegram acceptance remains
+pending for all three.
 
 The production stack is one Docker Compose application: Caddy manages HTTPS;
 Laravel `web`, `queue`, and `scheduler` run separately; PostgreSQL and Redis
