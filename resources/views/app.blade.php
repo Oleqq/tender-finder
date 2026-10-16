@@ -9,9 +9,9 @@
 
         <meta name="theme-color" content="#081426">
 
-        <!-- Telegram injects the API inside Mini Apps; the script also gives local
-             browser sessions the same safe, no-op-capable integration surface. -->
-        <script id="telegram-web-app-sdk" src="https://telegram.org/js/telegram-web-app.js?63" async></script>
+        <!-- Keep the official Telegram bridge on our origin so a blocked
+             telegram.org request cannot leave the Mini App loading forever. -->
+        <script id="telegram-web-app-sdk" src="{{ asset('vendor/telegram-web-app-63.js') }}" defer></script>
 
         @routes
         @viteReactRefresh
