@@ -10,6 +10,12 @@
 сервисов запущены, `web`, PostgreSQL и Redis здоровы, очередь пуста,
 внутренний HTTPS `/health` отвечает 200; релизный маркер обновлён до
 `447c52a`, `.env.production` остался с режимом 600 и не заменялся.
+Затем GitHub Actions run `39178205595` успешно установил `8032e04`:
+миграций больше не было, `web`, PostgreSQL и Redis снова стали healthy.
+Workflow не переписывает `.release-commit`, поэтому маркер остался на
+`447c52a`; фактическая ревизия подтверждена checkout SHA и успешным deploy
+run `39178205595`. Обновление маркера и добавление автоматической записи SHA
+в workflow остаются операционными задачами.
 Публичный HTTPS с рабочей станции нестабилен: часть проверок ответила 200,
 часть зависла до TLS. Ручной Telegram smoke-test нового экрана нужно
 закончить после разблокировки macOS.
@@ -45,17 +51,18 @@ The technical production address is `https://200.165.238.247.sslip.io`. It is
 not a business domain and should be replaced before public promotion. The old
 VPS is retained unchanged and is not part of this deployment target.
 
-The VPS is currently updated by a reviewed manual release. The repository also
-contains a GitHub Actions workflow named **Deploy to VPS**, but it is triggered
-only manually (`workflow_dispatch`) until the four repository secrets below
-are configured. This prevents a push with an unreviewed or incomplete server
-configuration from changing production.
+The VPS is updated through the GitHub Actions workflow named **Deploy to VPS**.
+It is triggered manually (`workflow_dispatch`) after both repositories pass CI.
+The four deploy secrets are configured in the primary repository. A push alone
+does not change production.
 
 Once the secrets exist, a maintainer starts **Deploy to VPS** for a green
 commit on `main`. Actions transfers that exact revision over SSH and calls
 `/opt/tenderfinder/deploy/vps-deploy.sh`. The VPS has no credential for the
 private GitHub repository. The script builds containers, runs forward-only
-migrations, starts the services, and removes unused image layers. Shell scripts
+migrations, starts the services, and removes unused image layers. The current
+workflow does not write `.release-commit`; inspect the Actions checkout SHA
+for the exact released revision. Shell scripts
 are normalized to LF by `.gitattributes` so the deployment script is portable
 between Windows worktrees and the Linux VPS.
 
