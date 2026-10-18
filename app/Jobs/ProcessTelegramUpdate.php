@@ -35,6 +35,7 @@ class ProcessTelegramUpdate implements ShouldQueue
         $text = match ($this->command) {
             '/start' => 'Добро пожаловать в Tender Finder. Откройте Mini App кнопкой меню, чтобы настроить мониторинг.',
             '/help' => 'Tender Finder помогает отслеживать подходящие закупки. Откройте Mini App кнопкой меню для начала.',
+            '/paysupport' => 'По вопросам оплаты и возврата откройте Tender Finder → Профиль → Мои обращения. Укажите тариф и дату платежа; не отправляйте данные карты.',
             default => null,
         };
 

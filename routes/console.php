@@ -17,6 +17,17 @@ Schedule::command('tenders:dispatch-etp-region')->everyMinute()->withoutOverlapp
 Schedule::command('tenders:dispatch-b2b-center')->everyMinute()->withoutOverlapping();
 Schedule::command('tenders:dispatch-platform-catalog')->everyMinute()->withoutOverlapping();
 Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();
+Schedule::call(function (): void {
+    \App\Models\TelegramUpdate::query()
+        ->whereIn('type', ['successful_payment', 'refunded_payment', 'subscription'])
+        ->whereIn('status', ['received', 'failed'])
+        ->where('payment_attempts', '<', 10)
+        ->where('updated_at', '<', now()->subMinute())
+        ->orderBy('id')
+        ->limit(50)
+        ->pluck('telegram_update_id')
+        ->each(fn (int $id) => \App\Jobs\ProcessTelegramPaymentUpdate::dispatch($id));
+})->everyMinute()->withoutOverlapping()->name('retry-telegram-payment-updates');
 Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverlapping();
 
 Schedule::command('notifications:send-tender-reminders')->everyMinute()->withoutOverlapping();

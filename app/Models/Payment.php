@@ -18,6 +18,7 @@ class Payment extends Model
     protected $fillable = [
         'user_id',
         'plan_id',
+        'subscription_id',
         'provider',
         'status',
         'currency',
@@ -27,6 +28,8 @@ class Payment extends Model
         'provider_payment_charge_id',
         'paid_at',
         'refunded_at',
+        'invoice_expires_at',
+        'period_ends_at',
         'metadata',
     ];
 
@@ -37,6 +40,8 @@ class Payment extends Model
             'amount' => 'integer',
             'paid_at' => 'datetime',
             'refunded_at' => 'datetime',
+            'invoice_expires_at' => 'datetime',
+            'period_ends_at' => 'datetime',
             'metadata' => 'array',
         ];
     }
@@ -51,5 +56,11 @@ class Payment extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    /** @return BelongsTo<Subscription, $this> */
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(Subscription::class);
     }
 }

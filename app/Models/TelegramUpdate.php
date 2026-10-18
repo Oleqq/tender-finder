@@ -13,6 +13,8 @@ class TelegramUpdate extends Model
         'received_at',
         'processed_at',
         'failure_code',
+        'payment_payload',
+        'payment_attempts',
     ];
 
     protected function casts(): array
@@ -20,6 +22,8 @@ class TelegramUpdate extends Model
         return [
             'received_at' => 'datetime',
             'processed_at' => 'datetime',
+            'payment_payload' => 'array',
+            'payment_attempts' => 'integer',
         ];
     }
 }

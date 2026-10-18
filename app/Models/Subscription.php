@@ -22,6 +22,9 @@ class Subscription extends Model
         'starts_at',
         'ends_at',
         'cancelled_at',
+        'telegram_initial_charge_id',
+        'auto_renew',
+        'renewal_failed_at',
     ];
 
     protected function casts(): array
@@ -32,6 +35,8 @@ class Subscription extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'auto_renew' => 'boolean',
+            'renewal_failed_at' => 'datetime',
         ];
     }
 
@@ -51,5 +56,11 @@ class Subscription extends Model
     public function entitlements(): HasMany
     {
         return $this->hasMany(Entitlement::class);
+    }
+
+    /** @return HasMany<Payment, $this> */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 }

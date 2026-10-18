@@ -580,6 +580,18 @@ input:focus-visible {
 .plan-card li svg { flex: 0 0 auto; color: var(--tf-success); }
 .plan-card__action { margin-top: var(--space-5); }
 .plan-card__button { width: 100%; }
+.billing-current, .billing-details { display: grid; gap: 10px; margin-top: var(--space-5); padding: var(--space-5); }
+.billing-current h2, .billing-details h2, .billing-history h2 { margin: 0; color: var(--app-ink); font-size: 18px; }
+.billing-current p, .billing-details p { margin: 0; color: var(--app-muted); font-size: 12px; line-height: 1.5; }
+.billing-current .button { margin-top: 8px; }
+.billing-links { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.billing-links a { color: var(--tf-accent-deep); font-size: 12px; font-weight: 720; }
+.billing-history { display: grid; gap: 10px; margin-top: var(--space-6); }
+.billing-payment { display: grid; gap: 8px; padding: var(--space-4); }
+.billing-payment > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.billing-payment strong { color: var(--app-ink); font-size: 13px; }
+.billing-payment > span { color: var(--app-muted); font-size: 11px; }
+.billing-payment .button { justify-self: start; }
 .plans-details { margin-top: var(--space-7); }
 .plans-data-list { padding: 0 var(--space-4); border: 1px solid var(--tf-line); border-radius: var(--radius-lg); background: var(--tf-surface-strong); box-shadow: var(--shadow-sm); }
 .plans-details .progress-bar { padding: 0 var(--space-2); }

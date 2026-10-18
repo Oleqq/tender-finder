@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 class TelegramBotClient
 {
     /** @param array<string, mixed> $parameters */
-    private function call(string $method, array $parameters): void
+    private function call(string $method, array $parameters): mixed
     {
         $token = config('tender.telegram.bot_token');
 
@@ -31,6 +31,8 @@ class TelegramBotClient
                 $this->isRetryableStatus($response->status()),
             );
         }
+
+        return $response->json('result');
     }
 
     public function sendMessage(string $chatId, string $text): void
@@ -74,6 +76,45 @@ class TelegramBotClient
             'currency' => 'XTR',
             'prices' => [['label' => $title, 'amount' => $amount]],
             'subscription_period' => $subscriptionPeriodSeconds,
+        ]);
+    }
+
+    public function createStarsSubscriptionInvoiceLink(
+        string $title,
+        string $description,
+        string $payload,
+        int $amount,
+    ): string {
+        $result = $this->call('createInvoiceLink', [
+            'title' => $title,
+            'description' => $description,
+            'payload' => $payload,
+            'currency' => 'XTR',
+            'prices' => [['label' => $title, 'amount' => $amount]],
+            'subscription_period' => 2_592_000,
+        ]);
+
+        if (! is_string($result) || ! str_starts_with($result, 'https://t.me/')) {
+            throw new TelegramDeliveryException('telegram_invoice_link_invalid', false);
+        }
+
+        return $result;
+    }
+
+    public function editUserStarSubscription(string $telegramUserId, string $initialChargeId, bool $cancel): void
+    {
+        $this->call('editUserStarSubscription', [
+            'user_id' => $telegramUserId,
+            'telegram_payment_charge_id' => $initialChargeId,
+            'is_canceled' => $cancel,
+        ]);
+    }
+
+    public function refundStarPayment(string $telegramUserId, string $chargeId): void
+    {
+        $this->call('refundStarPayment', [
+            'user_id' => $telegramUserId,
+            'telegram_payment_charge_id' => $chargeId,
         ]);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\ProcessTelegramUpdate;
+use App\Jobs\ProcessTelegramPaymentUpdate;
 use App\Models\TelegramUpdate;
 use App\Services\TelegramBotClient;
 use App\Services\TelegramStarsPaymentService;
@@ -32,6 +33,18 @@ class TelegramWebhookController extends Controller
             'message.successful_payment.invoice_payload' => ['nullable', 'string', 'max:128'],
             'message.successful_payment.telegram_payment_charge_id' => ['nullable', 'string', 'max:128'],
             'message.successful_payment.provider_payment_charge_id' => ['nullable', 'string', 'max:128'],
+            'message.successful_payment.subscription_expiration_date' => ['nullable', 'integer'],
+            'message.successful_payment.is_recurring' => ['nullable', 'boolean'],
+            'message.successful_payment.is_first_recurring' => ['nullable', 'boolean'],
+            'message.refunded_payment' => ['nullable', 'array'],
+            'message.refunded_payment.currency' => ['nullable', 'string', 'max:8'],
+            'message.refunded_payment.total_amount' => ['nullable', 'integer', 'min:1'],
+            'message.refunded_payment.invoice_payload' => ['nullable', 'string', 'max:128'],
+            'message.refunded_payment.telegram_payment_charge_id' => ['nullable', 'string', 'max:128'],
+            'subscription' => ['nullable', 'array'],
+            'subscription.user.id' => ['nullable'],
+            'subscription.invoice_payload' => ['nullable', 'string', 'max:128'],
+            'subscription.state' => ['nullable', 'string', 'in:active,canceled,failed'],
             'pre_checkout_query' => ['nullable', 'array'],
             'pre_checkout_query.id' => ['nullable', 'string', 'max:128'],
             'pre_checkout_query.from.id' => ['nullable'],
@@ -41,13 +54,22 @@ class TelegramWebhookController extends Controller
         ]);
 
         $created = false;
+        $type = $this->updateType($validated);
+        $durablePayment = in_array($type, ['successful_payment', 'refunded_payment', 'subscription'], true);
+        $paymentPayload = match ($type) {
+            'successful_payment' => $this->safePaymentPayload($validated['message']['successful_payment']),
+            'refunded_payment' => $this->safePaymentPayload($validated['message']['refunded_payment']),
+            'subscription' => $this->safeSubscriptionPayload($validated['subscription']),
+            default => null,
+        };
 
-        DB::transaction(function () use ($validated, &$created): void {
+        DB::transaction(function () use ($validated, $type, $paymentPayload, &$created): void {
             $now = now();
             $created = DB::table('telegram_updates')->insertOrIgnore([
                 'telegram_update_id' => $validated['update_id'],
-                'type' => $this->updateType($validated),
+                'type' => $type,
                 'status' => 'received',
+                'payment_payload' => $paymentPayload === null ? null : json_encode($paymentPayload, JSON_THROW_ON_ERROR),
                 'received_at' => $now,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -64,7 +86,7 @@ class TelegramWebhookController extends Controller
             $command = $this->commandFrom($validated['message']['text'] ?? null);
             $chatId = $validated['message']['chat']['id'] ?? null;
 
-            if (isset($validated['pre_checkout_query']) || isset($validated['message']['successful_payment'])) {
+            if ($type === 'pre_checkout_query' || $paymentPayload !== null) {
                 return;
             }
 
@@ -77,12 +99,14 @@ class TelegramWebhookController extends Controller
             ProcessTelegramUpdate::dispatch($validated['update_id'], $command, (string) $chatId)->afterCommit();
         });
 
-        if ($created && isset($validated['pre_checkout_query'])) {
+        $status = TelegramUpdate::query()->where('telegram_update_id', $validated['update_id'])->value('status');
+
+        if ($type === 'pre_checkout_query' && $status !== 'processed') {
             $this->answerPreCheckout($validated['update_id'], $validated['pre_checkout_query']);
         }
 
-        if ($created && isset($validated['message']['successful_payment'])) {
-            $this->settleSuccessfulPayment($validated['update_id'], $validated['message']['successful_payment']);
+        if ($durablePayment && $status !== 'processed') {
+            ProcessTelegramPaymentUpdate::dispatch($validated['update_id']);
         }
 
         return response()->json(['ok' => true, 'duplicate' => ! $created]);
@@ -111,15 +135,6 @@ class TelegramWebhookController extends Controller
             ]);
     }
 
-    /** @param array<string, mixed> $payment */
-    private function settleSuccessfulPayment(int $updateId, array $payment): void
-    {
-        app(TelegramStarsPaymentService::class)->settleSuccessfulPayment($payment);
-
-        TelegramUpdate::query()->where('telegram_update_id', $updateId)
-            ->update(['status' => 'processed', 'failure_code' => null, 'processed_at' => now()]);
-    }
-
     private function commandFrom(mixed $text): ?string
     {
         if (! is_string($text)) {
@@ -131,6 +146,10 @@ class TelegramWebhookController extends Controller
         $command = (string) preg_replace('/@[^\s]+\z/u', '', $command);
 
         if (in_array($command, ['/start', '/help'], true)) {
+            return $command;
+        }
+
+        if ($command === '/paysupport') {
             return $command;
         }
 
@@ -154,6 +173,38 @@ class TelegramWebhookController extends Controller
             return 'successful_payment';
         }
 
+        if (isset($update['message']['refunded_payment'])) {
+            return 'refunded_payment';
+        }
+
+        if (isset($update['subscription'])) {
+            return 'subscription';
+        }
+
         return isset($update['message']) ? 'message' : 'unsupported';
+    }
+
+    /** @param array<string, mixed> $data
+     *  @return array<string, mixed>
+     */
+    private function safePaymentPayload(array $data): array
+    {
+        return array_intersect_key($data, array_flip([
+            'currency', 'total_amount', 'invoice_payload', 'telegram_payment_charge_id',
+            'provider_payment_charge_id', 'subscription_expiration_date',
+            'is_recurring', 'is_first_recurring',
+        ]));
+    }
+
+    /** @param array<string, mixed> $data
+     *  @return array<string, mixed>
+     */
+    private function safeSubscriptionPayload(array $data): array
+    {
+        return [
+            'user' => ['id' => data_get($data, 'user.id')],
+            'invoice_payload' => data_get($data, 'invoice_payload'),
+            'state' => data_get($data, 'state'),
+        ];
     }
 }
