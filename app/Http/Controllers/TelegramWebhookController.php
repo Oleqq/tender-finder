@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ProcessTelegramUpdate;
 use App\Jobs\ProcessTelegramPaymentUpdate;
+use App\Jobs\ProcessTelegramUpdate;
 use App\Models\TelegramUpdate;
 use App\Services\TelegramBotClient;
 use App\Services\TelegramStarsPaymentService;
@@ -185,7 +185,7 @@ class TelegramWebhookController extends Controller
     }
 
     /** @param array<string, mixed> $data
-     *  @return array<string, mixed>
+     * @return array<string, mixed>
      */
     private function safePaymentPayload(array $data): array
     {
@@ -197,7 +197,7 @@ class TelegramWebhookController extends Controller
     }
 
     /** @param array<string, mixed> $data
-     *  @return array<string, mixed>
+     * @return array<string, mixed>
      */
     private function safeSubscriptionPayload(array $data): array
     {

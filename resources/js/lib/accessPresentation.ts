@@ -28,7 +28,9 @@ export function presentAccess(access: Access | null): AccessPresentation {
         case 'active':
             return {
                 badge:
-                    access.mode === 'developer'
+                    access.mode === 'owner'
+                        ? 'Доступ владельца'
+                        : access.mode === 'developer'
                         ? 'Про (Developer Mode)'
                         : 'Доступ активен',
                 title: 'Рабочее пространство открыто',

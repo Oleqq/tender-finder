@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\ProcessTelegramPaymentUpdate;
+use App\Models\TelegramUpdate;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -18,7 +20,7 @@ Schedule::command('tenders:dispatch-b2b-center')->everyMinute()->withoutOverlapp
 Schedule::command('tenders:dispatch-platform-catalog')->everyMinute()->withoutOverlapping();
 Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();
 Schedule::call(function (): void {
-    \App\Models\TelegramUpdate::query()
+    TelegramUpdate::query()
         ->whereIn('type', ['successful_payment', 'refunded_payment', 'subscription'])
         ->whereIn('status', ['received', 'failed'])
         ->where('payment_attempts', '<', 10)
@@ -26,7 +28,7 @@ Schedule::call(function (): void {
         ->orderBy('id')
         ->limit(50)
         ->pluck('telegram_update_id')
-        ->each(fn (int $id) => \App\Jobs\ProcessTelegramPaymentUpdate::dispatch($id));
+        ->each(fn (int $id) => ProcessTelegramPaymentUpdate::dispatch($id));
 })->name('retry-telegram-payment-updates')->everyMinute()->withoutOverlapping();
 Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverlapping();
 

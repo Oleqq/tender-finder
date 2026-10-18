@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\AccessService;
 use App\Services\ConsentService;
 use App\Services\TelegramStarsPaymentService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
@@ -121,6 +122,15 @@ it('keeps checkout closed when a price is missing and rejects an expired invoice
     ]))->toBe('Счёт не найден или устарел. Откройте приложение и запросите новый.');
 });
 
+it('does not charge an owner who already has permanent access', function () {
+    $owner = starsUser();
+    $owner->forceFill(['role' => UserRole::SuperAdmin])->save();
+
+    $this->actingAs($owner)->postJson('/billing/invoice', ['plan' => 'pro'])
+        ->assertUnprocessable();
+    expect(Payment::query()->count())->toBe(0);
+});
+
 it('extends one subscription on renewal and handles cancellation and refund', function () {
     $user = starsUser();
     app(TelegramStarsPaymentService::class)->createSubscriptionInvoice($user, 'basic');
@@ -184,5 +194,5 @@ it('allows only a super admin to refund a paid charge with an audit reason', fun
     $this->actingAs($admin)->post("/billing/admin/payments/{$invoice->id}/refund", ['reason' => 'Клиент запросил возврат'])->assertRedirect();
     expect($invoice->fresh()->status)->toBe(PaymentStatus::Refunded)
         ->and($invoice->fresh()->subscription?->status)->toBe(SubscriptionStatus::Expired)
-        ->and(\Illuminate\Support\Facades\DB::table('billing_events')->where('status', 'completed')->count())->toBe(1);
+        ->and(DB::table('billing_events')->where('status', 'completed')->count())->toBe(1);
 });

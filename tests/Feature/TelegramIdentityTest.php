@@ -1,7 +1,10 @@
 <?php
 
+use App\Enums\QueryStatus;
 use App\Enums\UserRole;
+use App\Models\SearchQuery;
 use App\Models\User;
+use App\Services\SearchQueryService;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Carbon;
 
@@ -51,9 +54,39 @@ it('assigns super admin only to a configured verified owner id', function () {
 
     $this->postJson('/telegram/session', [
         'init_data' => signedTelegramInitData(['id' => 991122, 'first_name' => 'Owner']),
-    ])->assertOk()->assertJsonPath('user.role', 'super_admin');
+    ])->assertOk()
+        ->assertJsonPath('user.role', 'super_admin')
+        ->assertJsonPath('access.state', 'active')
+        ->assertJsonPath('access.mode', 'owner')
+        ->assertJsonPath('access.active_query_limit', null)
+        ->assertJsonPath('access.ends_at', null);
 
     expect(User::query()->where('telegram_id', '991122')->firstOrFail()->role)->toBe(UserRole::SuperAdmin);
+});
+
+it('lets a verified owner keep active monitorings beyond the paid plan limit', function () {
+    config()->set('tender.telegram.owner_id', '991122');
+    $this->postJson('/telegram/session', [
+        'init_data' => signedTelegramInitData(['id' => 991122, 'first_name' => 'Owner']),
+    ])->assertOk();
+    $owner = User::query()->where('telegram_id', '991122')->firstOrFail();
+
+    for ($number = 1; $number <= 11; $number++) {
+        SearchQuery::query()->create([
+            'user_id' => $owner->id,
+            'name' => "Existing {$number}",
+            'keywords' => ['тендер'],
+            'status' => QueryStatus::Active,
+            'monitoring_started_at' => now(),
+        ]);
+    }
+
+    app(SearchQueryService::class)->create($owner, [
+        'name' => 'Another owner monitoring',
+        'keywords' => ['закупка'],
+    ]);
+
+    expect(SearchQuery::query()->where('user_id', $owner->id)->count())->toBe(12);
 });
 
 it('grants a verified Telegram user local full access only while the local flag is enabled', function () {

@@ -114,7 +114,15 @@ class SearchQueryService
     {
         $snapshot = $this->access->snapshotFor($user);
 
-        if (! in_array($snapshot->state, [AccessState::Trialing, AccessState::Active], true) || $snapshot->activeQueryLimit === null) {
+        if (! in_array($snapshot->state, [AccessState::Trialing, AccessState::Active], true)) {
+            throw new QueryAccessDeniedException;
+        }
+
+        if ($snapshot->mode === 'owner') {
+            return;
+        }
+
+        if ($snapshot->activeQueryLimit === null) {
             throw new QueryAccessDeniedException;
         }
 

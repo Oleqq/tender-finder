@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AccessState;
 use App\Enums\SubscriptionSource;
 use App\Enums\SubscriptionStatus;
+use App\Enums\UserRole;
 use App\Models\Entitlement;
 use App\Models\User;
 
@@ -32,6 +33,16 @@ class AccessService
                 'local_mvp_operator',
                 $this->localMvpOperator->activeQueryLimit(),
                 null,
+            );
+        }
+
+        if ($user->role === UserRole::SuperAdmin) {
+            return new AccessSnapshot(
+                AccessState::Active,
+                'pro',
+                null,
+                null,
+                'owner',
             );
         }
 

@@ -415,12 +415,14 @@ export default function MyQueries() {
     };
 
     const access = presentAccess(auth.access);
-    const accessText = auth.access?.active_query_limit
+    const accessText = auth.access?.mode === 'owner'
+        ? `${queries.filter((query) => query.status === 'active').length} активных · без лимита`
+        : auth.access?.active_query_limit
         ? `${queries.filter((query) => query.status === 'active').length} из ${auth.access.active_query_limit} активных`
         : 'Лимит появится после активации доступа';
     const canCreate =
         ['trialing', 'active'].includes(auth.access?.state ?? '') &&
-        auth.access?.active_query_limit !== null;
+        (auth.access?.mode === 'owner' || auth.access?.active_query_limit !== null);
     const canRunManually = canCreate;
 
     return (
