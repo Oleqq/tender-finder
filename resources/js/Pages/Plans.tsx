@@ -200,10 +200,10 @@ export default function Plans() {
 
                 <GlassCard className="billing-details" tone="quiet">
                     <h2>Условия и помощь</h2>
-                    <p>Списание проходит в Telegram Stars. Доступ открывается после подтверждения Telegram.</p>
+                    <p>{billing.enabled ? 'Списание проходит в Telegram Stars. Доступ открывается после подтверждения Telegram.' : 'Приём платежей пока не открыт.'}</p>
                     <div className="billing-links">
-                        <Link href="/offer">Оферта</Link>
-                        <Link href="/privacy">Политика</Link>
+                        {billing.enabled && <Link href="/offer">Оферта</Link>}
+                        {billing.enabled && <Link href="/privacy">Политика</Link>}
                         <Link href="/support">Вопрос по оплате или возврату</Link>
                     </div>
                 </GlassCard>

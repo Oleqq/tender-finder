@@ -1,5 +1,13 @@
 # Tender Finder: VPS deployment
 
+## Проверка доступности 19 октября 2026
+
+Целевой VPS не отвечает на SSH до баннера и на HTTPS `/health` до ответа TLS.
+Последнюю установленную ревизию и состояние контейнеров проверить не удалось.
+Перед следующим релизом сначала восстановить доступ, прочитать release marker,
+проверить Docker Compose и PostgreSQL, затем сделать свежую резервную копию и
+проверить её `gzip -t`. Не запускать миграции или выкладку вслепую.
+
 ## Current status
 
 On 16 October 2026, two colleague Telegram user IDs and then a third owner

@@ -354,6 +354,8 @@ class TelegramStarsPaymentService
         return (bool) config('tender.payments.telegram_stars.enabled')
             && (bool) config('tender.legal.documents_published')
             && (int) config('tender.payments.telegram_stars.subscription_period_seconds') === self::PERIOD_SECONDS
+            && $this->priceFor('basic') >= 1 && $this->priceFor('basic') <= 10_000
+            && $this->priceFor('pro') >= 1 && $this->priceFor('pro') <= 10_000
             && collect(['offer_url', 'offer_version', 'privacy_url', 'privacy_version'])
                 ->every(fn (string $key): bool => is_string(config("tender.legal.{$key}"))
                     && config("tender.legal.{$key}") !== '');

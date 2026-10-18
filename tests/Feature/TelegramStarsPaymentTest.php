@@ -101,6 +101,26 @@ it('rejects another buyer and refuses to issue invoices without current legal co
     ]))->toBe('Этот счёт создан для другого пользователя.');
 });
 
+it('keeps checkout closed when a price is missing and rejects an expired invoice', function () {
+    $user = starsUser();
+    config()->set('tender.payments.telegram_stars.pro_price_xtr', 0);
+    expect(app(TelegramStarsPaymentService::class)->configuration()['enabled'])->toBeFalse();
+    $this->actingAs($user)->postJson('/billing/invoice', ['plan' => 'basic'])->assertUnprocessable();
+    expect(Payment::query()->count())->toBe(0);
+
+    config()->set('tender.payments.telegram_stars.pro_price_xtr', 600);
+    app(TelegramStarsPaymentService::class)->createSubscriptionInvoice($user, 'basic');
+    $invoice = Payment::query()->sole();
+    $invoice->forceFill(['invoice_expires_at' => now()->subSecond()])->save();
+
+    expect(app(TelegramStarsPaymentService::class)->validatePreCheckout([
+        'from' => ['id' => 700100],
+        'currency' => 'XTR',
+        'total_amount' => 250,
+        'invoice_payload' => $invoice->invoice_payload,
+    ]))->toBe('Счёт не найден или устарел. Откройте приложение и запросите новый.');
+});
+
 it('extends one subscription on renewal and handles cancellation and refund', function () {
     $user = starsUser();
     app(TelegramStarsPaymentService::class)->createSubscriptionInvoice($user, 'basic');
@@ -145,7 +165,7 @@ it('persists a confirmed webhook for retry and never grants access twice', funct
     Queue::assertPushed(ProcessTelegramPaymentUpdate::class, 1);
     expect(TelegramUpdate::query()->sole()->payment_payload['telegram_payment_charge_id'])->toBe('charge-1');
 
-    app(ProcessTelegramPaymentUpdate::class, ['updateId' => 912345])->handle(app(TelegramStarsPaymentService::class));
+    (new ProcessTelegramPaymentUpdate(912345))->handle(app(TelegramStarsPaymentService::class));
     $this->withHeader('X-Telegram-Bot-Api-Secret-Token', 'webhook-test-secret')
         ->postJson('/telegram/webhook', $payload)->assertOk()->assertJsonPath('duplicate', true);
     Queue::assertPushed(ProcessTelegramPaymentUpdate::class, 1);

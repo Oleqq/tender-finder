@@ -60,25 +60,6 @@ class TelegramBotClient
         $this->call('sendMessage', $parameters);
     }
 
-    public function sendStarsInvoice(
-        string $chatId,
-        string $title,
-        string $description,
-        string $payload,
-        int $amount,
-        int $subscriptionPeriodSeconds,
-    ): void {
-        $this->call('sendInvoice', [
-            'chat_id' => $chatId,
-            'title' => $title,
-            'description' => $description,
-            'payload' => $payload,
-            'currency' => 'XTR',
-            'prices' => [['label' => $title, 'amount' => $amount]],
-            'subscription_period' => $subscriptionPeriodSeconds,
-        ]);
-    }
-
     public function createStarsSubscriptionInvoiceLink(
         string $title,
         string $description,

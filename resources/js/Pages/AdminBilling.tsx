@@ -1,4 +1,5 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Badge, Button, GlassCard, InlineAlert } from '../Components/ui';
 import type { PageProps } from '../types';
@@ -16,14 +17,18 @@ type AdminPayment = {
 
 export default function AdminBilling() {
     const { payments } = usePage<PageProps<{ payments: AdminPayment[] }>>().props;
-    const refund = useForm({ reason: '' });
+    const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState('');
 
     const issueRefund = (payment: AdminPayment): void => {
         const reason = window.prompt('Причина возврата для аудита (не менее 10 символов):');
         if (!reason || reason.trim().length < 10) return;
-        refund.transform(() => ({ reason: reason.trim() })).post(`/billing/admin/payments/${payment.id}/refund`, {
+        setError('');
+        setProcessing(true);
+        router.post(`/billing/admin/payments/${payment.id}/refund`, { reason: reason.trim() }, {
             preserveScroll: true,
-            onFinish: () => refund.reset(),
+            onError: (errors) => setError(errors.billing ?? errors.reason ?? 'Статус возврата нужно проверить.'),
+            onFinish: () => setProcessing(false),
         });
     };
 
@@ -34,7 +39,7 @@ export default function AdminBilling() {
                 <InlineAlert title="Возвраты Telegram Stars" tone="neutral">
                     Перед возвратом проверьте обращение пользователя и платёж. Действие записывается в аудит.
                 </InlineAlert>
-                {refund.errors.billing && <InlineAlert title="Проверьте статус" tone="warning">{refund.errors.billing}</InlineAlert>}
+                {error && <InlineAlert title="Проверьте статус" tone="warning">{error}</InlineAlert>}
                 {payments.length === 0 && <GlassCard tone="quiet"><p>Платежей пока нет.</p></GlassCard>}
                 <section className="billing-history" aria-label="Последние платежи">
                     {payments.map((payment) => (
@@ -42,7 +47,7 @@ export default function AdminBilling() {
                             <div><strong>{payment.user ?? 'Пользователь'} · {payment.plan ?? 'Тариф'}</strong>
                                 <Badge tone={payment.status === 'paid' ? 'success' : 'neutral'}>{payment.status}</Badge></div>
                             <span>{payment.amount} Stars · {payment.paid_at ? new Date(payment.paid_at).toLocaleString('ru-RU') : 'не оплачен'}</span>
-                            {payment.refundable && <Button variant="secondary" size="sm" disabled={refund.processing} onClick={() => issueRefund(payment)}>Оформить возврат</Button>}
+                            {payment.refundable && <Button variant="secondary" size="sm" disabled={processing} onClick={() => issueRefund(payment)}>Оформить возврат</Button>}
                         </GlassCard>
                     ))}
                 </section>
