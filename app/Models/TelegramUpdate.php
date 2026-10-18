@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/** @property array<string, mixed>|null $payment_payload */
 class TelegramUpdate extends Model
 {
     protected $fillable = [

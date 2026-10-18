@@ -12,6 +12,8 @@ use Illuminate\Support\Carbon;
  * @property int $amount
  * @property Carbon|null $paid_at
  * @property Carbon|null $refunded_at
+ * @property Carbon|null $invoice_expires_at
+ * @property Carbon|null $period_ends_at
  */
 class Payment extends Model
 {
