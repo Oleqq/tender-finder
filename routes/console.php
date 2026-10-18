@@ -27,7 +27,7 @@ Schedule::call(function (): void {
         ->limit(50)
         ->pluck('telegram_update_id')
         ->each(fn (int $id) => \App\Jobs\ProcessTelegramPaymentUpdate::dispatch($id));
-})->everyMinute()->withoutOverlapping()->name('retry-telegram-payment-updates');
+})->name('retry-telegram-payment-updates')->everyMinute()->withoutOverlapping();
 Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverlapping();
 
 Schedule::command('notifications:send-tender-reminders')->everyMinute()->withoutOverlapping();
