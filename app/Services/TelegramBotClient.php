@@ -99,6 +99,24 @@ class TelegramBotClient
         ]);
     }
 
+    /** @return list<array<string, mixed>> */
+    public function getStarTransactions(int $offset, int $limit): array
+    {
+        $result = $this->call('getStarTransactions', [
+            'offset' => $offset,
+            'limit' => $limit,
+        ]);
+        $transactions = is_array($result) ? ($result['transactions'] ?? null) : null;
+
+        if (! is_array($transactions) || ! array_is_list($transactions)
+            || count(array_filter($transactions, 'is_array')) !== count($transactions)) {
+            throw new TelegramDeliveryException('telegram_star_transactions_invalid', false);
+        }
+
+        /** @var list<array<string, mixed>> $transactions */
+        return $transactions;
+    }
+
     public function answerPreCheckoutQuery(string $queryId, bool $ok, ?string $errorMessage = null): void
     {
         $parameters = ['pre_checkout_query_id' => $queryId, 'ok' => $ok];
