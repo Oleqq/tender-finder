@@ -8,6 +8,7 @@ import { Badge, Button, GlassCard } from '../Components/ui';
 import {
     stages,
     stageLabel,
+    formatWorkDeadline,
     type Stage,
     type Participation,
     type ChecklistItem,
@@ -166,7 +167,7 @@ export default function TenderWork() {
                     <h2>{tender.title}</h2>
                     <p>
                         {tender.deadline_at
-                            ? `Срок подачи: ${new Date(tender.deadline_at).toLocaleString('ru-RU')}`
+                            ? `Срок подачи: ${formatWorkDeadline(tender.deadline_at)}`
                             : 'Срок подачи не указан в источнике'}
                     </p>
                     <a

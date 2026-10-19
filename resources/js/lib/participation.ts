@@ -8,6 +8,11 @@ export const stages = [
 export type Stage = (typeof stages)[number]['value'];
 export const stageLabel = (value: string | null): string =>
     stages.find((stage) => stage.value === value)?.label ?? 'Не участвуем';
+export const formatWorkDeadline = (value: string): string =>
+    new Intl.DateTimeFormat('ru-RU', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+    }).format(new Date(value));
 export type ChecklistItem = {
     id: number;
     title: string;

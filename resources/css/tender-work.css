@@ -540,6 +540,10 @@
 .analytics-reasons { margin: 0; padding: 0; list-style: none; }
 .analytics-series > div { display: grid; grid-template-columns: minmax(70px, 1fr) repeat(3, minmax(0, 1fr)); gap: 6px; border-radius: 13px; border-bottom: 0; padding: 11px 12px; background: var(--tf-surface-strong); font-size: 11px; }
 .analytics-series > div strong { white-space: nowrap; }
+@media (max-width: 600px) {
+    .analytics-series > div { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+    .analytics-series > div > :nth-child(even) { text-align: right; }
+}
 .analytics-table-wrap {
     width: 100%;
     overflow-x: auto;

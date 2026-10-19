@@ -4,7 +4,7 @@ import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { Badge, GlassCard } from '../Components/ui';
-import { stages, stageLabel, type Stage } from '../lib/participation';
+import { formatWorkDeadline, stages, stageLabel, type Stage } from '../lib/participation';
 import { WorkspacePicker, type TeamScope } from '../Components/WorkspacePicker';
 import type { PageProps } from '../types';
 
@@ -150,7 +150,7 @@ export default function ParticipationPage() {
                             </h2>
                             <p>
                                 {row.deadline_at
-                                    ? `Подача до ${new Date(row.deadline_at).toLocaleString('ru-RU')}`
+                                    ? `Подача до ${formatWorkDeadline(row.deadline_at)}`
                                     : 'Срок подачи не указан в источнике'}
                             </p>
                             <div className="work-progress">
