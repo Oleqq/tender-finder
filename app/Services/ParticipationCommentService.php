@@ -112,7 +112,8 @@ final class ParticipationCommentService
             'tender_id' => $participation->tender_id,
             'type' => 'team_mention',
             'status' => NotificationStatus::Queued,
-            'payload' => ['comment_id' => $comment->id, 'author' => $actor->name, 'title' => $participation->tender->title,
+            'payload' => ['comment_id' => $comment->id, 'team_id' => $participation->team_id,
+                'author' => $actor->name, 'title' => $participation->tender->title,
                 'excerpt' => mb_substr((string) $comment->body, 0, 300), 'url' => $url],
             'scheduled_at' => now(),
         ]);

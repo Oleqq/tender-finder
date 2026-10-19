@@ -15,6 +15,7 @@ use App\Http\Controllers\LocalMvpTenderAnnotationController;
 use App\Http\Controllers\LocalMvpTenderDetailController;
 use App\Http\Controllers\LocalMvpTenderGuruPreviewController;
 use App\Http\Controllers\LocalMvpTenderStateController;
+use App\Http\Controllers\MiniAppOpenController;
 use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OperationsDashboardController;
 use App\Http\Controllers\ParticipationAnalyticsController;
@@ -60,6 +61,8 @@ Route::get('/', function (Request $request, AccessService $access) {
         default => redirect()->route('dashboard'),
     };
 })->name('welcome');
+
+Route::get('/open', MiniAppOpenController::class)->name('mini-app.open');
 
 Route::get('/local/mvp-operator', [LocalMvpOperatorSessionController::class, 'store'])
     ->name('local.mvp-operator.session');

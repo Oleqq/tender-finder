@@ -11,8 +11,10 @@ use App\Models\SearchQuery;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Models\User;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
 afterEach(function (): void {
@@ -95,6 +97,20 @@ it('queues one real daily digest with the user matching tender cards', function 
         ->toContain('После вчерашних 09:00')
         ->not->toContain('До прошлого дайджеста', 'После текущего дайджеста', 'После сегодняшних 09:00', 'Истёкший срок приёма');
     Queue::assertPushed(DeliverTelegramNotification::class, 1);
+
+    config()->set('tender.telegram.bot_token', 'test-token');
+    config()->set('tender.telegram.mini_app_url', 'https://tender-finder.example.test');
+    Http::fake(['https://api.telegram.org/*' => Http::response(['ok' => true])]);
+    (new DeliverTelegramNotification($delivery->id))->handle(
+        app(\App\Services\TelegramBotClient::class), app(\App\Services\AccessService::class));
+    Http::assertSent(function (Request $request): bool {
+        $data = $request->data();
+
+        return str_contains($data['text'], 'Дайджест Tender Finder: 3 новых совпадений')
+            && ! str_contains($data['text'], 'https://')
+            && $data['reply_markup']['inline_keyboard'][0][0]['web_app']['url']
+                === 'https://tender-finder.example.test/open?screen=digest';
+    });
 
     Carbon::setTestNow('2026-09-05 06:00:03 UTC');
     Artisan::call('notifications:send-due-digests');

@@ -107,23 +107,23 @@ class DeliverTelegramNotification implements ShouldQueue
             $text = match ($delivery->type) {
                 'trial_ending_24h' => 'Ваш trial Tender Finder закончится примерно через 24 часа. После окончания мониторинги будут заморожены.',
                 'trial_ending_3h' => 'Ваш trial Tender Finder закончится примерно через 3 часа. После окончания мониторинги будут заморожены.',
-                'tender_deadline' => "Срок подачи заявки приближается: {$payload['title']}\nПодать до {$payload['deadline']}\n{$payload['url']}",
-                'tender_action' => "На сегодня запланировано действие по тендеру: {$payload['title']}\n{$payload['url']}",
+                'tender_deadline' => "Срок подачи заявки приближается: {$payload['title']}\nПодать до {$payload['deadline']}",
+                'tender_action' => "На сегодня запланировано действие по тендеру: {$payload['title']}",
                 'tender_change' => $this->changesText($payload),
                 'tender_digest' => $this->digestText($payload),
-                'task_reminder' => (($payload['phase'] ?? '') === 'upcoming' ? 'Задача на завтра' : 'Задача просрочена').": {$payload['title']}\nСрок: {$payload['due_on']}\n{$payload['tender_title']}\n{$payload['url']}",
-                'team_mention' => "{$payload['author']} упомянул вас в заявке «{$payload['title']}»\n{$payload['excerpt']}\n{$payload['url']}",
-                'team_review_assignment' => "Вам назначен разбор тендера: {$payload['title']}\nСрок: {$payload['due_at']}\n{$payload['url']}",
-                'team_review_sla' => "Просрочен разбор тендера: {$payload['title']}\n{$payload['url']}",
-                'team_review_digest' => "Командная очередь «{$payload['team_name']}»: открыто {$payload['open']}, просрочено {$payload['overdue']}.\n{$payload['url']}",
+                'task_reminder' => (($payload['phase'] ?? '') === 'upcoming' ? 'Задача на завтра' : 'Задача просрочена').": {$payload['title']}\nСрок: {$payload['due_on']}\n{$payload['tender_title']}",
+                'team_mention' => "{$payload['author']} упомянул вас в заявке «{$payload['title']}»\n{$payload['excerpt']}",
+                'team_review_assignment' => "Вам назначен разбор тендера: {$payload['title']}\nСрок: {$payload['due_at']}",
+                'team_review_sla' => "Просрочен разбор тендера: {$payload['title']}",
+                'team_review_digest' => "Командная очередь «{$payload['team_name']}»: открыто {$payload['open']}, просрочено {$payload['overdue']}.",
                 'participation_approval' => $this->approvalText($payload),
                 'access_granted' => $this->accessText($payload, 'включил'),
                 'access_updated' => $this->accessText($payload, 'обновил'),
                 'access_revoked' => 'Администратор завершил ваш ручной доступ к Tender Finder. Если это ошибка, напишите в поддержку в приложении.',
-                default => "Новый подходящий тендер: {$payload['title']}\n{$payload['url']}",
+                default => "Новый подходящий тендер: {$payload['title']}",
             };
 
-            $bot->sendNotification($delivery->user->telegram_id, $text);
+            $bot->sendNotification($delivery->user->telegram_id, $text, $this->destination($delivery));
             $delivery->forceFill(['status' => NotificationStatus::Sent, 'sent_at' => now(), 'failed_at' => null, 'failure_code' => null])->save();
         } catch (Throwable $exception) {
             $failureCode = $exception instanceof TelegramDeliveryException
@@ -189,7 +189,7 @@ class DeliverTelegramNotification implements ShouldQueue
             $text .= "\n".($labels[$field] ?? $field).': '.$change['before'].' → '.$change['after'];
         }
 
-        return mb_substr($text, 0, 3000)."\n{$payload['url']}";
+        return mb_substr($text, 0, 3000);
     }
 
     /** @param array<string, mixed> $payload */
@@ -204,8 +204,7 @@ class DeliverTelegramNotification implements ShouldQueue
             }
 
             $title = mb_substr((string) ($card['title'] ?? 'Закупка'), 0, 240);
-            $url = (string) ($card['url'] ?? '');
-            $cards .= ($cards === '' ? '' : "\n\n")."• {$title}".($url !== '' ? "\n{$url}" : '');
+            $cards .= ($cards === '' ? '' : "\n\n")."• {$title}";
         }
 
         $header = "Дайджест Tender Finder: {$count} новых совпадений за сутки.";
@@ -222,7 +221,39 @@ class DeliverTelegramNotification implements ShouldQueue
             default => 'Требуется решение по go/no-go',
         };
 
-        return "{$event}: {$payload['title']}\n{$payload['url']}";
+        return "{$event}: {$payload['title']}";
+    }
+
+    /** @return array<string, int|string> */
+    private function destination(NotificationDelivery $delivery): array
+    {
+        $payload = $delivery->payload ?? [];
+        $tenderId = (int) ($delivery->tender_id ?? 0);
+        $teamId = (int) ($payload['team_id'] ?? 0);
+
+        if ($delivery->type === 'team_review_digest') {
+            return ['screen' => 'tenders', 'team_id' => $teamId];
+        }
+        if (in_array($delivery->type, ['team_review_assignment', 'team_review_sla'], true)) {
+            return ['screen' => 'tenders', 'team_id' => $teamId];
+        }
+        if (in_array($delivery->type, ['trial_ending_24h', 'trial_ending_3h'], true)) {
+            return ['screen' => 'plans'];
+        }
+        if (in_array($delivery->type, ['access_granted', 'access_updated', 'access_revoked'], true)) {
+            return ['screen' => 'profile'];
+        }
+        if ($delivery->type === 'tender_digest') {
+            return ['screen' => 'digest'];
+        }
+        if ($tenderId < 1) {
+            return ['screen' => 'tenders'];
+        }
+        if (in_array($delivery->type, ['task_reminder', 'team_mention', 'participation_approval'], true)) {
+            return ['screen' => 'work', 'tender_id' => $tenderId, ...($teamId > 0 ? ['team_id' => $teamId] : [])];
+        }
+
+        return ['screen' => 'tender', 'tender_id' => $tenderId];
     }
 
     /** @param array<string, mixed> $payload */

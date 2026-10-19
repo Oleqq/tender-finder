@@ -69,6 +69,7 @@ final class TaskReminderService
                     ['idempotency_key' => 'task:'.$item->id.':'.$user->id.':'.$due.':'.$phase],
                     ['user_id' => $user->id, 'tender_id' => $p->tender_id, 'type' => 'task_reminder', 'status' => NotificationStatus::Queued,
                         'scheduled_at' => now(), 'payload' => ['item_id' => $item->id, 'due_on' => $due, 'phase' => $phase,
+                            'team_id' => $p->team_id,
                             'title' => $item->title, 'tender_title' => mb_substr($p->tender->title, 0, 500),
                             'url' => route('tenders.work', ['tender' => $p->tender_id, ...($p->team_id ? ['team_id' => $p->team_id] : [])])]],
                 );

@@ -62,7 +62,7 @@ class ProcessTelegramUpdate implements ShouldQueue
 
         try {
             if ($text !== null) {
-                $bot->sendMessage($this->chatId, $text);
+                $bot->sendMessage($this->chatId, $text, ['screen' => $this->command === '/paysupport' ? 'support' : 'tenders']);
             }
             $update->forceFill([
                 'status' => 'processed',

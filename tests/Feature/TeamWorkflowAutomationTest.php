@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\DeliverTelegramNotification;
 use App\Models\Entitlement;
 use App\Models\NotificationDelivery;
 use App\Models\SearchQuery;
@@ -10,6 +11,7 @@ use App\Models\TenderQueryMatch;
 use App\Services\TeamWorkflowService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -119,6 +121,31 @@ it('queues assignment SLA and owner digest notifications idempotently', function
     expect(NotificationDelivery::query()->where('type', 'team_review_assignment')->count())->toBe(1)
         ->and(NotificationDelivery::query()->where('type', 'team_review_sla')->count())->toBe(1)
         ->and(NotificationDelivery::query()->where('type', 'team_review_digest')->count())->toBe(1);
+});
+
+it('never sends an empty team queue digest even if one was already queued', function () {
+    [$owner, , , $team] = teamFixture();
+    $owner->update(['telegram_id' => 'workflow-'.$owner->id]);
+    Entitlement::query()->create(['user_id' => $owner->id, 'code' => 'active_queries', 'status' => 'active',
+        'value' => 3, 'starts_at' => now()->subDay(), 'ends_at' => now()->addMonth()]);
+    app(TeamWorkflowService::class)->settings($team)->update([
+        'digest_enabled' => true, 'digest_time' => now('Europe/Moscow')->format('H:i'),
+    ]);
+
+    Artisan::call('teams:process-tender-reviews');
+    expect(NotificationDelivery::query()->where('type', 'team_review_digest')->exists())->toBeFalse();
+
+    $delivery = NotificationDelivery::query()->create([
+        'user_id' => $owner->id, 'type' => 'team_review_digest', 'status' => 'queued',
+        'idempotency_key' => 'queued-empty-team-digest', 'scheduled_at' => now(),
+        'payload' => ['team_id' => $team->id, 'team_name' => $team->name, 'open' => 0, 'overdue' => 0],
+    ]);
+    Http::fake();
+    (new DeliverTelegramNotification($delivery->id))->handle(
+        app(\App\Services\TelegramBotClient::class), app(\App\Services\AccessService::class));
+
+    expect($delivery->fresh()->status->value)->toBe('skipped');
+    Http::assertNothingSent();
 });
 
 it('requires multi person go no-go approval and invalidates it after economics changes', function () {

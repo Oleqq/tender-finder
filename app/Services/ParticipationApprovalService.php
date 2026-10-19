@@ -160,7 +160,7 @@ final class ParticipationApprovalService
         $p = $approval->participation;
         $delivery = NotificationDelivery::query()->firstOrCreate(['idempotency_key' => $key], [
             'user_id' => $userId, 'tender_id' => $p->tender_id, 'type' => 'participation_approval', 'status' => NotificationStatus::Queued,
-            'scheduled_at' => now(), 'payload' => ['approval_id' => $approval->id, 'event' => $event,
+            'scheduled_at' => now(), 'payload' => ['approval_id' => $approval->id, 'team_id' => $p->team_id, 'event' => $event,
                 'title' => mb_substr($p->tender->title, 0, 500), 'url' => route('tenders.work', ['tender' => $p->tender_id, 'team_id' => $p->team_id])],
         ]);
         if ($delivery->wasRecentlyCreated) {

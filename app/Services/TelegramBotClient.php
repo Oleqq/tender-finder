@@ -35,28 +35,53 @@ class TelegramBotClient
         return $response->json('result');
     }
 
-    public function sendMessage(string $chatId, string $text): void
-    {
-        $this->call('sendMessage', [
-            'chat_id' => $chatId,
-            'text' => $text,
-            'disable_web_page_preview' => true,
-        ]);
-    }
-
-    public function sendNotification(string $chatId, string $text): void
+    /** @param array<string, mixed> $destination */
+    public function sendMessage(string $chatId, string $text, array $destination = []): void
     {
         $parameters = [
             'chat_id' => $chatId,
             'text' => $text,
             'disable_web_page_preview' => true,
         ];
-
-        $keyboard = $this->miniAppKeyboard();
+        $keyboard = $this->miniAppKeyboard($destination);
         if ($keyboard !== null) {
             $parameters['reply_markup'] = $keyboard;
         }
 
+        $this->call('sendMessage', $parameters);
+    }
+
+    /** @param array<string, mixed> $destination */
+    public function sendNotification(string $chatId, string $text, array $destination = []): void
+    {
+        $this->sendMessage($chatId, $text, $destination);
+    }
+
+    /** A checkout link must remain a Telegram URL button, while the app stays one tap away. */
+    public function sendPaymentLink(string $chatId, string $invoiceUrl): void
+    {
+        if (! str_starts_with($invoiceUrl, 'https://t.me/')) {
+            throw new TelegramDeliveryException('telegram_invoice_link_invalid', false);
+        }
+
+        $parameters = [
+            'chat_id' => $chatId,
+            'text' => 'Счёт на подписку Tender Finder готов. Оплатите его в Telegram Stars.',
+            'disable_web_page_preview' => true,
+        ];
+        $keyboard = $this->miniAppKeyboard(['screen' => 'plans']);
+        if ($keyboard !== null) {
+            $keyboard['inline_keyboard'][] = [[
+                'text' => 'Оплатить Stars',
+                'url' => $invoiceUrl,
+            ]];
+            $parameters['reply_markup'] = $keyboard;
+        } else {
+            $parameters['reply_markup'] = ['inline_keyboard' => [[[
+                'text' => 'Оплатить Stars',
+                'url' => $invoiceUrl,
+            ]]]];
+        }
         $this->call('sendMessage', $parameters);
     }
 
@@ -128,8 +153,10 @@ class TelegramBotClient
         $this->call('answerPreCheckoutQuery', $parameters);
     }
 
-    /** @return array{inline_keyboard: array<int, array<int, array{text: string, web_app: array{url: string}}>>}|null */
-    private function miniAppKeyboard(): ?array
+    /** @param array<string, mixed> $destination
+     *  @return array{inline_keyboard: list<list<array<string, mixed>>>}|null
+     */
+    private function miniAppKeyboard(array $destination = []): ?array
     {
         $url = config('tender.telegram.mini_app_url');
         if (! is_string($url) || filter_var($url, FILTER_VALIDATE_URL) === false) {
@@ -144,7 +171,7 @@ class TelegramBotClient
         return [
             'inline_keyboard' => [[[
                 'text' => 'Открыть Tender Finder',
-                'web_app' => ['url' => rtrim($url, '/')],
+                'web_app' => ['url' => rtrim($url, '/').'/open?'.http_build_query(MiniAppDestination::normalize($destination))],
             ]]],
         ];
     }

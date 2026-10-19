@@ -113,7 +113,7 @@ class TelegramStarsPaymentService
         } catch (TelegramStarsPaymentException $exception) {
             return $exception->getMessage();
         }
-        $this->bot->sendMessage($chatId, 'Подписка Tender Finder: '.$url);
+        $this->bot->sendPaymentLink($chatId, $url);
 
         return null;
     }

@@ -24,7 +24,7 @@ final class TeamWorkflowService
             'assignment_mode' => 'manual',
             'notify_assignments' => true,
             'notify_sla' => true,
-            'digest_enabled' => true,
+            'digest_enabled' => false,
             'digest_time' => '09:00',
             'approval_enabled' => false,
             'required_approvals' => 1,
@@ -102,7 +102,10 @@ final class TeamWorkflowService
         if ($delivery->type === 'team_review_digest') {
             $team = Team::query()->find($delivery->payload['team_id'] ?? 0);
 
-            return $team !== null && $team->archived_at === null && $team->owner_id === $delivery->user_id;
+            return $team !== null && $team->archived_at === null && $team->owner_id === $delivery->user_id
+                && $this->settings($team)->digest_enabled
+                && TeamTenderReview::query()->where('team_id', $team->id)
+                    ->whereIn('status', ['new', 'reviewing', 'deferred'])->exists();
         }
         $review = TeamTenderReview::query()->find($delivery->payload['review_id'] ?? 0);
         if (! $review || in_array($review->status, ['qualified', 'rejected'], true)) {
@@ -204,10 +207,14 @@ final class TeamWorkflowService
             return;
         }
         $open = TeamTenderReview::query()->where('team_id', $team->id)->whereIn('status', ['new', 'reviewing', 'deferred']);
+        $openCount = (clone $open)->count();
+        if ($openCount === 0) {
+            return;
+        }
         $delivery = NotificationDelivery::query()->firstOrCreate(
             ['idempotency_key' => 'team-review-digest:'.$team->id.':'.$localNow->format('Ymd')],
             ['user_id' => $owner->id, 'type' => 'team_review_digest', 'status' => NotificationStatus::Queued, 'scheduled_at' => now(),
-                'payload' => ['team_id' => $team->id, 'team_name' => $team->name, 'open' => (clone $open)->count(),
+                'payload' => ['team_id' => $team->id, 'team_name' => $team->name, 'open' => $openCount,
                     'overdue' => (clone $open)->where('due_at', '<', now())->count(), 'url' => route('tenders', ['team_id' => $team->id])]],
         );
         if ($delivery->wasRecentlyCreated) {
