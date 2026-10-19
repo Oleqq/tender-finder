@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
+import { Icon } from '../Components/Icon';
 import { Badge, Button, GlassCard, InlineAlert } from '../Components/ui';
 import type { PageProps } from '../types';
 
@@ -40,18 +41,26 @@ export default function AdminBilling() {
                     Перед возвратом проверьте обращение пользователя и платёж. Действие записывается в аудит.
                 </InlineAlert>
                 {error && <InlineAlert title="Проверьте статус" tone="warning">{error}</InlineAlert>}
-                {payments.length === 0 && <GlassCard tone="quiet"><p>Платежей пока нет.</p></GlassCard>}
-                <section className="billing-history" aria-label="Последние платежи">
-                    {payments.map((payment) => (
-                        <GlassCard key={payment.id} className="billing-payment" tone="quiet">
-                            <div><strong>{payment.user ?? 'Пользователь'} · {payment.plan ?? 'Тариф'}</strong>
-                                <Badge tone={payment.status === 'paid' ? 'success' : 'neutral'}>{payment.status}</Badge></div>
-                            <span>{payment.amount} Stars · {payment.paid_at ? new Date(payment.paid_at).toLocaleString('ru-RU') : 'не оплачен'}</span>
-                            {payment.refundable && <Button variant="secondary" size="sm" disabled={processing} onClick={() => issueRefund(payment)}>Оформить возврат</Button>}
-                        </GlassCard>
-                    ))}
-                </section>
-                <Link href="/support/admin">Обращения пользователей</Link>
+                {payments.length === 0 && (
+                    <GlassCard className="billing-empty" tone="quiet">
+                        <p>Платежей пока нет.</p>
+                    </GlassCard>
+                )}
+                {payments.length > 0 && (
+                    <section className="billing-history" aria-label="Последние платежи">
+                        {payments.map((payment) => (
+                            <GlassCard key={payment.id} className="billing-payment" tone="quiet">
+                                <div><strong>{payment.user ?? 'Пользователь'} · {payment.plan ?? 'Тариф'}</strong>
+                                    <Badge tone={payment.status === 'paid' ? 'success' : 'neutral'}>{payment.status}</Badge></div>
+                                <span>{payment.amount} Stars · {payment.paid_at ? new Date(payment.paid_at).toLocaleString('ru-RU') : 'не оплачен'}</span>
+                                {payment.refundable && <Button variant="secondary" size="sm" disabled={processing} onClick={() => issueRefund(payment)}>Оформить возврат</Button>}
+                            </GlassCard>
+                        ))}
+                    </section>
+                )}
+                <Link className="billing-admin-support-link" href="/support/admin">
+                    Обращения пользователей <Icon name="chevron-right" size={17} />
+                </Link>
             </AppShell>
         </>
     );

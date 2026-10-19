@@ -66,7 +66,7 @@ export default function Welcome() {
                                 {needsFirstStart
                                     ? 'Первый запуск'
                                     : isSuperAdmin
-                                      ? 'Расширенный доступ'
+                                      ? 'Доступ владельца'
                                       : 'Ваше рабочее пространство'}
                             </Badge>
                             <Link

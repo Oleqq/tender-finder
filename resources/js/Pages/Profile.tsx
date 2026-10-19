@@ -77,7 +77,7 @@ export default function Profile() {
                     <span className="profile-avatar">{initials}</span>
                     <div>
                         <Badge tone={isSuperAdmin ? 'success' : 'accent'}>
-                            {isSuperAdmin ? 'Расширенный доступ' : 'Аккаунт'}
+                            {isSuperAdmin ? 'Доступ владельца' : 'Аккаунт'}
                         </Badge>
                         <h2>{auth.user?.name ?? 'Ваш профиль'}</h2>
                         <p>Настройте поиск, уведомления и доступ.</p>
