@@ -17,7 +17,7 @@ final class MiniAppDestination
         $result = ['screen' => $screen];
         if (in_array($screen, ['tender', 'work'], true)) {
             $id = filter_var($destination['tender_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-            if ($id === false || $id === null) {
+            if ($id === false) {
                 return ['screen' => 'tenders'];
             }
             $result['tender_id'] = (int) $id;
@@ -25,7 +25,7 @@ final class MiniAppDestination
 
         if (in_array($screen, ['tenders', 'work'], true)) {
             $teamId = filter_var($destination['team_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-            if ($teamId !== false && $teamId !== null) {
+            if ($teamId !== false) {
                 $result['team_id'] = (int) $teamId;
             }
         }
