@@ -72,10 +72,7 @@ class AccessService
         $hasExpiredAccess = $user->trial_used_at !== null || Entitlement::query()
             ->where('user_id', $user->id)
             ->where('code', 'active_queries')
-            ->where(function ($query): void {
-                $query->whereNull('subscription_id')
-                    ->orWhereHas('subscription', fn ($subscription) => $subscription->where('source', '!=', SubscriptionSource::AdminGrant));
-            })
+            ->whereHas('subscription', fn ($subscription) => $subscription->where('source', SubscriptionSource::TelegramStars))
             ->exists();
 
         return new AccessSnapshot($hasExpiredAccess ? AccessState::Expired : AccessState::Preview, null, null, null);
