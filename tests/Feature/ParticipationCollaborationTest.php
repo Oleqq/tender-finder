@@ -83,7 +83,8 @@ it('delivers a team mention with the author tender and workspace link', function
     $delivery = NotificationDelivery::query()->where('type', 'team_mention')->sole();
     $bot = Mockery::mock(TelegramBotClient::class);
     $bot->shouldReceive('sendNotification')->once()->with('mentioned-member', Mockery::on(fn (string $text): bool => str_contains($text, $owner->name)
-        && str_contains($text, $tender->title) && str_contains($text, 'team_id='.$team->id)));
+        && str_contains($text, $tender->title) && ! str_contains($text, 'https://')),
+        ['screen' => 'work', 'tender_id' => $tender->id, 'team_id' => $team->id]);
 
     (new DeliverTelegramNotification($delivery->id))->handle($bot, app(AccessService::class));
     expect($delivery->fresh()->status->value)->toBe('sent');

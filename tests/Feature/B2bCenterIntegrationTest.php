@@ -276,8 +276,9 @@ it('queues a newly discovered B2B match only for the linked user and delivers it
     expect($delivery->user_id)->toBe($first->id);
     $bot = Mockery::mock(TelegramBotClient::class);
     $bot->shouldReceive('sendNotification')->once()->with('recipient-one', Mockery::on(
-        fn (string $text): bool => str_contains($text, 'Закупка цинкооксидных поглотителей'),
-    ));
+        fn (string $text): bool => str_contains($text, 'Закупка цинкооксидных поглотителей')
+            && ! str_contains($text, 'https://'),
+    ), ['screen' => 'tender', 'tender_id' => $tender->id]);
     (new DeliverTelegramNotification($delivery->id))->handle($bot, app(AccessService::class));
     expect($delivery->fresh()->status->value)->toBe('sent');
 

@@ -104,7 +104,8 @@ it('delivers a valid reminder and includes the actual deadline', function () {
     app(TenderFollowUpService::class)->queueReminders();
     $delivery = NotificationDelivery::query()->where('type', 'tender_deadline')->sole();
     $bot = Mockery::mock(TelegramBotClient::class);
-    $bot->shouldReceive('sendNotification')->once()->with('follow-up-user', Mockery::on(fn ($text) => str_contains($text, '14.09.2026') && str_contains($text, 'Поставка серверов')));
+    $bot->shouldReceive('sendNotification')->once()->with('follow-up-user', Mockery::on(fn ($text) => str_contains($text, '14.09.2026') && str_contains($text, 'Поставка серверов') && ! str_contains($text, 'https://')),
+        ['screen' => 'tender', 'tender_id' => $delivery->tender_id]);
     (new DeliverTelegramNotification($delivery->id))->handle($bot, app(AccessService::class));
     expect($delivery->refresh()->status->value)->toBe('sent');
 });
@@ -239,7 +240,8 @@ it('sends a change notification with before and after and skips it after opting 
     app(TenderSourceImportService::class)->import($feed, new SourceFetchResult([followUpSourceItem(budget: 2000000)]), 'rostender', false);
     $delivery = NotificationDelivery::query()->where('type', 'tender_change')->sole();
     $bot = Mockery::mock(TelegramBotClient::class);
-    $bot->shouldReceive('sendNotification')->once()->with('follow-up-user', Mockery::on(fn ($text) => str_contains($text, '1500000.00 → 2000000.00')));
+    $bot->shouldReceive('sendNotification')->once()->with('follow-up-user', Mockery::on(fn ($text) => str_contains($text, '1500000.00 → 2000000.00') && ! str_contains($text, 'https://')),
+        ['screen' => 'tender', 'tender_id' => $delivery->tender_id]);
     (new DeliverTelegramNotification($delivery->id))->handle($bot, app(AccessService::class));
     expect($delivery->refresh()->status->value)->toBe('sent');
     app(TenderSourceImportService::class)->import($feed, new SourceFetchResult([followUpSourceItem(budget: 3000000)]), 'rostender', false);

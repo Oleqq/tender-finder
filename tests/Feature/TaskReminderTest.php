@@ -63,7 +63,8 @@ it('delivers an assigned task with a team link and does not send a queued messag
     app(TaskReminderService::class)->queueDue();
     $delivery = NotificationDelivery::query()->sole();
     $bot = Mockery::mock(TelegramBotClient::class);
-    $bot->shouldReceive('sendNotification')->once()->with('task-recipient', Mockery::on(fn ($text) => str_contains($text, 'Задача на завтра') && str_contains($text, 'team_id='.$team->id)));
+    $bot->shouldReceive('sendNotification')->once()->with('task-recipient', Mockery::on(fn ($text) => str_contains($text, 'Задача на завтра') && ! str_contains($text, 'https://')),
+        ['screen' => 'work', 'tender_id' => $p->tender_id, 'team_id' => $team->id]);
     $job = new DeliverTelegramNotification($delivery->id);
     $job->handle($bot, app(AccessService::class));
     $job->handle($bot, app(AccessService::class));

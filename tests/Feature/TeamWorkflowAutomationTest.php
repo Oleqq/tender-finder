@@ -113,7 +113,7 @@ it('queues assignment SLA and owner digest notifications idempotently', function
     ])->assertOk();
     $review->refresh()->update(['due_at' => now()->subMinute(), 'sla_alerted_at' => null]);
     app(TeamWorkflowService::class)->settings($team)
-        ->update(['digest_time' => now('Europe/Moscow')->format('H:i')]);
+        ->update(['digest_enabled' => true, 'digest_time' => now('Europe/Moscow')->format('H:i')]);
 
     Artisan::call('teams:process-tender-reviews');
     Artisan::call('teams:process-tender-reviews');
