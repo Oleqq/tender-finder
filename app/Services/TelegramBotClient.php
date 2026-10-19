@@ -154,7 +154,7 @@ class TelegramBotClient
     }
 
     /** @param array<string, mixed> $destination
-     *  @return array{inline_keyboard: list<list<array<string, mixed>>>}|null
+     * @return array{inline_keyboard: list<list<array<string, mixed>>>}|null
      */
     private function miniAppKeyboard(array $destination = []): ?array
     {

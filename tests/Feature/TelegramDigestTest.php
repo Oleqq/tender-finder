@@ -11,6 +11,8 @@ use App\Models\SearchQuery;
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
 use App\Models\User;
+use App\Services\AccessService;
+use App\Services\TelegramBotClient;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -102,7 +104,7 @@ it('queues one real daily digest with the user matching tender cards', function 
     config()->set('tender.telegram.mini_app_url', 'https://tender-finder.example.test');
     Http::fake(['https://api.telegram.org/*' => Http::response(['ok' => true])]);
     (new DeliverTelegramNotification($delivery->id))->handle(
-        app(\App\Services\TelegramBotClient::class), app(\App\Services\AccessService::class));
+        app(TelegramBotClient::class), app(AccessService::class));
     Http::assertSent(function (Request $request): bool {
         $data = $request->data();
 

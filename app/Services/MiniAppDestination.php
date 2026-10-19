@@ -5,7 +5,7 @@ namespace App\Services;
 final class MiniAppDestination
 {
     /** @param array<string, mixed> $destination
-     *  @return array{screen: string, tender_id?: int, team_id?: int}
+     * @return array{screen: string, tender_id?: int, team_id?: int}
      */
     public static function normalize(array $destination): array
     {

@@ -8,7 +8,9 @@ use App\Models\TeamTenderReview;
 use App\Models\Tender;
 use App\Models\TenderParticipation;
 use App\Models\TenderQueryMatch;
+use App\Services\AccessService;
 use App\Services\TeamWorkflowService;
+use App\Services\TelegramBotClient;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -142,7 +144,7 @@ it('never sends an empty team queue digest even if one was already queued', func
     ]);
     Http::fake();
     (new DeliverTelegramNotification($delivery->id))->handle(
-        app(\App\Services\TelegramBotClient::class), app(\App\Services\AccessService::class));
+        app(TelegramBotClient::class), app(AccessService::class));
 
     expect($delivery->fresh()->status->value)->toBe('skipped');
     Http::assertNothingSent();
