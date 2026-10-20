@@ -1,5 +1,12 @@
 # Tender Finder: VPS deployment
 
+> Проверка 20 октября: `e7bd19a` выпущен через workflow `39387852771`
+> после свежей проверенной копии БД. Миграция `failed_jobs` применена,
+> production `QUEUE_FAILED_DRIVER=database-uuids` загружен процессами Laravel.
+> Все сервисы работают; `/health` и `/open?screen=plans` ответили `200`,
+> контрольные хэши и `.release-commit` совпали с коммитом. Полный
+> [отчёт maintenance](MAINTENANCE-2026-10-20.md).
+
 > Дополнение 20 октября 2026: ревизия `140b1a9` с HTTP-логами, платёжными
 > расписаниями и оповещениями выпущена на VPS. `/health` и `/open` ответили
 > `200`; сверка Caddy/Laravel по `request_id` прошла. Затем UI-коммит
