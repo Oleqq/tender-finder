@@ -99,6 +99,8 @@ export default function Plans() {
                 setBusy(null);
                 if (status === 'cancelled') {
                     setNotice('Оплата отменена. Доступ не изменился.');
+                } else if (status === 'failed') {
+                    setNotice('Оплата не прошла. Попробуйте ещё раз или напишите в поддержку.');
                 } else {
                     setNotice('Проверяем подтверждение Telegram. Доступ появится после сообщения об оплате.');
                     setPolling(true);
@@ -183,8 +185,8 @@ export default function Plans() {
                                     Подписка продлевается автоматически каждые 30 дней. Отменить продление можно здесь в любой момент.
                                 </p>
                                 <div className="plan-card__action">
-                                    <Button className="plan-card__button" disabled={busy !== null || Boolean(activeSubscription) || hasPermanentAccess || !billing.consents_current} onClick={() => buy(plan)}>
-                                        {busy === plan ? 'Открываем счёт…' : `Оплатить ${billing.prices[plan]} Stars`}
+                                    <Button className="plan-card__button" disabled={busy !== null || polling || Boolean(activeSubscription) || hasPermanentAccess || !billing.consents_current} onClick={() => buy(plan)}>
+                                        {busy === plan ? 'Открываем счёт…' : polling ? 'Ожидаем подтверждение…' : `Оплатить ${billing.prices[plan]} Stars`}
                                     </Button>
                                 </div>
                             </GlassCard>
