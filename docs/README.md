@@ -9,8 +9,8 @@
 | [MAINTENANCE-2026-10-20](MAINTENANCE-2026-10-20.md) | Чекап Git, VPS, источников, интерфейса и сценария нового пользователя. |
 | [PROGRESS](PROGRESS.md) | Хронология этапов, фактические выпуски и оставшаяся приёмка. |
 | [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
-| [PAYMENTS-NEXT-STAGE](PAYMENTS-NEXT-STAGE.md) | Полная техничка для следующего этапа оплаты Stars: решения владельца, задачи, тесты и выпуск. |
-| [TELEGRAM-STARS-RUNBOOK](TELEGRAM-STARS-RUNBOOK.md) | Действующий платёжный поток, сверка, оповещения, тест доставки и условия включения Stars. |
+| [PAYMENTS-NEXT-STAGE](PAYMENTS-NEXT-STAGE.md) | Текущий выбор платёжного канала, граница Telegram и план возможной внешней ЮKassa. |
+| [TELEGRAM-STARS-RUNBOOK](TELEGRAM-STARS-RUNBOOK.md) | Справка о выключенном коде Stars и его операционных проверках; не текущий план запуска. |
 | [LEGAL-PRODUCTION-HANDOFF](LEGAL-PRODUCTION-HANDOFF.md) | Перечень документов и решений для юриста и бухгалтера перед публичным платным запуском; не готовые юридические тексты. |
 | [TEKTORG-FABRIKANT-DISCOVERY](TEKTORG-FABRIKANT-DISCOVERY.md) | Проверка прямых источников ТЭК-Торг и Фабриканта и блокеры подключения. |
 | [BIDZAAR-AND-REGION](BIDZAAR-AND-REGION.md) | Порядок получения доступа и включения Bidzaar, статус ЭТП РЕГИОН. |
