@@ -28,6 +28,7 @@ class TelegramSessionController extends Controller
         } catch (TelegramInitDataException $exception) {
             Log::warning('Telegram Mini App session was rejected.', [
                 'reason' => $exception->getMessage(),
+                'request_id' => $request->attributes->get('request_id'),
             ]);
 
             return response()->json([

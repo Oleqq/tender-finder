@@ -2,10 +2,12 @@
 
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LogHttpRequest;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->prepend(LogHttpRequest::class);
+
         if (env('APP_ENV') === 'production') {
             $middleware->trustProxies(at: '*');
         }
@@ -33,11 +37,16 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->report(function (Throwable $exception): void {
-            error_log(sprintf(
-                '[Tender Finder] %s: %s',
-                $exception::class,
-                $exception->getMessage(),
-            ));
+        $exceptions->context(fn (): array => [
+            'request_id' => app()->bound('request')
+                ? request()->attributes->get('request_id')
+                : null,
+        ]);
+        $exceptions->respond(function (Response $response): Response {
+            if (app()->bound('request') && $requestId = request()->attributes->get('request_id')) {
+                $response->headers->set('X-Request-ID', $requestId);
+            }
+
+            return $response;
         });
     })->create();

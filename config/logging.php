@@ -2,6 +2,7 @@
 
 use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
+use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
@@ -81,6 +82,29 @@ return [
             'formatter' => JsonFormatter::class,
             'with' => [
                 'stream' => storage_path('logs/laravel.json'),
+            ],
+            'processors' => [PsrLogMessageProcessor::class],
+        ],
+
+        'json_stderr' => [
+            'driver' => 'monolog',
+            'level' => env('LOG_LEVEL', 'info'),
+            'handler' => StreamHandler::class,
+            'formatter' => JsonFormatter::class,
+            'with' => [
+                'stream' => 'php://stderr',
+            ],
+            'processors' => [PsrLogMessageProcessor::class],
+        ],
+
+        'json_daily' => [
+            'driver' => 'monolog',
+            'level' => env('LOG_LEVEL', 'info'),
+            'handler' => RotatingFileHandler::class,
+            'formatter' => JsonFormatter::class,
+            'with' => [
+                'filename' => storage_path('logs/laravel.json'),
+                'maxFiles' => 14,
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],

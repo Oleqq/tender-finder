@@ -19,6 +19,15 @@ Schedule::command('tenders:dispatch-etp-region')->everyMinute()->withoutOverlapp
 Schedule::command('tenders:dispatch-b2b-center')->everyMinute()->withoutOverlapping();
 Schedule::command('tenders:dispatch-platform-catalog')->everyMinute()->withoutOverlapping();
 Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();
+Schedule::command('billing:reconcile-stars --max=1000')
+    ->dailyAt('03:30')
+    ->timezone('Europe/Moscow')
+    ->when(fn (): bool => filled(config('tender.telegram.bot_token')))
+    ->withoutOverlapping();
+Schedule::command('billing:check-stars-incidents')
+    ->everyFiveMinutes()
+    ->when(fn (): bool => filled(config('tender.telegram.bot_token')))
+    ->withoutOverlapping();
 Schedule::call(function (): void {
     TelegramUpdate::query()
         ->whereIn('type', ['successful_payment', 'refunded_payment', 'subscription'])

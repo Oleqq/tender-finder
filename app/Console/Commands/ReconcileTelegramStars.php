@@ -4,8 +4,11 @@ namespace App\Console\Commands;
 
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
+use App\Services\BillingIncidentAlerts;
 use App\Services\TelegramBotClient;
+use App\Telegram\TelegramDeliveryException;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class ReconcileTelegramStars extends Command
 {
@@ -13,7 +16,7 @@ class ReconcileTelegramStars extends Command
 
     protected $description = 'Read-only comparison of Telegram Stars invoice transactions and local payments.';
 
-    public function handle(TelegramBotClient $bot): int
+    public function handle(TelegramBotClient $bot, BillingIncidentAlerts $alerts): int
     {
         $max = filter_var($this->option('max'), FILTER_VALIDATE_INT);
         if ($max === false || $max < 1 || $max > 10_000) {
@@ -25,10 +28,27 @@ class ReconcileTelegramStars extends Command
         $inspected = 0;
         $ours = 0;
         $anomalies = 0;
+        $anomalyFingerprints = [];
 
         for ($offset = 0; $offset < $max; $offset += 100) {
             $limit = min(100, $max - $offset);
-            $transactions = $bot->getStarTransactions($offset, $limit);
+            try {
+                $transactions = $bot->getStarTransactions($offset, $limit);
+            } catch (TelegramDeliveryException $exception) {
+                Log::error('billing.stars.reconciliation_unavailable', [
+                    'failure_code' => $exception->failureCode,
+                    'inspected' => $inspected,
+                    'max' => $max,
+                ]);
+                $alerts->notify(
+                    'reconciliation-unavailable:'.$exception->failureCode,
+                    '⚠️ Tender Finder: сверка платежей Stars не завершилась ('
+                        .$exception->failureCode."). Проверено транзакций: {$inspected}. Проверьте API и повторите сверку.",
+                );
+                $this->error('Telegram Stars reconciliation could not finish: '.$exception->failureCode);
+
+                return self::FAILURE;
+            }
             if ($transactions === []) {
                 break;
             }
@@ -56,13 +76,26 @@ class ReconcileTelegramStars extends Command
                     if ($payment === null || $payment->amount !== ($transaction['amount'] ?? null)
                         || ! in_array($payment->status, [PaymentStatus::Paid, PaymentStatus::Refunded], true)) {
                         $anomalies++;
-                        $this->warn('Incoming charge needs review: '.substr(hash('sha256', $chargeId), 0, 12));
+                        $fingerprint = substr(hash('sha256', $chargeId), 0, 12);
+                        $anomalyFingerprints[] = $fingerprint;
+                        Log::warning('billing.stars.reconciliation_discrepancy', [
+                            'kind' => 'incoming_charge',
+                            'charge_fingerprint' => $fingerprint,
+                            'payment_id' => $payment?->id,
+                        ]);
+                        $this->warn('Incoming charge needs review: '.$fingerprint);
                     }
                 }
 
                 if (is_array($receiver) && ($receiver['type'] ?? null) === 'user'
                     && $payment !== null && $payment->status !== PaymentStatus::Refunded) {
                     $anomalies++;
+                    $anomalyFingerprints[] = substr(hash('sha256', $chargeId), 0, 12);
+                    Log::warning('billing.stars.reconciliation_discrepancy', [
+                        'kind' => 'refund_without_local_status',
+                        'charge_fingerprint' => substr(hash('sha256', $chargeId), 0, 12),
+                        'payment_id' => $payment->id,
+                    ]);
                     $this->warn('Refund needs review for local payment #'.$payment->id);
                 }
             }
@@ -72,6 +105,23 @@ class ReconcileTelegramStars extends Command
             }
         }
 
+        $summary = [
+            'inspected' => $inspected,
+            'invoices' => $ours,
+            'discrepancies' => $anomalies,
+            'max' => $max,
+        ];
+        if ($anomalies === 0) {
+            Log::info('billing.stars.reconciliation_finished', $summary);
+        } else {
+            Log::warning('billing.stars.reconciliation_finished', $summary);
+            sort($anomalyFingerprints);
+            $alerts->notify(
+                'reconciliation-discrepancy:'.hash('sha256', implode(',', $anomalyFingerprints)),
+                "⚠️ Tender Finder: сверка Stars нашла {$anomalies} расхождений среди {$inspected} транзакций. "
+                    .'Проверьте журнал billing.stars.reconciliation_discrepancy и выполните ручной разбор.',
+            );
+        }
         $this->info("Inspected {$inspected} Telegram transactions; {$ours} Tender Finder invoices; {$anomalies} discrepancies.");
 
         return $anomalies === 0 ? self::SUCCESS : self::FAILURE;

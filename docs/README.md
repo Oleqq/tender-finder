@@ -9,11 +9,14 @@
 | [PROGRESS](PROGRESS.md) | Хронология этапов, фактические выпуски и оставшаяся приёмка. |
 | [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
 | [PAYMENTS-NEXT-STAGE](PAYMENTS-NEXT-STAGE.md) | Полная техничка для следующего этапа оплаты Stars: решения владельца, задачи, тесты и выпуск. |
+| [TELEGRAM-STARS-RUNBOOK](TELEGRAM-STARS-RUNBOOK.md) | Действующий платёжный поток, сверка, оповещения, тест доставки и условия включения Stars. |
+| [LEGAL-PRODUCTION-HANDOFF](LEGAL-PRODUCTION-HANDOFF.md) | Перечень документов и решений для юриста и бухгалтера перед публичным платным запуском; не готовые юридические тексты. |
 | [TEKTORG-FABRIKANT-DISCOVERY](TEKTORG-FABRIKANT-DISCOVERY.md) | Проверка прямых источников ТЭК-Торг и Фабриканта и блокеры подключения. |
 | [BIDZAAR-AND-REGION](BIDZAAR-AND-REGION.md) | Порядок получения доступа и включения Bidzaar, статус ЭТП РЕГИОН. |
 | [EXTERNAL-SOURCE-DISCOVERY](EXTERNAL-SOURCE-DISCOVERY.md) | Что проверено по Росэлторгу и РТС-Тендер и какие разрешения ещё нужны. |
 | [SUPPORT-WORKSPACE](SUPPORT-WORKSPACE.md) | Возможности поддержки, границы доступа и статус production-выпуска. |
 | [VPS-DEPLOYMENT](VPS-DEPLOYMENT.md) | Фактический VPS-релиз, резервные копии и проверки production. |
+| [MOBILE-LOAD-INCIDENT-2026-10-19](MOBILE-LOAD-INCIDENT-2026-10-19.md) | Факты по зависанию Mini App и порядок разбора повторного случая по HTTP-логам. |
 | [INTEGRATION-STATUS](INTEGRATION-STATUS.md) | Архивный снимок интеграции веток от 2 сентября; не текущий статус. |
 | [NEW-DEVELOPER](NEW-DEVELOPER.md) | Быстрое введение нового разработчика: границы, код и команды. |
 | [LOCAL-RUNTIME](LOCAL-RUNTIME.md) | Запуск Docker и проверка мониторинга RosTender. |

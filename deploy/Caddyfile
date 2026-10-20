@@ -1,4 +1,22 @@
 {$APP_DOMAIN} {
     encode zstd gzip
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10mb
+            roll_keep 5
+            roll_keep_for 336h
+        }
+        format filter {
+            request>uri delete
+            request>headers delete
+            request>remote_ip ip_mask 24 64
+            request>client_ip ip_mask 24 64
+            request>remote_port delete
+            resp_headers delete
+        }
+    }
+    @incident_paths path / /open /health /telegram/session /build/* /vendor/telegram-web-app-63.js
+    log_append @incident_paths path {http.request.uri.path}
+    log_append request_id {http.response.header.X-Request-ID}
     reverse_proxy web:8080
 }

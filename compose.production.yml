@@ -5,6 +5,17 @@ x-application: &application
     context: .
   env_file:
     - .env.production
+  environment:
+    LOG_CHANNEL: stack
+    LOG_STACK: json_stderr,json_daily
+    LOG_LEVEL: info
+  volumes:
+    - application_logs:/var/www/html/storage/logs
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
   restart: unless-stopped
   init: true
   depends_on:
@@ -74,6 +85,11 @@ services:
         condition: service_healthy
     env_file:
       - .env.production
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     ports:
       - "80:80"
       - "443:443"
@@ -81,6 +97,7 @@ services:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - caddy_logs:/var/log/caddy
 
   migrate:
     <<: *application
@@ -96,5 +113,7 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
+  caddy_logs:
+  application_logs:
   postgres_data:
   redis_data:

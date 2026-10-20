@@ -1,5 +1,9 @@
 # Tender Finder: VPS deployment
 
+> Дополнение 20 октября 2026: структурированные HTTP-логи, платёжные
+> расписания и оповещения ниже подготовлены в рабочей копии, но ещё не
+> выпущены на VPS. Команды их проверки выполняются после отдельного релиза.
+
 ## Проверка доступности 19 октября 2026
 
 Сначала целевой VPS не отвечал на SSH до баннера и на публичный HTTPS до TLS.
@@ -356,6 +360,31 @@ SESSION_DRIVER=redis
 SESSION_SECURE_COOKIE=true
 ```
 
+The production Compose stack sets `LOG_CHANNEL=stack`,
+`LOG_STACK=json_stderr,json_daily` and `LOG_LEVEL=info`. Laravel emits JSON to
+Docker logs and to a rotating 14-day file in the persistent `application_logs`
+volume. Caddy writes JSON access logs to a persistent `caddy_logs` volume,
+rolling at 10 MB and keeping at most five old files for up to 14 days. Docker
+retains up to five 10 MB files per service while that container exists. To
+inspect an incident, use
+`docker compose -f compose.production.yml logs --since=30m web` for recent
+Laravel events, or include `scheduler` for scheduled billing alerts:
+`docker compose -f compose.production.yml logs --since=30m web scheduler`. For
+older files, use
+`docker compose -f compose.production.yml exec web ls storage/logs`.
+Read Caddy access logs with
+`docker compose -f compose.production.yml exec caddy tail -n 200 /var/log/caddy/access.log`.
+Filter both by the `request_id` returned in `X-Request-ID`. Laravel entries include
+method, route template, status, duration, user ID (when authenticated), and
+coarse client platform. Caddy records path only for Mini App entry points and
+static assets, plus status, duration and a masked client IP. Query strings,
+request headers, response headers and bodies are omitted from access logs.
+The bundled PHP development server also prints unstructured request lines;
+these can contain query strings, so restrict access to Docker logs accordingly.
+No HTTP log can show a Telegram WebView attempt that never reaches the VPS;
+in that case compare the user's attempt time with the absence of `/open` in
+Caddy logs.
+
 Copy the remaining variables from `.env.example`. Store the Telegram token,
 webhook secret, readiness token, and `APP_KEY` only in this file. Keep Stars
 disabled until the approved XTR amounts are populated:
@@ -365,6 +394,22 @@ TELEGRAM_STARS_ENABLED=false
 TELEGRAM_STARS_BASIC_PRICE_XTR=0
 TELEGRAM_STARS_PRO_PRICE_XTR=0
 ```
+
+Billing alerts use the existing `TELEGRAM_OWNER_ID` and
+`TELEGRAM_SUPERADMIN_IDS` values. Each administrator must first message the bot.
+After a release, test delivery without a payment from `/opt/tenderfinder`:
+
+```bash
+docker compose -f compose.production.yml exec web php artisan billing:check-stars-incidents --test-delivery
+```
+
+Check the result in every administrator's private chat. For a manually run
+command, inspect its console output and Laravel's persistent `storage/logs`
+files in `web`; inspect `scheduler` logs for scheduled alerts. Look for
+`billing.alert.*`. The command returns a
+failure status if any configured recipient could not be reached. See the
+[Telegram Stars runbook](TELEGRAM-STARS-RUNBOOK.md#оповещения-и-проверка-доставки)
+for incident response and the read-only reconciliation procedure.
 
 ## Release checks
 
@@ -386,6 +431,15 @@ TELEGRAM_STARS_PRO_PRICE_XTR=0
 6. Test a separate Telegram account: Mini App identity, consent, trial,
    a RosTender monitoring, a repeat check, a new-card notification and the
    daily digest.
+7. After releasing structured logging, open `/open` through the bot and
+   confirm that the response has `X-Request-ID`, Laravel logged
+   `http.request.completed`, and Caddy logged the path and matching request
+   ID. Use the [mobile incident procedure](MOBILE-LOAD-INCIDENT-2026-10-19.md)
+   if the Mini App hangs.
+8. After releasing billing checks, run the no-payment alert delivery test
+   above and confirm receipt in every configured administrator's private chat.
+   Keep Stars disabled until the [Stars runbook](TELEGRAM-STARS-RUNBOOK.md)
+   acceptance steps and legal decisions are complete.
 
 ## YooKassa boundary
 
