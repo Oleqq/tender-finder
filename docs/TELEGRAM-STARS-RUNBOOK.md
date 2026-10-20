@@ -164,7 +164,9 @@ ID; для каждого расхождения нужен ручной раз�
 3. Сделать и проверить свежую копию PostgreSQL. Убедиться, что обе ветки
    `main` и VPS имеют одну проверенную ревизию, CI зелёный, `web`, `queue`,
    `scheduler`, PostgreSQL, Redis и Caddy работают, `/health` отвечает извне,
-   webhook доступен, очередь и ошибки под контролем. Выполнить
+   webhook доступен по `/telegram/webhook`, а `getWebhookInfo.allowed_updates`
+   содержит `message`, `pre_checkout_query` и `subscription`. Очередь и ошибки
+   должны быть под контролем. Выполнить
    `billing:reconcile-stars` и убедиться, что расхождений нет.
 4. В защищённом `.env.production` задать утверждённые
    `TELEGRAM_STARS_BASIC_PRICE_XTR` и `TELEGRAM_STARS_PRO_PRICE_XTR`, оставить

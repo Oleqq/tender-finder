@@ -423,8 +423,8 @@ for incident response and the read-only reconciliation procedure.
    The webhook endpoint is `https://YOUR_DOMAIN/telegram/webhook` because
    `bootstrap/app.php` sets an empty API prefix. Keep the existing
    `TELEGRAM_WEBHOOK_SECRET` as Bot API `secret_token`, and preserve
-   `message` and `pre_checkout_query` in `allowed_updates`. Check
-   `getWebhookInfo`: its URL must match this route, `pending_update_count`
+   `message`, `pre_checkout_query` and `subscription` in `allowed_updates`.
+   In `getWebhookInfo`, the URL must match this route, `pending_update_count`
    should drain, and `last_error_message` must be empty. Send `/help` to
    verify that a reply with the Mini App button arrives. A legacy
    `/api/telegram/webhook` URL returns 404.

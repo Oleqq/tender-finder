@@ -51,7 +51,8 @@
 Ручной `/help` после релиза выявил, что Telegram был настроен на
 `/api/telegram/webhook`, который возвращал `404`: серверный маршрут находится
 по `/telegram/webhook`. Bot API `setWebhook` переключён на действующий маршрут
-с сохранением секретного токена и типов `message`/`pre_checkout_query`.
+с сохранением секретного токена и типами `message`, `pre_checkout_query`,
+`subscription` в `allowed_updates`.
 `getWebhookInfo` показал `pending_update_count=0`; тестовые `/help` и
 `/paysupport` обработаны, ответы с кнопкой видны в Telegram Desktop. Кнопка
 открыла соответственно экраны тендеров и поддержки в Mini App. Путь и

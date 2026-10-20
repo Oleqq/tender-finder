@@ -140,9 +140,9 @@ bot token, полный webhook или платёжные персональны
 создавать новую подписку. Не отвечать Telegram успехом, пока событие не
 сохранено для гарантированной обработки.
 
-Проверить также, что маршрут webhook и `setWebhook.allowed_updates`
-получают `message` с `successful_payment` и `refunded_payment`, а также
-`pre_checkout_query`; при необходимости учесть новые subscription updates.
+Проверить также, что webhook работает по `/telegram/webhook` и
+`setWebhook.allowed_updates` включает `message` с `successful_payment` и
+`refunded_payment`, `pre_checkout_query` и отдельный `subscription` update.
 Сырые события не хранить без необходимости: достаточно безопасного
 `billing_events`/очереди с ID, типом, состоянием, попытками и минимальными
 полями для восстановления.
