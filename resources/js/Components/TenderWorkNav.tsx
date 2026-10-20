@@ -8,30 +8,35 @@ import type { PageProps } from '../types';
 const items: Array<{
     href: string;
     label: string;
+    compactLabel: string;
     description: string;
     icon: IconName;
 }> = [
     {
         href: '/tenders',
         label: 'Лента',
+        compactLabel: 'Лента',
         description: 'Новые совпадения',
         icon: 'layers',
     },
     {
         href: '/participation',
         label: 'Участие',
+        compactLabel: 'Участие',
         description: 'Заявки и задачи',
         icon: 'check',
     },
     {
         href: '/participation/analytics',
         label: 'Аналитика',
+        compactLabel: 'Анализ',
         description: 'Результаты и воронка',
         icon: 'chart',
     },
     {
         href: '/calendar',
         label: 'Календарь',
+        compactLabel: 'Сроки',
         description: 'Сроки и действия',
         icon: 'calendar',
     },
@@ -45,6 +50,7 @@ export function TenderWorkNav({ active }: { active: string }) {
                 <Link
                     key={item.href}
                     href={scopedUrl(item.href, team ?? null)}
+                    aria-label={item.label}
                     aria-current={active === item.href ? 'page' : undefined}
                     className={active === item.href ? 'is-active' : ''}
                 >
@@ -52,7 +58,8 @@ export function TenderWorkNav({ active }: { active: string }) {
                         <Icon name={item.icon} size={19} />
                     </span>
                     <span className="work-nav__copy">
-                        <strong>{item.label}</strong>
+                        <strong className="work-nav__label-full">{item.label}</strong>
+                        <strong className="work-nav__label-compact" aria-hidden="true">{item.compactLabel}</strong>
                         <small>{item.description}</small>
                     </span>
                 </Link>
