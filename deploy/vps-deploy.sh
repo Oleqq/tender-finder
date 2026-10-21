@@ -23,7 +23,14 @@ fi
 
 # The migration service is behind the `ops` profile. Build it explicitly as
 # well so a newly added migration never runs from a stale image.
-docker compose --env-file .env.production -f compose.production.yml --profile ops build --pull
+if [ "${TENDER_FINDER_USE_LOCAL_PHP_BASE:-0}" = 1 ]; then
+    # Emergency release path while Docker Hub has not published the official
+    # patched tag. The build and runtime checks below still enforce 8.3.36+.
+    docker image inspect php:8.3.36-cli-alpine >/dev/null
+    docker compose --env-file .env.production -f compose.production.yml --profile ops build
+else
+    docker compose --env-file .env.production -f compose.production.yml --profile ops build --pull
+fi
 # Never run migrations or replace the live web container from an unpatched
 # image, even if a registry mirror reused an old tag.
 docker compose --env-file .env.production -f compose.production.yml --profile ops run --rm --no-deps --entrypoint php migrate \

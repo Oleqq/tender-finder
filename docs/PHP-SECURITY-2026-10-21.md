@@ -49,6 +49,11 @@ docker compose --env-file .env.production -f compose.production.yml restart web
 docker compose --env-file .env.production -f compose.production.yml exec -T web php -r 'echo PHP_VERSION, " upload_progress=", ini_get("session.upload_progress.enabled"), "\n";'
 ```
 
+On 21 October the VPS was confirmed to run PHP 8.3.35. The multipart switch
+was enabled and checked externally (`503` for multipart, `200` for `/health`),
+and upload progress was set to `0` in the running web container. These remain
+partial, temporary mitigations until the patched image is live.
+
 ## Complete update
 
 When `docker manifest inspect php:8.3.36-cli-alpine` succeeds, deploy the
@@ -65,3 +70,14 @@ After confirming PHP 8.3.36 or a newer 8.3 patch release, set
 `PHP_BLOCK_MULTIPART=false` in `.env.production` (or remove the key), recreate
 only Caddy as above, and verify document uploads again. Do not treat the
 source change or a successful Git push alone as a production update.
+
+If Docker Hub still lacks the tag, build `php:8.3.36-cli-alpine` from the
+[official Docker recipe](https://github.com/docker-library/php/tree/e3eaff845f7a9f7259c31da54dce0320b47a3bbd/8.3/alpine3.23/cli)
+using the signed archive from
+[PHP's distribution repository](https://github.com/php/web-php-distributions).
+Verify its [published SHA-256](https://www.php.net/downloads.php?source=Y)
+and GPG signature. The deployment script then supports
+`TENDER_FINDER_USE_LOCAL_PHP_BASE=1 sh deploy/vps-deploy.sh`; this skips a
+Docker Hub pull only for that explicit run and still rejects an old PHP image
+before migrations or service replacement. Normal releases continue to pull
+the base image.
