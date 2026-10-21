@@ -36,7 +36,12 @@ COPY composer.json composer.lock ./
 RUN composer install --no-interaction --no-progress --prefer-dist --no-scripts \
     && sha256sum composer.lock | awk '{print $1}' > vendor/.tender-finder-composer-lock.sha256
 
-FROM php:8.3-cli-alpine AS app-base
+FROM php:8.3.36-cli-alpine AS app-base
+
+# PHP 8.3.36 fixes CVE-2026-109618 and CVE-2026-109619. Fail closed if a
+# registry mirror serves a stale image under this tag.
+RUN php -r 'if (PHP_VERSION_ID < 80336 || PHP_VERSION_ID >= 80400) { fwrite(STDERR, "PHP 8.3.36 or newer 8.3 patch release is required\n"); exit(1); }' \
+    && printf 'session.upload_progress.enabled=0\n' > "$PHP_INI_DIR/conf.d/zz-disable-upload-progress.ini"
 
 RUN apk add --no-cache $PHPIZE_DEPS ca-certificates curl libzip-dev libxml2-dev oniguruma-dev openssl postgresql-dev \
     && docker-php-ext-install mbstring opcache pcntl pdo_pgsql xml zip

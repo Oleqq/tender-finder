@@ -18,5 +18,12 @@
     @incident_paths path / /open /health /telegram/session /build/* /vendor/telegram-web-app-63.js
     log_append @incident_paths path {http.request.uri.path}
     log_append request_id {http.response.header.X-Request-ID}
+    # Emergency switch while waiting for a patched PHP image. Keep this off
+    # after upgrading, since participation documents use multipart uploads.
+    @blocked_multipart {
+        header_regexp Content-Type (?i)^multipart/form-data(?:\s*;|\s*$)
+        expression `"{$PHP_BLOCK_MULTIPART:false}" == "true"`
+    }
+    respond @blocked_multipart "File uploads are temporarily unavailable" 503
     reverse_proxy web:8080
 }

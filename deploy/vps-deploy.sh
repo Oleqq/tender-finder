@@ -24,6 +24,10 @@ fi
 # The migration service is behind the `ops` profile. Build it explicitly as
 # well so a newly added migration never runs from a stale image.
 docker compose --env-file .env.production -f compose.production.yml --profile ops build --pull
+# Never run migrations or replace the live web container from an unpatched
+# image, even if a registry mirror reused an old tag.
+docker compose --env-file .env.production -f compose.production.yml --profile ops run --rm --no-deps --entrypoint php migrate \
+    -r 'if (PHP_VERSION_ID < 80336 || PHP_VERSION_ID >= 80400 || ini_get("session.upload_progress.enabled")) { fwrite(STDERR, "Patched PHP 8.3 and disabled upload progress are required\n"); exit(1); } echo PHP_VERSION, " verified\n";'
 docker compose --env-file .env.production -f compose.production.yml --profile ops run --rm migrate
 docker compose --env-file .env.production -f compose.production.yml up -d --remove-orphans
 docker image prune -f

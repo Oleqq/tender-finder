@@ -1,5 +1,9 @@
 # Tender Finder: VPS deployment
 
+For the PHP critical security update of 21 October 2026, follow
+[the incident runbook](PHP-SECURITY-2026-10-21.md) before the routine release
+steps below.
+
 > 21 октября: в рабочей копии отключён платёжный путь Stars. После выпуска
 > проверяйте `/plans` как экран доступа и отсутствие маршрутов `/billing/*`;
 > старые переменные `TELEGRAM_STARS_*` больше не читаются приложением.
