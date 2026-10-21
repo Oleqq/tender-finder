@@ -1,5 +1,11 @@
 # Tender Finder: VPS deployment
 
+> 21 октября: в рабочей копии отключён платёжный путь Stars. После выпуска
+> проверяйте `/plans` как экран доступа и отсутствие маршрутов `/billing/*`;
+> старые переменные `TELEGRAM_STARS_*` больше не читаются приложением.
+> На VPS это изменение ещё не проверено. История прежних релизов ниже
+> сохранена с датами.
+
 > Проверка 20 октября: `e7bd19a` выпущен через workflow `39387852771`
 > после свежей проверенной копии БД. Миграция `failed_jobs` применена,
 > production `QUEUE_FAILED_DRIVER=database-uuids` загружен процессами Laravel.
@@ -395,30 +401,12 @@ in that case compare the user's attempt time with the absence of `/open` in
 Caddy logs.
 
 Copy the remaining variables from `.env.example`. Store the Telegram token,
-webhook secret, readiness token, and `APP_KEY` only in this file. Keep Stars
-disabled until the approved XTR amounts are populated:
-
-```dotenv
-TELEGRAM_STARS_ENABLED=false
-TELEGRAM_STARS_BASIC_PRICE_XTR=0
-TELEGRAM_STARS_PRO_PRICE_XTR=0
-```
-
-Billing alerts use the existing `TELEGRAM_OWNER_ID` and
-`TELEGRAM_SUPERADMIN_IDS` values. Each administrator must first message the bot.
-After a release, test delivery without a payment from `/opt/tenderfinder`:
-
-```bash
-docker compose -f compose.production.yml exec web php artisan billing:check-stars-incidents --test-delivery
-```
-
-Check the result in every administrator's private chat. For a manually run
-command, inspect its console output and Laravel's persistent `storage/logs`
-files in `web`; inspect `scheduler` logs for scheduled alerts. Look for
-`billing.alert.*`. The command returns a
-failure status if any configured recipient could not be reached. See the
-[Telegram Stars runbook](TELEGRAM-STARS-RUNBOOK.md#оповещения-и-проверка-доставки)
-for incident response and the read-only reconciliation procedure.
+webhook secret, readiness token, and `APP_KEY` only in this file. The current
+application does not read legacy `TELEGRAM_STARS_*` values. Keep the Telegram
+webhook subscribed to `pre_checkout_query` during retirement so an old invoice
+receives an explicit rejection rather than a timeout. Unexpected payment
+updates are logged and retained for manual review; see the
+[retirement note](TELEGRAM-STARS-RUNBOOK.md).
 
 ## Release checks
 
@@ -445,10 +433,11 @@ for incident response and the read-only reconciliation procedure.
    `http.request.completed`, and Caddy logged the path and matching request
    ID. Use the [mobile incident procedure](MOBILE-LOAD-INCIDENT-2026-10-19.md)
    if the Mini App hangs.
-8. After releasing billing checks, run the no-payment alert delivery test
-   above and confirm receipt in every configured administrator's private chat.
-   Keep Stars disabled until the [Stars runbook](TELEGRAM-STARS-RUNBOOK.md)
-   acceptance steps and legal decisions are complete.
+8. After releasing Stars retirement, verify authenticated `/plans` shows only
+   access status and support, `/billing/invoice` returns 404, and `/subscribe`
+   does not create an invoice. Confirm `schedule:list` has no Stars commands.
+   Monitor `telegram.payment_update_received_after_retirement` for any old
+   payment event. Do not send a real checkout query just for this smoke test.
 
 ## YooKassa boundary
 

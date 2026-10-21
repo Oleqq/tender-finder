@@ -31,14 +31,6 @@ return [
     ],
 
     'payments' => [
-        'telegram_stars' => [
-            // Keep billing opt-in: no invoice is created until the business
-            // owner approves the XTR prices and explicitly enables it.
-            'enabled' => (bool) env('TELEGRAM_STARS_ENABLED', false),
-            'basic_price_xtr' => (int) env('TELEGRAM_STARS_BASIC_PRICE_XTR', 0),
-            'pro_price_xtr' => (int) env('TELEGRAM_STARS_PRO_PRICE_XTR', 0),
-            'subscription_period_seconds' => (int) env('TELEGRAM_STARS_SUBSCRIPTION_PERIOD_SECONDS', 2_592_000),
-        ],
         // Reserved integration boundary for a future external web checkout.
         // Do not enable inside Telegram for digital services: Telegram requires XTR there.
         'yookassa' => [

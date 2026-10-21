@@ -77,7 +77,7 @@ it('shows super admins an anonymised marketing dashboard for the requested perio
             ->where('dashboard.audience.miniAppActive', 3)
             ->where('dashboard.activation.trialsStarted', 2)
             ->where('dashboard.activation.trialsTotal', 5)
-            ->where('dashboard.activation.starsStarted', 1)
+            ->missing('dashboard.activation.starsStarted')
             ->where('dashboard.access.preview', 1)
             ->where('dashboard.access.trialing', 1)
             ->where('dashboard.access.paid', 1)
@@ -97,7 +97,7 @@ it('shows super admins an anonymised marketing dashboard for the requested perio
             ->where('dashboard.series.4.trials', 1)
             ->where('dashboard.series.5.registrations', 1)
             ->where('dashboard.series.5.trials', 1)
-            ->where('dashboard.series.5.starsStarts', 1));
+            ->missing('dashboard.series.5.starsStarts'));
 });
 
 it('uses a 30-day dashboard for an unsupported period and has no revenue data on an empty base', function () {
@@ -112,7 +112,7 @@ it('uses a 30-day dashboard for an unsupported period and has no revenue data on
             ->where('dashboard.period.days', 30)
             ->where('dashboard.audience.total', 0)
             ->where('dashboard.audience.miniAppActive', 0)
-            ->where('dashboard.activation.starsStarted', 0)
+            ->missing('dashboard.activation.starsStarted')
             ->where('dashboard.funnel.trialRate', 0)
             ->where('dashboard.funnel.paidRate', 0)
             ->where('dashboard.commerce.state', 'pending')

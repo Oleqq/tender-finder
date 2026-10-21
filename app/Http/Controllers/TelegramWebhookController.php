@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\ProcessTelegramPaymentUpdate;
 use App\Jobs\ProcessTelegramUpdate;
 use App\Models\TelegramUpdate;
 use App\Services\TelegramBotClient;
-use App\Services\TelegramStarsPaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TelegramWebhookController extends Controller
 {
@@ -55,7 +54,7 @@ class TelegramWebhookController extends Controller
 
         $created = false;
         $type = $this->updateType($validated);
-        $durablePayment = in_array($type, ['successful_payment', 'refunded_payment', 'subscription'], true);
+        $isPaymentUpdate = in_array($type, ['successful_payment', 'refunded_payment', 'subscription'], true);
         $paymentPayload = match ($type) {
             'successful_payment' => $this->safePaymentPayload($validated['message']['successful_payment']),
             'refunded_payment' => $this->safePaymentPayload($validated['message']['refunded_payment']),
@@ -68,9 +67,10 @@ class TelegramWebhookController extends Controller
             $created = DB::table('telegram_updates')->insertOrIgnore([
                 'telegram_update_id' => $validated['update_id'],
                 'type' => $type,
-                'status' => 'received',
+                'status' => $type === 'message' ? 'received' : 'ignored',
                 'payment_payload' => $paymentPayload === null ? null : json_encode($paymentPayload, JSON_THROW_ON_ERROR),
                 'received_at' => $now,
+                'processed_at' => $type === 'message' ? null : $now,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]) === 1;
@@ -86,7 +86,7 @@ class TelegramWebhookController extends Controller
             $command = $this->commandFrom($validated['message']['text'] ?? null);
             $chatId = $validated['message']['chat']['id'] ?? null;
 
-            if ($type === 'pre_checkout_query' || $paymentPayload !== null) {
+            if ($type !== 'message') {
                 return;
             }
 
@@ -99,40 +99,25 @@ class TelegramWebhookController extends Controller
             ProcessTelegramUpdate::dispatch($validated['update_id'], $command, (string) $chatId)->afterCommit();
         });
 
-        $status = TelegramUpdate::query()->where('telegram_update_id', $validated['update_id'])->value('status');
-
-        if ($type === 'pre_checkout_query' && $status !== 'processed') {
-            $this->answerPreCheckout($validated['update_id'], $validated['pre_checkout_query']);
+        if ($type === 'pre_checkout_query') {
+            $queryId = $validated['pre_checkout_query']['id'] ?? null;
+            if (is_string($queryId) && $queryId !== '') {
+                app(TelegramBotClient::class)->answerPreCheckoutQuery(
+                    $queryId,
+                    false,
+                    'Оплата в Telegram больше недоступна.',
+                );
+            }
         }
 
-        if ($durablePayment && $status !== 'processed') {
-            ProcessTelegramPaymentUpdate::dispatch($validated['update_id']);
+        if ($isPaymentUpdate && $created) {
+            Log::error('telegram.payment_update_received_after_retirement', [
+                'update_id' => $validated['update_id'],
+                'type' => $type,
+            ]);
         }
 
         return response()->json(['ok' => true, 'duplicate' => ! $created]);
-    }
-
-    /** @param array<string, mixed> $query */
-    private function answerPreCheckout(int $updateId, array $query): void
-    {
-        $queryId = $query['id'] ?? null;
-
-        if (! is_string($queryId) || $queryId === '') {
-            TelegramUpdate::query()->where('telegram_update_id', $updateId)
-                ->update(['status' => 'failed', 'failure_code' => 'invalid_pre_checkout', 'processed_at' => now()]);
-
-            return;
-        }
-
-        $error = app(TelegramStarsPaymentService::class)->validatePreCheckout($query);
-        app(TelegramBotClient::class)->answerPreCheckoutQuery($queryId, $error === null, $error);
-
-        TelegramUpdate::query()->where('telegram_update_id', $updateId)
-            ->update([
-                'status' => $error === null ? 'processed' : 'ignored',
-                'failure_code' => $error === null ? null : 'pre_checkout_rejected',
-                'processed_at' => now(),
-            ]);
     }
 
     private function commandFrom(mixed $text): ?string
@@ -153,13 +138,7 @@ class TelegramWebhookController extends Controller
             return $command;
         }
 
-        if ($command !== '/subscribe') {
-            return null;
-        }
-
-        $plan = strtolower(trim((string) ($parts[1] ?? 'basic')));
-
-        return in_array($plan, ['basic', 'pro'], true) ? "/subscribe:{$plan}" : null;
+        return $command === '/subscribe' ? '/subscribe' : null;
     }
 
     /** @param array<string, mixed> $update */

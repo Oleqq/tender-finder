@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\AccessState;
-use App\Http\Controllers\AdminBillingController;
 use App\Http\Controllers\AdminSupportController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CalendarSubscriptionController;
@@ -87,10 +86,6 @@ Route::get('/calendar/subscriptions/{token}.ics', [CalendarSubscriptionControlle
     ->name('calendar.subscription.feed');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/billing/admin', [AdminBillingController::class, 'index'])
-        ->middleware('super_admin')->name('billing.admin.index');
-    Route::post('/billing/admin/payments/{payment}/refund', [AdminBillingController::class, 'refund'])
-        ->middleware(['super_admin', 'throttle:5,1'])->name('billing.admin.refund');
     Route::get('/support/admin', [AdminSupportController::class, 'index'])
         ->middleware('super_admin')->name('support.admin.index');
     Route::get('/support/admin/{ticket}', [AdminSupportController::class, 'show'])
@@ -170,13 +165,6 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile/notification-preferences', [NotificationPreferenceController::class, 'update'])
         ->name('profile.notification-preferences.update');
     Route::get('/plans', [BillingController::class, 'index'])->name('plans');
-    Route::get('/billing/status', [BillingController::class, 'status'])->name('billing.status');
-    Route::post('/billing/invoice', [BillingController::class, 'invoice'])
-        ->middleware('throttle:10,1')->name('billing.invoice');
-    Route::post('/billing/subscriptions/{subscription}/cancel', [BillingController::class, 'cancel'])
-        ->name('billing.cancel');
-    Route::post('/billing/subscriptions/{subscription}/resume', [BillingController::class, 'resume'])
-        ->name('billing.resume');
     Route::get('/operations', [OperationsDashboardController::class, 'show'])
         ->middleware('super_admin')
         ->name('operations.dashboard');

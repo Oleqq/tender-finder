@@ -24,7 +24,7 @@ it('sends transactional notifications with a Mini App return button', function (
     });
 });
 
-it('keeps Mini App links on known internal screens and makes Stars checkout a button', function () {
+it('keeps Mini App links on known internal screens', function () {
     config()->set('tender.telegram.bot_token', 'test-token');
     config()->set('tender.telegram.mini_app_url', 'https://tender-finder.example.test');
     Http::fake(['https://api.telegram.org/*' => Http::response(['ok' => true])]);
@@ -35,17 +35,12 @@ it('keeps Mini App links on known internal screens and makes Stars checkout a bu
     app(TelegramBotClient::class)->sendNotification('test-private-chat', 'Проверка', [
         'screen' => 'https://other.example.test',
     ]);
-    app(TelegramBotClient::class)->sendPaymentLink('test-private-chat', 'https://t.me/invoice-example');
-
-    Http::assertSentCount(3);
+    Http::assertSentCount(2);
     $requests = Http::recorded()->map(fn ($pair) => $pair[0]->data())->values();
     expect($requests[0]['reply_markup']['inline_keyboard'][0][0]['web_app']['url'])
         ->toBe('https://tender-finder.example.test/open?screen=tenders&team_id=7')
         ->and($requests[1]['reply_markup']['inline_keyboard'][0][0]['web_app']['url'])
-        ->toBe('https://tender-finder.example.test/open?screen=tenders')
-        ->and($requests[2]['text'])->not->toContain('https://')
-        ->and($requests[2]['reply_markup']['inline_keyboard'][1][0]['url'])
-        ->toBe('https://t.me/invoice-example');
+        ->toBe('https://tender-finder.example.test/open?screen=tenders');
 });
 
 it('classifies a blocked private chat without exposing Telegram response details', function () {

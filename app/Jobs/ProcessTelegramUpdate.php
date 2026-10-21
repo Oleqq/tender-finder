@@ -4,7 +4,6 @@ namespace App\Jobs;
 
 use App\Models\TelegramUpdate;
 use App\Services\TelegramBotClient;
-use App\Services\TelegramStarsPaymentService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -24,7 +23,7 @@ class ProcessTelegramUpdate implements ShouldQueue
         public readonly string $chatId,
     ) {}
 
-    public function handle(TelegramBotClient $bot, TelegramStarsPaymentService $stars): void
+    public function handle(TelegramBotClient $bot): void
     {
         $update = TelegramUpdate::query()->where('telegram_update_id', $this->updateId)->first();
 
@@ -36,34 +35,12 @@ class ProcessTelegramUpdate implements ShouldQueue
             '/start' => 'Добро пожаловать в Tender Finder. Откройте Mini App кнопкой меню, чтобы настроить мониторинг.',
             '/help' => 'Tender Finder помогает отслеживать подходящие закупки. Откройте Mini App кнопкой меню для начала.',
             '/paysupport' => 'По вопросам оплаты и возврата откройте Tender Finder → Профиль → Мои обращения. Укажите тариф и дату платежа; не отправляйте данные карты.',
-            default => null,
+            '/subscribe' => 'Оплата подписки в Telegram отключена. По вопросам доступа откройте Tender Finder → Профиль → Мои обращения.',
+            default => 'Команда недоступна. Откройте Mini App кнопкой меню.',
         };
 
-        $invoiceWasSent = false;
-
-        if (str_starts_with($this->command, '/subscribe:')) {
-            $planCode = substr($this->command, strlen('/subscribe:'));
-
-            try {
-                $text = $stars->issueInvoiceForChat($this->chatId, $planCode);
-                $invoiceWasSent = $text === null;
-            } catch (Throwable $exception) {
-                $update->forceFill(['status' => 'failed', 'failure_code' => 'invoice_creation_failed'])->save();
-
-                throw $exception;
-            }
-        }
-
-        if ($text === null && ! $invoiceWasSent) {
-            $update->forceFill(['status' => 'ignored', 'processed_at' => now()])->save();
-
-            return;
-        }
-
         try {
-            if ($text !== null) {
-                $bot->sendMessage($this->chatId, $text, ['screen' => $this->command === '/paysupport' ? 'support' : 'tenders']);
-            }
+            $bot->sendMessage($this->chatId, $text, ['screen' => $this->command === '/paysupport' ? 'support' : 'tenders']);
             $update->forceFill([
                 'status' => 'processed',
                 'processed_at' => now(),

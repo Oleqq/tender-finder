@@ -6,7 +6,6 @@ use App\Enums\SubscriptionSource;
 use App\Enums\SubscriptionStatus;
 use App\Enums\UserRole;
 use App\Models\Entitlement;
-use App\Models\Subscription;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,10 +18,10 @@ final class AdminAccessAnalyticsService
      * @return array{
      *     period: array{key: string, days: int, startsAt: string, generatedAt: string},
      *     audience: array{total: int, newUsers: int, miniAppActive: int},
-     *     activation: array{trialsStarted: int, trialsTotal: int, starsStarted: int},
+     *     activation: array{trialsStarted: int, trialsTotal: int},
      *     access: array{preview: int, trialing: int, paid: int, granted: int, expired: int},
      *     funnel: array{registered: int, trialed: int, paid: int, trialRate: float, paidRate: float},
-     *     series: list<array{date: string, label: string, registrations: int, trials: int, starsStarts: int}>,
+     *     series: list<array{date: string, label: string, registrations: int, trials: int}>,
      *     commerce: array{state: string, message: string}
      * }
      */
@@ -59,7 +58,6 @@ final class AdminAccessAnalyticsService
                     ->whereBetween('trial_used_at', [$periodStart, $now])
                     ->count(),
                 'trialsTotal' => $trialsTotal,
-                'starsStarted' => $this->starsStartedInPeriod($periodStart, $now),
             ],
             'access' => [
                 'preview' => (clone $customerUsers)
@@ -84,7 +82,7 @@ final class AdminAccessAnalyticsService
             'series' => $this->dailySeries($periodStart, $now),
             'commerce' => [
                 'state' => 'pending',
-                'message' => 'Выручка появится после подключения платежей через Telegram Stars.',
+                'message' => 'Приём платежей пока не подключён.',
             ],
         ];
     }
@@ -140,17 +138,7 @@ final class AdminAccessAnalyticsService
         };
     }
 
-    private function starsStartedInPeriod(Carbon $periodStart, Carbon $now): int
-    {
-        return Subscription::query()
-            ->whereIn('user_id', $this->customerUsers()->select('id'))
-            ->where('source', SubscriptionSource::TelegramStars)
-            ->whereBetween('starts_at', [$periodStart, $now])
-            ->distinct()
-            ->count('user_id');
-    }
-
-    /** @return list<array{date: string, label: string, registrations: int, trials: int, starsStarts: int}> */
+    /** @return list<array{date: string, label: string, registrations: int, trials: int}> */
     private function dailySeries(Carbon $periodStart, Carbon $now): array
     {
         $series = [];
@@ -162,7 +150,6 @@ final class AdminAccessAnalyticsService
                 'label' => $day->format('d.m'),
                 'registrations' => 0,
                 'trials' => 0,
-                'starsStarts' => 0,
             ];
         }
 
@@ -178,18 +165,10 @@ final class AdminAccessAnalyticsService
             $this->incrementDailyMetric($series, $user->trial_used_at, 'trials');
         }
 
-        foreach (Subscription::query()
-            ->whereIn('user_id', $this->customerUsers()->select('id'))
-            ->where('source', SubscriptionSource::TelegramStars)
-            ->whereBetween('starts_at', [$periodStart, $now])
-            ->get(['starts_at']) as $subscription) {
-            $this->incrementDailyMetric($series, $subscription->starts_at, 'starsStarts');
-        }
-
         return array_values($series);
     }
 
-    /** @param array<string, array{date: string, label: string, registrations: int, trials: int, starsStarts: int}> $series */
+    /** @param array<string, array{date: string, label: string, registrations: int, trials: int}> $series */
     private function incrementDailyMetric(array &$series, CarbonInterface|string|null $date, string $metric): void
     {
         if ($date === null) {
@@ -210,9 +189,6 @@ final class AdminAccessAnalyticsService
                 break;
             case 'trials':
                 $series[$key]['trials']++;
-                break;
-            case 'starsStarts':
-                $series[$key]['starsStarts']++;
                 break;
         }
     }

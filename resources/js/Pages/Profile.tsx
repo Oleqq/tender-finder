@@ -92,7 +92,7 @@ export default function Profile() {
                         Команды <Icon name="chevron-right" size={17} />
                     </Link>
                     <Link href="/plans">
-                        Доступ и тарифы <Icon name="chevron-right" size={17} />
+                        Мой доступ <Icon name="chevron-right" size={17} />
                     </Link>
                 </GlassCard>
 

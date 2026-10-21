@@ -30,7 +30,6 @@ type GrowthDashboard = {
     activation: {
         trialsStarted: number;
         trialsTotal: number;
-        starsStarted: number;
     };
     access: {
         preview: number;
@@ -51,7 +50,6 @@ type GrowthDashboard = {
         label: string;
         registrations: number;
         trials: number;
-        starsStarts: number;
     }>;
     commerce: {
         state: 'pending';
@@ -234,9 +232,7 @@ export default function OperationsDashboard() {
                 <GrowthChart dashboard={dashboard} />
 
                 <InlineAlert title="Денежная картина появится позже" tone="neutral">
-                    {dashboard.commerce.message} Сейчас видно только{' '}
-                    {formatNumber(dashboard.activation.starsStarted)} запусков Stars за
-                    выбранный период — без сумм, прогнозов и тестовых денег.
+                    {dashboard.commerce.message}
                 </InlineAlert>
 
                 <section className="analytics-note page-enter page-enter--later">
@@ -341,9 +337,9 @@ function AccessDistribution({ access }: { access: GrowthDashboard['access'] }) {
                     value={formatNumber(access.trialing)}
                 />
                 <DataRow
-                    detail="доступ через Stars активен"
+                    detail="исторический оплаченный доступ"
                     icon="chart"
-                    label="Оплачивают"
+                    label="Оплаченный доступ"
                     value={formatNumber(access.paid)}
                 />
                 <DataRow
@@ -368,11 +364,7 @@ function GrowthChart({ dashboard }: { dashboard: GrowthDashboard }) {
         () =>
             Math.max(
                 1,
-                ...dashboard.series.flatMap((day) => [
-                    day.registrations,
-                    day.trials,
-                    day.starsStarts,
-                ]),
+                ...dashboard.series.flatMap((day) => [day.registrations, day.trials]),
             ),
         [dashboard.series],
     );
@@ -397,14 +389,10 @@ function GrowthChart({ dashboard }: { dashboard: GrowthDashboard }) {
                         <i className="is-trial" />
                         Пробный период
                     </span>
-                    <span>
-                        <i className="is-stars" />
-                        Stars
-                    </span>
                 </div>
             </div>
             <div
-                aria-label="Дневная динамика регистраций, пробных периодов и запусков Stars"
+                aria-label="Дневная динамика регистраций и пробных периодов"
                 className="analytics-chart__plot"
                 role="img"
             >
@@ -421,11 +409,6 @@ function GrowthChart({ dashboard }: { dashboard: GrowthDashboard }) {
                                 className="is-trial"
                                 style={{ height: barHeight(day.trials, peak) }}
                             />
-                            <span
-                                aria-label={`Stars ${day.label}: ${day.starsStarts}`}
-                                className="is-stars"
-                                style={{ height: barHeight(day.starsStarts, peak) }}
-                            />
                         </div>
                         {index % labelEvery === 0 ||
                         index === dashboard.series.length - 1 ? (
@@ -438,7 +421,7 @@ function GrowthChart({ dashboard }: { dashboard: GrowthDashboard }) {
                 {dashboard.series.map((day) => (
                     <li key={day.date}>
                         {day.label}: регистраций {day.registrations}, trial {day.trials}
-                        , Stars {day.starsStarts}.
+                        .
                     </li>
                 ))}
             </ul>
