@@ -37,6 +37,7 @@ return [
             'enabled' => (bool) env('YOOKASSA_ENABLED', false),
             'shop_id' => env('YOOKASSA_SHOP_ID'),
             'secret_key' => env('YOOKASSA_SECRET_KEY'),
+            'request_timeout_seconds' => (int) env('YOOKASSA_REQUEST_TIMEOUT_SECONDS', 15),
         ],
     ],
 
