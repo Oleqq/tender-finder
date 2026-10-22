@@ -380,7 +380,10 @@ export default function TenderWork() {
                                             Добавить задачу
                                         </Button>
                                     </form>
-                                    <Link className="work-calendar-link" href={scopedUrl('/calendar', team)}>
+                                    <Link
+                                        className="work-calendar-link"
+                                        href={scopedUrl('/calendar', team)}
+                                    >
                                         Посмотреть сроки в календаре
                                     </Link>
                                 </>

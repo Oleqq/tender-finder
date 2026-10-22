@@ -3,7 +3,7 @@ import { type FormEvent, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
 import { Badge, Button, GlassCard, InlineAlert, SelectField } from '../Components/ui';
-import { presentAccess } from '../lib/accessPresentation';
+import { useAccessPresentation } from '../lib/useAccessPresentation';
 import type { PageProps } from '../types';
 
 type NotificationPreferences = {
@@ -37,7 +37,7 @@ export default function Profile() {
     const [preferences, setPreferences] = useState(notificationPreferences);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
-    const access = presentAccess(auth.access);
+    const access = useAccessPresentation(auth.access);
     const isSuperAdmin = auth.user?.role === 'super_admin';
     const initials = (auth.user?.name ?? 'Tender Finder')
         .split(/\s+/)

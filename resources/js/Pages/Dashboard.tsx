@@ -2,7 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
 import { Badge, GlassCard } from '../Components/ui';
-import { presentAccess } from '../lib/accessPresentation';
+import { useAccessPresentation } from '../lib/useAccessPresentation';
 import type { PageProps } from '../types';
 
 type NextAction = {
@@ -29,9 +29,9 @@ type DashboardProps = {
 
 export default function Dashboard() {
     const { auth, nextActions, workspace } = usePage<PageProps<DashboardProps>>().props;
-    const access = presentAccess(auth.access);
-    const canUseMonitoring = ['trialing', 'active'].includes(auth.access?.state ?? '');
-    const canStartTrial = auth.access?.state === 'preview';
+    const access = useAccessPresentation(auth.access);
+    const canUseMonitoring = ['trial', 'trial_ending', 'active'].includes(access.phase);
+    const canStartTrial = access.phase === 'preview';
     const accessHref = canStartTrial ? '/consents' : '/plans';
     const primaryAction = !canUseMonitoring
         ? {
@@ -82,7 +82,9 @@ export default function Dashboard() {
                         <Badge tone={access.tone}>{access.badge}</Badge>
                         <h2>
                             {!canUseMonitoring
-                                ? 'Начните работу'
+                                ? canStartTrial
+                                    ? 'Начните работу'
+                                    : 'Доступ приостановлен'
                                 : !workspace.hasMonitoring
                                   ? 'Найдите свои тендеры'
                                   : !workspace.hasActiveMonitoring
@@ -100,6 +102,19 @@ export default function Dashboard() {
                         </Link>
                     </div>
                 </section>
+
+                {access.phase === 'trial_ending' ? (
+                    <Link className="dashboard-access-note" href="/plans">
+                        <span>
+                            <strong>Триал скоро закончится</strong>
+                            <small>
+                                {access.detail}. Мониторинги остановятся, настройки
+                                сохранятся.
+                            </small>
+                        </span>
+                        <Icon name="chevron-right" size={18} />
+                    </Link>
+                ) : null}
 
                 {canUseMonitoring ? (
                     <section

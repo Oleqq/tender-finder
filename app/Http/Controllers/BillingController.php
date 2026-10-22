@@ -9,6 +9,12 @@ class BillingController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Plans');
+        return Inertia::render('Plans', [
+            'purchase' => [
+                'availability' => 'unavailable',
+                'plans' => [],
+                'checkout' => null,
+            ],
+        ]);
     }
 }

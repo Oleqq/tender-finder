@@ -59,7 +59,9 @@ export function TenderWorkNav({ active }: { active: string }) {
                     </span>
                     <span className="work-nav__copy">
                         <strong className="work-nav__label-full">{item.label}</strong>
-                        <strong className="work-nav__label-compact" aria-hidden="true">{item.compactLabel}</strong>
+                        <strong className="work-nav__label-compact" aria-hidden="true">
+                            {item.compactLabel}
+                        </strong>
                         <small>{item.description}</small>
                     </span>
                 </Link>

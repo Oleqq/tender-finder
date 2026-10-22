@@ -584,6 +584,29 @@ input:focus-visible {
 .access-state-card p { margin: 0; font-size: 11px; font-weight: 720; }
 .access-state-card > strong { color: var(--app-ink); font-size: 18px; font-weight: 760; letter-spacing: -.035em; }
 .access-state-card > span { color: var(--app-muted); font-size: 12px; }
+.access-state-card > strong { overflow-wrap: anywhere; }
+.access-main-action { display: inline-flex; margin-top: var(--space-5); }
+.access-next-step { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: var(--space-3); margin-top: var(--space-5); padding: var(--space-5); }
+.access-next-step__icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; color: var(--tf-accent-deep); background: var(--tf-accent-soft); }
+.access-next-step h2, .purchase-unavailable h2 { margin: 0; color: var(--app-ink); font-size: 16px; font-weight: 740; letter-spacing: -.025em; }
+.access-next-step p, .purchase-unavailable p { margin: 8px 0 0; color: var(--app-muted); font-size: 12px; line-height: 1.55; }
+.access-next-step a { display: inline-flex; min-height: 44px; align-items: center; gap: 2px; margin-top: 8px; color: var(--tf-accent-deep); font-size: 12px; font-weight: 720; }
+.purchase-unavailable { display: grid; gap: 2px; margin-top: var(--space-5); padding: var(--space-5); }
+.purchase-unavailable .purchase-unavailable__eyebrow { margin: 0 0 3px; color: var(--tf-accent-deep); font-size: 10px; font-weight: 760; letter-spacing: .06em; text-transform: uppercase; }
+.dashboard-access-note { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 66px; margin-top: var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid color-mix(in srgb, var(--tf-warning) 35%, var(--tf-line)); border-radius: var(--radius-md); color: var(--tf-warning); background: var(--tf-warning-soft); text-decoration: none; }
+.dashboard-access-note span { display: grid; gap: 3px; min-width: 0; }
+.dashboard-access-note strong { font-size: 12px; }
+.dashboard-access-note small { font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.dashboard-access-note svg { flex: none; }
+.external-checkout { display: grid; gap: var(--space-4); padding: var(--space-5); }
+.external-checkout h2 { margin: 0; color: var(--app-ink); font-size: clamp(22px, 5vw, 30px); line-height: 1.12; letter-spacing: -.04em; }
+.external-checkout p { margin: 0; max-width: 52ch; color: var(--app-muted); font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+.external-checkout__plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--space-4); }
+.external-checkout__plan { display: grid; gap: var(--space-2); }
+.external-checkout__plan > a, .external-checkout__actions > a:not(.button) { display: inline-flex; min-height: 44px; align-items: center; color: var(--tf-accent-deep); font-size: 12px; font-weight: 720; }
+.external-checkout__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+@media (max-width: 480px) { .access-main-action { width: 100%; justify-content: center; } .access-next-step, .purchase-unavailable { padding: var(--space-4); } }
+@media (max-width: 480px) { .external-checkout__actions > .button, .external-checkout__actions > a.button { width: 100%; justify-content: center; } }
 .access-admin { display: grid; gap: var(--space-4); margin-top: var(--space-6); padding: var(--space-4); }
 .access-admin p { margin: 0 0 3px; color: var(--tf-accent-deep); font-size: 10px; font-weight: 740; letter-spacing: .06em; text-transform: uppercase; }
 .access-admin h2 { margin: 0; color: var(--app-ink); font-size: 16px; font-weight: 740; letter-spacing: -.03em; }
@@ -608,7 +631,7 @@ input:focus-visible {
 .billing-current p, .billing-details p { margin: 0; color: var(--app-muted); font-size: 12px; line-height: 1.5; }
 .billing-current .button { margin-top: 8px; }
 .billing-links { display: flex; flex-wrap: wrap; gap: 10px 16px; }
-.billing-links a { color: var(--tf-accent-deep); font-size: 12px; font-weight: 720; }
+.billing-links a { display: inline-flex; min-height: 44px; align-items: center; color: var(--tf-accent-deep); font-size: 12px; font-weight: 720; }
 .billing-history { display: grid; gap: 10px; margin-top: var(--space-6); }
 .billing-payment { display: grid; gap: 8px; padding: var(--space-4); }
 .billing-payment > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

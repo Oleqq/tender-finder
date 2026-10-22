@@ -219,7 +219,12 @@ export default function ParticipationAnalytics() {
                         <div className="analytics-series">
                             {analytics.series.map((point) => (
                                 <div key={point.month}>
-                                    <strong>{point.month.replace(/^(\d{4})-(\d{2})$/, '$2.$1')}</strong>
+                                    <strong>
+                                        {point.month.replace(
+                                            /^(\d{4})-(\d{2})$/,
+                                            '$2.$1',
+                                        )}
+                                    </strong>
                                     <span>Всего {point.total}</span>
                                     <span className="is-won">Победы {point.won}</span>
                                     <span className="is-lost">
