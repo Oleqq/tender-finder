@@ -18,7 +18,9 @@ final class MonitoringPreviewService
         $query = new SearchQuery($attributes);
         $templateId = $attributes['filters']['source']['rostender_template_id'] ?? null;
         if (! is_int($templateId) || $templateId < 1) {
-            $feedIds = app(PublicTenderSources::class)->feeds()->modelKeys();
+            $selected = TenderSources::selected($query);
+            $feedIds = app(PublicTenderSources::class)->feeds()
+                ->filter(fn ($feed): bool => $selected === null || in_array($feed->source, $selected, true))->modelKeys();
             if ($feedIds === []) {
                 throw new RostenderAccessDisabledException;
             }
@@ -40,6 +42,7 @@ final class MonitoringPreviewService
         });
         $scope = 'Первые 5 карточек шаблона RosTender; результаты обновляются раз в 30 минут.';
         $tenders = array_map(fn (TenderSourceItem $item): Tender => new Tender([
+            'source' => 'rostender',
             'title' => $item->title, 'description' => $item->summary, 'region' => $item->region,
             'budget_amount' => $item->budgetAmount, 'deadline_at' => $item->deadlineAt,
             'metadata' => $item->metadata, 'canonical_url' => $item->canonicalUrl,

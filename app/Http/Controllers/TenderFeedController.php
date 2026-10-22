@@ -12,9 +12,13 @@ use App\Models\TenderFeedView;
 use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
 use App\Services\MonitoringStatusService;
+use App\Services\PublicTenderSources;
+use App\Services\RostenderAccessGate;
 use App\Services\TeamWorkflowService;
 use App\Services\TeamWorkspaceService;
 use App\Services\TenderFacts;
+use App\Services\TenderSources;
+use App\Services\TenderSummary;
 use App\Services\TenderTitle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -45,6 +49,8 @@ class TenderFeedController extends Controller
             'tag' => ['nullable', 'string', 'max:40'],
             'query_id' => ['nullable', 'integer'],
             'source' => ['nullable', Rule::in(['all', 'rostender', 'sber_ast', 'workspace_ru', 'etp_gpb', 'bidzaar', 'etp_region', 'b2b_center', 'roseltorg', 'rts_tender', 'sber_ast_catalog'])],
+            'sources' => ['nullable', 'array', 'max:10'],
+            'sources.*' => ['required', 'string', 'distinct', Rule::in(array_keys(TenderSources::LABELS))],
             'sort' => ['nullable', Rule::in(['matched_desc', 'deadline_asc', 'budget_desc', 'budget_asc'])],
         ]);
 
@@ -57,6 +63,8 @@ class TenderFeedController extends Controller
                 ?? SearchQuery::query()->where('user_id', $user->id)
                     ->where('status', '!=', QueryStatus::Deleted->value)->latest('id')->value('id'));
         $source = (string) ($filters['source'] ?? 'all');
+        $sources = array_values($filters['sources'] ?? ($source === 'all' ? [] : [$source]));
+        $source = count($sources) === 1 ? $sources[0] : 'all';
         $sort = (string) ($filters['sort'] ?? 'matched_desc');
 
         $matches = TenderQueryMatch::query()
@@ -112,8 +120,8 @@ class TenderFeedController extends Controller
                 ->whereJsonContains('tags', $tag));
         }
 
-        if ($source !== 'all') {
-            $matches->whereHas('tender', fn (Builder $query) => $query->where('source', $source));
+        if ($sources !== []) {
+            $matches->whereHas('tender', fn (Builder $query) => $query->whereIn('source', $sources));
         }
 
         $this->applySort($matches, $sort);
@@ -125,6 +133,7 @@ class TenderFeedController extends Controller
             return [
                 'id' => $match->id,
                 'tender_id' => $match->tender->id,
+                'summary' => TenderSummary::forTender($match->tender),
                 'title' => TenderTitle::display($match->tender->title),
                 'description' => $match->tender->description,
                 'canonical_url' => $match->tender->canonical_url,
@@ -167,9 +176,14 @@ class TenderFeedController extends Controller
                 'tag' => $tag,
                 'query_id' => $queryId,
                 'source' => $source,
+                'sources' => $sources,
                 'sort' => $sort,
             ],
             'filterOptions' => [
+                'availableSources' => [
+                    ...app(PublicTenderSources::class)->enabled(),
+                    ...(app(RostenderAccessGate::class)->allowsDataProcessing() ? ['rostender'] : []),
+                ],
                 'queries' => SearchQuery::query()
                     ->where('user_id', $user->id)
                     ->where('status', '!=', QueryStatus::Deleted->value)
@@ -203,6 +217,8 @@ class TenderFeedController extends Controller
             'query_id' => ['nullable', 'integer'],
             'assignee_id' => ['nullable', 'integer'],
             'source' => ['nullable', Rule::in(['all', 'rostender', 'sber_ast', 'workspace_ru', 'etp_gpb', 'bidzaar', 'etp_region', 'b2b_center', 'roseltorg', 'rts_tender', 'sber_ast_catalog'])],
+            'sources' => ['nullable', 'array', 'max:10'],
+            'sources.*' => ['required', 'string', 'distinct', Rule::in(array_keys(TenderSources::LABELS))],
             'sort' => ['nullable', Rule::in(['matched_desc', 'deadline_asc', 'budget_desc', 'budget_asc'])],
             'overdue' => ['nullable', 'boolean'],
         ]);
@@ -211,6 +227,8 @@ class TenderFeedController extends Controller
         $queryId = isset($filters['query_id']) ? (int) $filters['query_id'] : null;
         $assigneeId = isset($filters['assignee_id']) ? (int) $filters['assignee_id'] : null;
         $source = (string) ($filters['source'] ?? 'all');
+        $sources = array_values($filters['sources'] ?? ($source === 'all' ? [] : [$source]));
+        $source = count($sources) === 1 ? $sources[0] : 'all';
         $sort = (string) ($filters['sort'] ?? 'matched_desc');
         $overdue = (bool) ($filters['overdue'] ?? false);
 
@@ -253,8 +271,8 @@ class TenderFeedController extends Controller
             $tenders->whereHas('teamReviews', fn (Builder $query) => $query->where('team_id', $team->id)
                 ->whereIn('status', ['new', 'reviewing', 'deferred'])->where('due_at', '<', now()));
         }
-        if ($source !== 'all') {
-            $tenders->where('source', $source);
+        if ($sources !== []) {
+            $tenders->whereIn('source', $sources);
         }
         match ($sort) {
             'deadline_asc' => $tenders->orderByRaw('deadline_at IS NULL')->orderBy('deadline_at'),
@@ -272,6 +290,7 @@ class TenderFeedController extends Controller
             return [
                 'id' => $tender->id,
                 'tender_id' => $tender->id,
+                'summary' => TenderSummary::forTender($tender),
                 'title' => TenderTitle::display($tender->title),
                 'description' => $tender->description,
                 'canonical_url' => $tender->canonical_url,
@@ -322,7 +341,7 @@ class TenderFeedController extends Controller
             ...$scope->props($request->user(), $team),
             'tenderMatches' => $paginator,
             'filters' => ['q' => $search, 'status' => $status, 'tag' => '', 'query_id' => $queryId,
-                'assignee_id' => $assigneeId, 'source' => $source, 'sort' => $sort, 'overdue' => $overdue],
+                'assignee_id' => $assigneeId, 'source' => $source, 'sources' => $sources, 'sort' => $sort, 'overdue' => $overdue],
             'filterOptions' => ['queries' => $shared->map(fn ($query) => ['id' => $query['id'], 'name' => $query['name']])->values(), 'tags' => []],
             'savedViews' => TenderFeedView::query()->where('team_id', $team->id)->latest()->get(['id', 'user_id', 'name', 'filters'])
                 ->map(fn (TenderFeedView $view): array => ['id' => $view->id, 'name' => $view->name, 'filters' => $view->filters,

@@ -16,6 +16,10 @@ class TenderMatchingService
 
     public function evaluate(SearchQuery $query, Tender $tender): TenderMatchResult
     {
+        if (! TenderSources::allows($query, $tender->source)) {
+            return new TenderMatchResult(false, ['excluded_by' => 'source']);
+        }
+
         $customer = TenderFacts::customer($tender);
         $excludedCustomers = $query->filters['excluded_customers'] ?? [];
         if ($customer !== null && in_array($this->lower($customer), array_map(fn (string $name): string => $this->lower($name), $excludedCustomers), true)) {

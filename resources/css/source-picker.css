@@ -1,0 +1,11 @@
+.source-picker { display: grid; gap: 12px; min-width: 0; }
+.source-picker button { display: flex; min-width: 0; min-height: 48px; align-items: center; gap: 9px; border: 1px solid var(--tf-line); border-radius: 13px; padding: 10px 12px; color: var(--app-ink); background: var(--tf-surface); font-size: 12px; font-weight: 650; line-height: 1.4; text-align: left; }
+.source-picker button[aria-pressed='true'] { border-color: var(--tf-accent); color: var(--tf-accent-deep); background: var(--tf-accent-soft); }
+.source-picker button:disabled { opacity: .5; }
+.source-picker__all { justify-self: start; }
+.source-picker__options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.source-picker__options button > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.source-picker__options small { display: block; margin-top: 3px; color: var(--app-muted); font-size: 10px; }
+.source-picker__check { display: grid; flex: 0 0 18px; width: 18px; height: 18px; place-items: center; border: 1px solid var(--tf-line); border-radius: 5px; }
+.source-picker [aria-pressed='true'] .source-picker__check { border-color: var(--tf-accent); }
+.source-picker__empty { margin: 0; color: var(--tf-warning); font-size: 12px; line-height: 1.5; }

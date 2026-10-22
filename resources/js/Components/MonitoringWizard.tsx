@@ -15,7 +15,7 @@ type Preview = {
     }>;
 };
 
-const steps = ['Ниша', 'Регион', 'Бюджет и сроки', 'Источник', 'Проверка'];
+const steps = ['Ниша', 'Регион', 'Бюджет и сроки', 'Площадки', 'Проверка'];
 const reasons: Record<string, string> = {
     keyword: 'Не совпали ключевые слова',
     minus_keyword: 'Найдены минус-слова',
@@ -23,6 +23,7 @@ const reasons: Record<string, string> = {
     budget: 'Цена вне диапазона',
     deadline: 'Срок вне диапазона',
     customer: 'Исключённый заказчик',
+    source: 'Площадка не выбрана',
 };
 
 export function MonitoringWizard({

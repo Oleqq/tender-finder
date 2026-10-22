@@ -8,6 +8,7 @@ use App\Models\NotificationDelivery;
 use App\Models\NotificationPreference;
 use App\Models\TenderQueryMatch;
 use App\Services\AccessService;
+use App\Services\TenderSources;
 use Illuminate\Console\Command;
 
 class SendDueTelegramDigests extends Command
@@ -38,14 +39,15 @@ class SendDueTelegramDigests extends Command
                 $windowStart = $scheduledAt->copy()->subDay()->utc();
                 $windowEnd = $scheduledAt->copy()->utc();
                 $matches = TenderQueryMatch::query()
-                    ->with('tender')
+                    ->with(['tender', 'searchQuery'])
                     ->whereHas('searchQuery', fn ($query) => $query->where('user_id', $user->id))
                     ->whereHas('tender', fn ($query) => $query->whereNull('deadline_at')
                         ->orWhere('deadline_at', '>=', now()))
                     ->where('matched_at', '>', $windowStart)
                     ->where('matched_at', '<=', $windowEnd)
                     ->latest('matched_at')
-                    ->get();
+                    ->get()
+                    ->filter(fn (TenderQueryMatch $match): bool => TenderSources::allows($match->searchQuery, $match->tender->source));
 
                 if ($matches->isEmpty()) {
                     return;

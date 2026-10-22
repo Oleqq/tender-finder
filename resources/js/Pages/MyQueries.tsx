@@ -3,6 +3,7 @@ import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { MonitoringWizard } from '../Components/MonitoringWizard';
+import { SourcePicker } from '../Components/SourcePicker';
 import { Icon } from '../Components/Icon';
 import {
     SavedSearchRunHistory,
@@ -17,6 +18,7 @@ import {
     InlineAlert,
 } from '../Components/ui';
 import { presentAccess } from '../lib/accessPresentation';
+import { tenderSourceOptions } from '../lib/tenderSources';
 import type { PageProps } from '../types';
 
 type QueryStatus = 'active' | 'paused' | 'frozen';
@@ -116,7 +118,13 @@ type QueryFormValues = {
     deadlineFrom: string;
     deadlineTo: string;
     rostenderTemplateId: string | null;
+    platforms: string[] | null;
 };
+
+type QueryFormChange = <K extends keyof QueryFormValues>(
+    field: K,
+    value: QueryFormValues[K],
+) => void;
 
 type QueryPayload = {
     name: string | null;
@@ -147,6 +155,7 @@ const emptyQueryForm = (): QueryFormValues => ({
     deadlineFrom: '',
     deadlineTo: '',
     rostenderTemplateId: '',
+    platforms: null,
 });
 
 export default function MyQueries() {
@@ -480,12 +489,18 @@ export default function MyQueries() {
                             )}
                             payload={toQueryPayload(createForm)}
                             sourceSelected={
-                                publicSources.length > 0 ||
-                                rostenderTemplates.some(
-                                    (template) =>
-                                        String(template.id) ===
-                                        createForm.rostenderTemplateId,
-                                )
+                                publicSources.some(
+                                    (source) =>
+                                        createForm.platforms === null ||
+                                        createForm.platforms.includes(source),
+                                ) ||
+                                ((createForm.platforms === null ||
+                                    createForm.platforms.includes('rostender')) &&
+                                    rostenderTemplates.some(
+                                        (template) =>
+                                            String(template.id) ===
+                                            createForm.rostenderTemplateId,
+                                    ))
                             }
                             saving={isCreating}
                             error={createError}
@@ -1071,41 +1086,57 @@ function QueryFields({
     publicSources?: string[];
     step?: number;
     form: QueryFormValues;
-    onChange: (field: keyof QueryFormValues, value: string) => void;
+    onChange: QueryFormChange;
     rostenderTemplates: Array<{ id: number; name: string }>;
 }) {
     return (
         <>
             <div hidden={step !== undefined && step !== 3}>
-                <label className="form-field">
-                    <span>Дополнительный шаблон RosTender</span>
-                    <select
-                        onChange={(event) =>
-                            onChange('rostenderTemplateId', event.target.value)
-                        }
-                        value={form.rostenderTemplateId ?? ''}
-                    >
-                        <option value="">
-                            {publicSources.length > 0
-                                ? 'Подключённые публичные источники'
-                                : 'Выберите шаблон RosTender'}
-                        </option>
-                        {rostenderTemplates.map((template) => (
-                            <option key={template.id} value={String(template.id)}>
-                                RosTender · {template.name}
+                <p className="query-create__hint">
+                    Выберите площадки для этого мониторинга. Можно отметить несколько.
+                </p>
+                <SourcePicker
+                    allLabel="Все подключённые площадки"
+                    available={[
+                        ...publicSources,
+                        ...(rostenderTemplates.length > 0 ? ['rostender'] : []),
+                    ]}
+                    onChange={(value) => onChange('platforms', value)}
+                    value={form.platforms}
+                />
+                {(form.platforms === null || form.platforms.includes('rostender')) &&
+                rostenderTemplates.length > 0 ? (
+                    <label className="form-field">
+                        <span>Дополнительный шаблон RosTender</span>
+                        <select
+                            onChange={(event) =>
+                                onChange('rostenderTemplateId', event.target.value)
+                            }
+                            value={form.rostenderTemplateId ?? ''}
+                        >
+                            <option value="">
+                                {publicSources.length > 0
+                                    ? 'Подключённые публичные источники'
+                                    : 'Выберите шаблон RosTender'}
                             </option>
-                        ))}
-                    </select>
-                </label>
+                            {rostenderTemplates.map((template) => (
+                                <option key={template.id} value={String(template.id)}>
+                                    RosTender · {template.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                ) : null}
                 {publicSources.length > 0 ? (
                     <p className="query-create__hint">
-                        Поиск также проверяет:{' '}
+                        Доступны:{' '}
                         {publicSources
                             .map((source) =>
                                 sourceLabel(source as SourceStatus['source']),
                             )
                             .join(', ')}
-                        . Новые совпадения попадут в вашу личную ленту.
+                        . Новые совпадения с выбранных площадок попадут в вашу личную
+                        ленту.
                     </p>
                 ) : rostenderTemplates.length > 0 ? (
                     <p className="query-create__hint">
@@ -1234,7 +1265,7 @@ function QueryFields({
 
 function updateForm(
     setForm: Dispatch<SetStateAction<QueryFormValues>>,
-): (field: keyof QueryFormValues, value: string) => void {
+): QueryFormChange {
     return (field, value): void => {
         setForm((current) => ({ ...current, [field]: value }));
     };
@@ -1254,6 +1285,7 @@ function queryToForm(query: QueryDto): QueryFormValues {
         deadlineFrom: query.deadline_from ?? '',
         deadlineTo: query.deadline_to ?? '',
         rostenderTemplateId: rostenderTemplateId(query),
+        platforms: queryPlatforms(query),
     };
 }
 
@@ -1266,7 +1298,11 @@ function toQueryPayload(form: QueryFormValues): QueryPayload | null {
 
     const source = {
         rostender_template_id:
-            form.rostenderTemplateId === '' ? null : Number(form.rostenderTemplateId),
+            !form.rostenderTemplateId ||
+            (form.platforms !== null && !form.platforms.includes('rostender'))
+                ? null
+                : Number(form.rostenderTemplateId),
+        platforms: form.platforms,
     };
 
     return {
@@ -1300,6 +1336,13 @@ function queryDetails(
     rostenderTemplates: Array<{ id: number; name: string }>,
 ): string | null {
     const details = [
+        queryPlatforms(query)
+            ?.map(
+                (source) =>
+                    tenderSourceOptions.find((option) => option.value === source)
+                        ?.label ?? source,
+            )
+            .join(', '),
         rostenderTemplateName(query, rostenderTemplates),
         query.region,
         budgetDetail(query.budget_min, query.budget_max),
@@ -1437,6 +1480,16 @@ function mergedFilters(
         ...update,
         source: {
             rostender_template_id: changedSource.rostender_template_id ?? null,
+            platforms: changedSource.platforms ?? null,
         },
     };
+}
+
+function queryPlatforms(query: QueryDto): string[] | null {
+    const source = query.filters?.source;
+    if (!source || typeof source !== 'object') return null;
+    const value = (source as Record<string, unknown>).platforms;
+    return Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === 'string')
+        : null;
 }

@@ -103,6 +103,10 @@ class SearchQueryService
 
     private function rostenderTemplateId(SearchQuery $query): ?int
     {
+        if (! TenderSources::allows($query, 'rostender')) {
+            return null;
+        }
+
         $filters = is_array($query->filters) ? $query->filters : [];
         $source = is_array($filters['source'] ?? null) ? $filters['source'] : [];
         $templateId = $source['rostender_template_id'] ?? null;

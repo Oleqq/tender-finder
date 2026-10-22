@@ -48,4 +48,16 @@ class NotificationDelivery extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /** @return BelongsTo<SearchQuery, $this> */
+    public function searchQuery(): BelongsTo
+    {
+        return $this->belongsTo(SearchQuery::class);
+    }
+
+    /** @return BelongsTo<Tender, $this> */
+    public function tender(): BelongsTo
+    {
+        return $this->belongsTo(Tender::class);
+    }
 }

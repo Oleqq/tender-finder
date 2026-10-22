@@ -18,6 +18,10 @@ class NotificationService
         $query = $match->searchQuery;
         $tender = $match->tender;
 
+        if (! TenderSources::allows($query, $tender->source)) {
+            return null;
+        }
+
         if ($query->monitoring_started_at === null || $tender->created_at->lt($query->monitoring_started_at)) {
             return null;
         }

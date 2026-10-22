@@ -352,6 +352,7 @@ class LocalMvpTenderWorkspaceService
 
         return [
             'id' => $tender->id,
+            'summary' => TenderSummary::forTender($tender),
             'title' => $tender->title,
             'description' => $tender->description,
             'region' => $tender->region,

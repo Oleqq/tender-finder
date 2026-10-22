@@ -22,11 +22,13 @@ use App\Services\RostenderTemplateCatalog;
 use App\Services\SearchQueryPresenter;
 use App\Services\SearchQueryService;
 use App\Services\TenderMatchingService;
+use App\Services\TenderSources;
 use App\Tenders\RostenderAccessDisabledException;
 use App\Tenders\RostenderApiException;
 use App\Tenders\RostenderQuotaExceededException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -113,7 +115,11 @@ class SearchQueryController extends Controller
     {
         $data = $request->validate([
             'phrase' => ['required', 'string', 'min:2', 'max:120'],
+            'platforms' => ['sometimes', 'nullable', 'array', 'min:1', 'max:10'],
+            'platforms.*' => ['required', 'string', 'distinct', Rule::in(array_keys(TenderSources::LABELS))],
         ]);
+        $platforms = isset($data['platforms'])
+            ? array_values(array_intersect(array_keys(TenderSources::LABELS), $data['platforms'])) : null;
         $phrase = trim($data['phrase']);
         if (mb_strlen($phrase) < 2) {
             throw ValidationException::withMessages(['phrase' => 'Введите хотя бы два символа.']);
@@ -125,8 +131,10 @@ class SearchQueryController extends Controller
         }
         $publicSources = app(PublicTenderSources::class);
         $publicSources->synchronize();
-        $hasPublicSources = $publicSources->feeds()->isNotEmpty();
-        $rostenderEnabled = app(RostenderAccessGate::class)->allowsDataProcessing();
+        $publicFeeds = $publicSources->feeds();
+        $hasPublicSources = ($platforms === null ? $publicFeeds : $publicFeeds->whereIn('source', $platforms))->isNotEmpty();
+        $rostenderEnabled = app(RostenderAccessGate::class)->allowsDataProcessing()
+            && ($platforms === null || in_array('rostender', $platforms, true));
         if (! $rostenderEnabled && ! $hasPublicSources) {
             throw ValidationException::withMessages([
                 'monitoring' => 'Источники сейчас не подключены. Поиск не запущен.',
@@ -158,6 +166,7 @@ class SearchQueryController extends Controller
                 && $query->deadline_from === null && $query->deadline_to === null
                 && array_diff(array_keys($query->filters ?? []), ['source', 'relevance']) === []
                 && in_array(($query->filters['relevance']['match_mode'] ?? null), [null, 'phrase'], true)
+                && TenderSources::selected($query) === $platforms
                 && (($query->filters['source']['rostender_template_id'] ?? null) === $templateId
                     || (! $rostenderEnabled && $hasPublicSources)));
         if ($existing !== null) {
@@ -179,7 +188,7 @@ class SearchQueryController extends Controller
                 'name' => $phrase,
                 'keywords' => $keywords,
                 'filters' => [
-                    'source' => ['rostender_template_id' => $templateId],
+                    'source' => ['rostender_template_id' => $templateId, 'platforms' => $platforms],
                     'relevance' => ['match_mode' => 'phrase'],
                 ],
             ]);
@@ -327,8 +336,10 @@ class SearchQueryController extends Controller
             'filters.excluded_customers.*' => ['required', 'string', 'max:200', 'distinct'],
             'filters.relevance' => ['nullable', 'array:match_mode'],
             'filters.relevance.match_mode' => ['nullable', 'string', 'in:all,any,exact,phrase'],
-            'filters.source' => [$isPartialUpdate ? 'sometimes' : 'required', 'array:rostender_template_id'],
+            'filters.source' => [$isPartialUpdate ? 'sometimes' : 'required', 'array:rostender_template_id,platforms'],
             'filters.source.rostender_template_id' => ['nullable', 'integer', 'min:1'],
+            'filters.source.platforms' => ['sometimes', 'nullable', 'array', 'min:1', 'max:10'],
+            'filters.source.platforms.*' => ['required', 'string', 'distinct', Rule::in(array_keys(TenderSources::LABELS))],
         ]);
 
         $keywords = array_values(array_filter(array_map('trim', $attributes['keywords'])));
@@ -343,6 +354,11 @@ class SearchQueryController extends Controller
             : null;
         $attributes['name'] = ($attributes['name'] ?? null) ?: mb_substr(implode(', ', $keywords), 0, 120);
         if (! $isPartialUpdate || isset($attributes['filters']['source'])) {
+            $existing = $request->route('query');
+            if ($isPartialUpdate && $existing instanceof SearchQuery
+                && ! array_key_exists('platforms', $attributes['filters']['source'])) {
+                $attributes['filters']['source']['platforms'] = TenderSources::selected($existing);
+            }
             $this->normalizeSourceFilters($attributes);
         }
         $this->normalizeRelevanceFilters($attributes);
@@ -365,22 +381,31 @@ class SearchQueryController extends Controller
             ? (int) $source['rostender_template_id']
             : null;
 
-        if ($rostenderTemplateId === null && app(PublicTenderSources::class)->feeds()->isNotEmpty()) {
-            $attributes['filters']['source'] = ['rostender_template_id' => null];
+        $platforms = isset($source['platforms'])
+            ? array_values(array_intersect(array_keys(TenderSources::LABELS), $source['platforms'])) : null;
+        if ($platforms !== null && ! in_array('rostender', $platforms, true)) {
+            $rostenderTemplateId = null;
+        }
+        $sourceFilters = ['rostender_template_id' => $rostenderTemplateId, 'platforms' => $platforms];
+        $publicFeeds = app(PublicTenderSources::class)->feeds();
+        if ($platforms !== null) {
+            $publicFeeds = $publicFeeds->whereIn('source', $platforms);
+        }
+
+        if ($rostenderTemplateId === null && $publicFeeds->isNotEmpty()) {
+            $attributes['filters']['source'] = $sourceFilters;
 
             return;
         }
         if ($rostenderTemplateId === null || ! $this->rostenderTemplates->contains($rostenderTemplateId)) {
             throw ValidationException::withMessages([
-                'filters.source.rostender_template_id' => 'Выберите доступный шаблон RosTender.',
+                'filters.source.rostender_template_id' => 'Выберите подключённую площадку или доступный шаблон RosTender.',
             ]);
         }
 
         $attributes['filters'] = [
             ...$attributes['filters'],
-            'source' => [
-                'rostender_template_id' => $rostenderTemplateId,
-            ],
+            'source' => $sourceFilters,
         ];
     }
 

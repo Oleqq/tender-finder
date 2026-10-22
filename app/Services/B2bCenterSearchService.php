@@ -36,6 +36,7 @@ final class B2bCenterSearchService
         $base = config('tender.b2b_center.catalog_url');
         $phrase = trim(implode(' ', $query->keywords ?? []));
         if (config('tender.b2b_center.enabled') && $query->status === QueryStatus::Active
+            && TenderSources::allows($query, 'b2b_center')
             && is_string($base) && app(B2bCenterFeedService::class)->isOfficialCatalogUrl($base)
             && $phrase !== '' && mb_strlen($phrase) <= 255) {
             $url = $base.'?'.http_build_query(['f_keyword' => $phrase, 'searching' => 1]);

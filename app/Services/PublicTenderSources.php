@@ -26,7 +26,13 @@ final class PublicTenderSources
         $searchFeeds = $query === null ? [] : SourceFeedSearchQuery::query()->where('search_query_id', $query->id)
             ->whereHas('feed', fn ($feeds) => $feeds->where('source', 'b2b_center'))->pluck('source_feed_id')->all();
 
-        return SourceFeed::query()->whereIn('source', $this->enabled())
+        $sources = $this->enabled();
+        $selected = $query === null ? null : TenderSources::selected($query);
+        if ($selected !== null) {
+            $sources = array_values(array_intersect($sources, $selected));
+        }
+
+        return SourceFeed::query()->whereIn('source', $sources)
             ->where(fn ($feeds) => $feeds->where('source', '!=', 'b2b_center')
                 ->orWhere(fn ($b2b) => $b2b->where('source', 'b2b_center')->where(function ($b2b) use ($query, $searchFeeds): void {
                     if ($query !== null) {
@@ -61,23 +67,28 @@ final class PublicTenderSources
     public function dispatchDueChecks(?SearchQuery $query = null): bool
     {
         $queued = false;
+        $sources = $this->feeds($query)->pluck('source')->unique()->all();
         // A source's cooldown and shared lock apply to all users, including
         // repeated clicks. A failed source cannot consume another's quota.
-        $sberCount = $this->feeds()->where('source', 'sber_ast')->count();
+        $sberCount = $this->feeds($query)->where('source', 'sber_ast')->count();
         for ($index = 0; $index < $sberCount; $index++) {
             $queued = app(SberAstPollingDispatcher::class)->dispatchOneDueFeed() || $queued;
         }
-        $queued = app(WorkspaceRuPollingDispatcher::class)->dispatchDueFeed() || $queued;
-        $queued = app(EtpGpbPollingDispatcher::class)->dispatchDueFeed() || $queued;
-        $queued = app(BidzaarPollingDispatcher::class)->dispatchDueFeed() || $queued;
-        $queued = app(EtpRegionPollingDispatcher::class)->dispatchDueFeed() || $queued;
+        foreach (['workspace_ru' => WorkspaceRuPollingDispatcher::class, 'etp_gpb' => EtpGpbPollingDispatcher::class,
+            'bidzaar' => BidzaarPollingDispatcher::class, 'etp_region' => EtpRegionPollingDispatcher::class] as $source => $dispatcher) {
+            if (in_array($source, $sources, true)) {
+                $queued = app($dispatcher)->dispatchDueFeed() || $queued;
+            }
+        }
 
         foreach ($this->feeds($query)->where('source', 'b2b_center') as $feed) {
             $queued = app(B2bCenterPollingDispatcher::class)->dispatchDueFeed($feed->id) || $queued;
         }
 
         foreach (array_keys(PlatformCatalogFeedService::URLS) as $source) {
-            $queued = app(PlatformCatalogPollingDispatcher::class)->dispatchDueFeed($source) || $queued;
+            if (in_array($source, $sources, true)) {
+                $queued = app(PlatformCatalogPollingDispatcher::class)->dispatchDueFeed($source) || $queued;
+            }
         }
 
         return $queued;

@@ -15,6 +15,7 @@ use App\Services\TaskReminderService;
 use App\Services\TeamWorkflowService;
 use App\Services\TelegramBotClient;
 use App\Services\TenderFollowUpService;
+use App\Services\TenderSources;
 use App\Telegram\TelegramDeliveryException;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -52,6 +53,16 @@ class DeliverTelegramNotification implements ShouldQueue
             ], true);
         if ($delivery->status !== NotificationStatus::Queued && ! $retryableFailure) {
             return;
+        }
+
+        if ($delivery->type === 'tender_card') {
+            $delivery->loadMissing(['searchQuery', 'tender']);
+            if ($delivery->searchQuery !== null && $delivery->tender !== null
+                && ! TenderSources::allows($delivery->searchQuery, $delivery->tender->source)) {
+                $delivery->forceFill(['status' => NotificationStatus::Skipped, 'failure_code' => 'source_deselected'])->save();
+
+                return;
+            }
         }
 
         if (! in_array($delivery->type, ['access_granted', 'access_updated', 'access_revoked'], true)

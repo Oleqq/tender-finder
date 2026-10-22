@@ -32,7 +32,7 @@ final class MonitoringStatusService
             foreach ($links->where('search_query_id', $query->id) as $link) {
                 /** @var SourceFeed|null $feed */
                 $feed = $feeds->get($link->source_feed_id);
-                if ($feed === null) {
+                if ($feed === null || ! TenderSources::allows($query, $feed->source)) {
                     continue;
                 }
 

@@ -1,11 +1,14 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
+import { TenderAnalytics } from '../Components/TenderAnalytics';
+import type { TenderSummary } from '../lib/tenderSummary';
 import { Badge, GlassCard, InlineAlert } from '../Components/ui';
 import type { PageProps } from '../types';
 
 type TenderDetailProps = {
     tender: {
         id: number;
+        summary: TenderSummary;
         title: string;
         description: string | null;
         reg_number: string | null;
@@ -54,23 +57,12 @@ export default function TenderDetail() {
                     </Link>
                 </GlassCard>
 
+                <TenderAnalytics summary={tender.summary} />
+
                 <section className="tender-detail-section page-enter page-enter--delay">
-                    <h2>Главное для решения</h2>
+                    <h2>Участники и реквизиты закупки</h2>
                     <GlassCard className="tender-detail-facts" tone="quiet">
                         <dl>
-                            <div>
-                                <dt>Бюджет</dt>
-                                <dd>
-                                    {formatBudget(
-                                        tender.budget_amount,
-                                        tender.currency,
-                                    )}
-                                </dd>
-                            </div>
-                            <div>
-                                <dt>Приём заявок</dt>
-                                <dd>{formatDate(tender.deadline_at)}</dd>
-                            </div>
                             <div>
                                 <dt>Заказчик</dt>
                                 <dd>{tender.customer ?? 'Не указан'}</dd>
@@ -82,10 +74,6 @@ export default function TenderDetail() {
                             <div>
                                 <dt>Номер</dt>
                                 <dd>{tender.reg_number ?? 'Не указан'}</dd>
-                            </div>
-                            <div>
-                                <dt>Опубликован</dt>
-                                <dd>{formatDate(tender.published_at)}</dd>
                             </div>
                         </dl>
                     </GlassCard>
@@ -131,23 +119,5 @@ export default function TenderDetail() {
                 </section>
             </AppShell>
         </>
-    );
-}
-
-function formatBudget(value: string | null, currency: string): string {
-    if (value === null) return 'Не указан';
-
-    return (
-        new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(
-            Number(value),
-        ) + ` ${currency === 'RUB' ? '₽' : currency}`
-    );
-}
-
-function formatDate(value: string | null): string {
-    if (value === null) return 'Не указана';
-
-    return new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium' }).format(
-        new Date(value),
     );
 }

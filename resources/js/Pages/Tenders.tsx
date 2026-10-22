@@ -1,6 +1,10 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
+import { SourcePicker } from '../Components/SourcePicker';
+import { TenderAnalytics } from '../Components/TenderAnalytics';
+import type { TenderSummary } from '../lib/tenderSummary';
+import { summaryMoney } from '../lib/tenderSummary';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { TenderFeedbackActions } from '../Components/TenderFeedbackActions';
 import {
@@ -40,6 +44,7 @@ type SourceHealth = {
 type TenderStatus = 'new' | 'favorite' | 'potential' | 'dismissed' | 'archived';
 
 type TenderMatch = {
+    summary: TenderSummary;
     id: number;
     tender_id: number;
     search_query_id?: number;
@@ -95,6 +100,7 @@ type FeedFilters = {
     assignee_id?: number | null;
     source: string;
     sort: string;
+    sources: string[];
     overdue?: boolean;
 };
 
@@ -150,6 +156,7 @@ type TendersPageProps = PageProps<
         filterOptions: {
             queries: Array<{ id: number; name: string }>;
             tags: string[];
+            availableSources?: string[];
         };
         savedViews: SavedFeedView[];
         sharedMonitorings?: Array<{
@@ -296,7 +303,7 @@ export default function Tenders() {
     }, [searchStarted, filters.query_id, team]);
 
     const visit = (next: Partial<FeedFilters>): void => {
-        const params = { ...filters, q: search, ...next };
+        const params = { ...filters, ...(team ? { q: search } : {}), ...next };
 
         router.get(
             '/tenders',
@@ -326,7 +333,10 @@ export default function Tenders() {
         try {
             const response = await window.axios.post<{ query: { id: number } }>(
                 '/queries/quick',
-                { phrase },
+                {
+                    phrase,
+                    platforms: filters.sources.length > 0 ? filters.sources : null,
+                },
             );
             router.visit(`/tenders?query_id=${response.data.query.id}&started=1`);
         } catch (failure) {
@@ -362,7 +372,7 @@ export default function Tenders() {
                 {
                     name: viewName.trim(),
                     team_id: team?.id ?? null,
-                    filters: cleanParams({ ...filters, q: search }),
+                    filters: cleanParams({ ...filters, q: team ? search : filters.q }),
                 },
             );
             setSavedViews((current) => [response.data.view, ...current]);
@@ -397,7 +407,7 @@ export default function Tenders() {
             filters.tag ||
             filters.query_id ||
             filters.assignee_id ||
-            filters.source !== 'all' ||
+            filters.sources.length > 0 ||
             filters.sort !== 'matched_desc' ||
             filters.overdue,
     );
@@ -406,7 +416,7 @@ export default function Tenders() {
             filters.status !== 'all' ||
             filters.tag ||
             filters.assignee_id ||
-            filters.source !== 'all' ||
+            filters.sources.length > 0 ||
             filters.sort !== 'matched_desc' ||
             filters.overdue,
     );
@@ -443,13 +453,14 @@ export default function Tenders() {
     const isEmptyPersonalFeed =
         !team &&
         tenderMatches.total === 0 &&
-        !(
-            filters.q ||
-            filters.status !== 'all' ||
-            filters.tag ||
-            filters.source !== 'all' ||
-            filters.sort !== 'matched_desc'
-        );
+        (filterOptions.queries.length === 0 ||
+            !(
+                filters.q ||
+                filters.status !== 'all' ||
+                filters.tag ||
+                filters.sources.length > 0 ||
+                filters.sort !== 'matched_desc'
+            ));
     const hasMonitoring = filterOptions.queries.length > 0;
 
     if (isEmptyPersonalFeed) {
@@ -523,6 +534,18 @@ export default function Tenders() {
                                 {searchBusy ? 'Включаем поиск…' : 'Найти тендеры'}
                             </Button>
                         </form>
+                        <details className="tender-feed-advanced">
+                            <summary>Площадки поиска</summary>
+                            <SourcePicker
+                                available={filterOptions.availableSources}
+                                value={
+                                    filters.sources.length > 0 ? filters.sources : null
+                                }
+                                onChange={(sources) =>
+                                    visit({ sources: sources ?? [], source: 'all' })
+                                }
+                            />
+                        </details>
                         {searchError ? (
                             <InlineAlert title="Поиск не запущен" tone="warning">
                                 {searchError}{' '}
@@ -675,31 +698,24 @@ export default function Tenders() {
                                 className="tender-feed-sources"
                             >
                                 <div>
-                                    <p>Источник</p>
-                                    <strong>Показывать совпадения источника</strong>
+                                    <p>Площадки</p>
+                                    <strong>Выберите одну или несколько</strong>
                                 </div>
-                                <div className="tender-feed-sources__options">
-                                    {sourceOptions.map((option) => (
-                                        <button
-                                            aria-pressed={
-                                                filters.source === option.value
-                                            }
-                                            className={
-                                                filters.source === option.value
-                                                    ? 'is-active'
-                                                    : ''
-                                            }
-                                            key={option.value}
-                                            onClick={() =>
-                                                visit({ source: option.value })
-                                            }
-                                            type="button"
-                                        >
-                                            <strong>{option.label}</strong>
-                                            <span>{option.description}</span>
-                                        </button>
-                                    ))}
-                                </div>
+                                <SourcePicker
+                                    value={
+                                        filters.sources.length > 0
+                                            ? filters.sources
+                                            : null
+                                    }
+                                    onChange={(sources) =>
+                                        visit({ sources: sources ?? [], source: 'all' })
+                                    }
+                                />
+                                <p className="tender-feed-search-hint">
+                                    Фильтр меняет показ найденных карточек. Для новых
+                                    поступлений выберите площадки в настройках
+                                    мониторинга.
+                                </p>
                             </div>
                             <div className="tender-feed-selects">
                                 <SelectField
@@ -1665,6 +1681,7 @@ function TeamFeedTenderCard({
                 <strong>{formatBudget(match.budget_amount, match.currency)}</strong>
                 <span>{formatDeadline(match.deadline_at)}</span>
             </div>
+            <TenderAnalytics compact summary={match.summary} />
             <div className="team-feed-card__review">
                 {review.due_at ? (
                     <p className="work-help">
@@ -1940,6 +1957,7 @@ function FeedTenderCard({ match }: { match: TenderMatch }) {
                     </strong>
                 </div>
             </div>
+            <TenderAnalytics compact summary={match.summary} />
             {!editing && nextActionOn ? (
                 <p className="tender-feed-card__action">
                     <Icon name="calendar" size={16} />
@@ -2156,7 +2174,9 @@ function FeedPagination({
     );
 }
 
-function cleanParams(filters: FeedFilters): Record<string, string | number> {
+function cleanParams(
+    filters: FeedFilters,
+): Record<string, string | number | boolean | string[]> {
     return Object.fromEntries(
         Object.entries(filters).filter(
             ([key, value]) =>
@@ -2165,7 +2185,7 @@ function cleanParams(filters: FeedFilters): Record<string, string | number> {
                 !(key === 'status' && value === 'all') &&
                 !(key === 'sort' && value === 'matched_desc'),
         ),
-    ) as Record<string, string | number>;
+    ) as Record<string, string | number | boolean | string[]>;
 }
 
 function SourceHealthNotice({
@@ -2304,13 +2324,7 @@ function tenderWord(count: number): string {
 function formatBudget(value: string | null, currency: string): string {
     if (value === null) return 'Сумма не указана';
 
-    return (
-        new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(
-            Number(value),
-        ) +
-        ' ' +
-        (currency === 'RUB' ? '₽' : currency)
-    );
+    return summaryMoney(value, currency);
 }
 
 function formatDeadline(value: string | null): string {

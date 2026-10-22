@@ -1,6 +1,8 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
+import { TenderAnalytics } from '../Components/TenderAnalytics';
+import type { TenderSummary } from '../lib/tenderSummary';
 import { Badge, Button, FieldError, GlassCard, InlineAlert } from '../Components/ui';
 import type { PageProps } from '../types';
 
@@ -21,6 +23,7 @@ type TenderMatchReason = {
 };
 
 type TenderDetailDto = {
+    summary: TenderSummary;
     id: number;
     title: string;
     description: string | null;
@@ -156,6 +159,8 @@ export default function MvpTenderDetail() {
                                 исходную карточку перед решением об участии.
                             </p>
                         </GlassCard>
+
+                        <TenderAnalytics summary={tender.summary} />
 
                         {notice ? (
                             <InlineAlert title="Готово" tone="success">

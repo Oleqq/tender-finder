@@ -1,0 +1,21 @@
+.tender-analytics { padding: 20px; margin-top: 20px; min-width: 0; }
+.tender-analytics__heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.tender-analytics__heading p { margin: 0 0 4px; color: var(--app-muted); font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+.tender-analytics__heading h2 { margin: 0; color: var(--app-ink); font-size: 20px; font-weight: 750; letter-spacing: -.03em; }
+.tender-analytics__metrics, .tender-analytics__dates, .tender-analytics__terms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 20px 0 0; }
+.tender-analytics dt { color: var(--app-muted); font-size: 12px; line-height: 1.5; }
+.tender-analytics dd { margin: 5px 0 0; color: var(--app-ink); font-size: 14px; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
+.tender-analytics__metrics { padding: 16px; border: 1px solid var(--tf-line); border-radius: 16px; background: var(--tf-accent-soft); }
+.tender-analytics__metrics dd { font-size: clamp(18px, 4vw, 23px); font-weight: 750; letter-spacing: -.025em; font-variant-numeric: tabular-nums; }
+.tender-analytics__timeline { height: 5px; overflow: hidden; margin-top: 18px; border-radius: 99px; background: var(--tf-line); }
+.tender-analytics__timeline span { display: block; height: 100%; border-radius: inherit; background: var(--tf-accent); }
+.tender-analytics__terms { padding-top: 16px; border-top: 1px solid var(--tf-line); }
+.tender-analytics__source, .tender-analytics__place { margin: 16px 0 0; color: var(--app-muted); font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.tender-analytics__place { font-size: 13px; }
+.tender-analytics__place strong { color: var(--app-ink); font-weight: 550; }
+.tender-analytics__notice { margin: 16px 0 0; padding: 12px; border-radius: 12px; color: var(--tf-warning); background: var(--tf-warning-soft); font-size: 12px; line-height: 1.5; }
+.tender-analytics-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0; }
+.tender-analytics-compact > span:last-child:not(.badge) { color: var(--app-muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+@media (max-width: 359px) {
+    .tender-analytics__metrics, .tender-analytics__dates, .tender-analytics__terms { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,5 +1,23 @@
 # Tender Finder: VPS deployment
 
+## Выпуск 22 октября: аналитика тендеров и выбор площадок
+
+В состав выпуска входят [краткая аналитика и выбор площадок](TENDER-ANALYTICS-AND-SOURCES.md):
+сводка в карточке и заявке, фильтр нескольких площадок в личной/командной
+ленте и выбор источников мониторинга, включая опросы и уведомления.
+Новых миграций и настроек окружения для этих функций нет.
+
+Перед публикацией запускаются `DOCKER_CONTEXT=default make check` и
+`npm run test:ui` в локальном Vite-контейнере. Архив формируется из коммита,
+передаётся с проверкой SHA-256; перед заменой кода создаются проверенная
+резервная копия PostgreSQL и архив предыдущей ревизии.
+
+После стандартного `deploy/vps-deploy.sh` проверяются шесть сервисов,
+HTTPS `/health`, вход Mini App и доступность новых JS/CSS из Vite manifest.
+Контрольные суммы исходников и `.release-commit` должны совпасть с GitHub
+`main`. Production `.env.production` сохраняется с проверкой SHA-256;
+режим локального полного доступа на сервере остаётся выключен.
+
 For the PHP critical security update of 21 October 2026, follow
 [the incident runbook](PHP-SECURITY-2026-10-21.md) before the routine release
 steps below.

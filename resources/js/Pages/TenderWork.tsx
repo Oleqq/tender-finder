@@ -3,6 +3,8 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { useState, type FormEvent } from 'react';
 import { AppShell } from '../Components/AppShell';
+import { TenderAnalytics } from '../Components/TenderAnalytics';
+import type { TenderSummary } from '../lib/tenderSummary';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { Badge, Button, GlassCard } from '../Components/ui';
 import {
@@ -48,6 +50,7 @@ export default function TenderWork() {
             TeamScope & {
                 templates: ChecklistTemplate[];
                 tender: {
+                    summary: TenderSummary;
                     id: number;
                     title: string;
                     canonical_url: string;
@@ -179,6 +182,7 @@ export default function TenderWork() {
                         Проверить первоисточник
                     </a>
                 </GlassCard>
+                <TenderAnalytics summary={tender.summary} />
                 <div aria-live="polite">
                     {notice ? <p className="work-success">{notice}</p> : null}
                 </div>

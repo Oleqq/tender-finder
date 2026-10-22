@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Team;
 use App\Models\TenderFeedView;
 use App\Services\TeamWorkspaceService;
+use App\Services\TenderSources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,11 +46,13 @@ class TenderFeedViewController extends Controller
             'filters.sort' => ['nullable', Rule::in(['matched_desc', 'deadline_asc', 'budget_desc', 'budget_asc'])],
             'filters.assignee_id' => ['nullable', 'integer'],
             'filters.source' => ['nullable', Rule::in(['all', 'rostender', 'sber_ast', 'workspace_ru', 'etp_gpb', 'bidzaar', 'etp_region', 'b2b_center', 'roseltorg', 'rts_tender', 'sber_ast_catalog'])],
+            'filters.sources' => ['nullable', 'array', 'max:10'],
+            'filters.sources.*' => ['required', 'string', 'distinct', Rule::in(array_keys(TenderSources::LABELS))],
             'filters.overdue' => ['nullable', 'boolean'],
         ]);
 
         $filters = $this->filters($attributes['filters']);
-        if (isset($filters['query_id'])) {
+        if (isset($filters['query_id']) && (int) $filters['query_id'] !== 0) {
             abort_unless($team
                 ? DB::table('team_search_queries')->where('team_id', $team->id)->where('search_query_id', $filters['query_id'])->exists()
                 : $user->searchQueries()->whereKey($filters['query_id'])->exists(), 422);
@@ -81,12 +84,16 @@ class TenderFeedViewController extends Controller
     }
 
     /** @param array<string, mixed> $filters
-     * @return array<string, string|int|bool>
+     * @return array<string, string|int|bool|list<string>>
      */
     private function filters(array $filters): array
     {
+        if (isset($filters['sources'])) {
+            $filters['sources'] = array_values($filters['sources']);
+        }
+
         return collect($filters)
-            ->only(['q', 'status', 'tag', 'query_id', 'assignee_id', 'source', 'sort', 'overdue'])
+            ->only(['q', 'status', 'tag', 'query_id', 'assignee_id', 'source', 'sources', 'sort', 'overdue'])
             ->reject(fn ($value) => $value === null || $value === '')
             ->all();
     }
