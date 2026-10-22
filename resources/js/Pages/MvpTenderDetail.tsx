@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { TenderAnalytics } from '../Components/TenderAnalytics';
 import type { TenderSummary } from '../lib/tenderSummary';
+import type { TenderInsights } from '../lib/tenderAnalytics';
 import { Badge, Button, FieldError, GlassCard, InlineAlert } from '../Components/ui';
 import type { PageProps } from '../types';
 
@@ -24,6 +25,7 @@ type TenderMatchReason = {
 
 type TenderDetailDto = {
     summary: TenderSummary;
+    analytics: TenderInsights;
     id: number;
     title: string;
     description: string | null;
@@ -160,7 +162,11 @@ export default function MvpTenderDetail() {
                             </p>
                         </GlassCard>
 
-                        <TenderAnalytics summary={tender.summary} />
+                        <TenderAnalytics
+                            key={tender.id}
+                            summary={tender.summary}
+                            analytics={tender.analytics}
+                        />
 
                         {notice ? (
                             <InlineAlert title="Готово" tone="success">

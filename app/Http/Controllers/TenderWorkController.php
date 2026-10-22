@@ -12,6 +12,7 @@ use App\Services\ParticipationCommentService;
 use App\Services\ParticipationDocumentService;
 use App\Services\TeamActivityService;
 use App\Services\TeamWorkspaceService;
+use App\Services\TenderAnalyticsService;
 use App\Services\TenderSummary;
 use App\Services\TenderWorkService;
 use Illuminate\Http\JsonResponse;
@@ -68,6 +69,7 @@ final class TenderWorkController extends Controller
             'templates' => app(ChecklistTemplateController::class)->templates($user, $team)->with('versions')->orderBy('name')->get(['id', 'name', 'items', 'version']),
             'tender' => ['id' => $tender->id, 'title' => $tender->title, 'canonical_url' => $tender->canonical_url,
                 'summary' => TenderSummary::forTender($tender),
+                'analytics' => app(TenderAnalyticsService::class)->forTender($user, $tender, $team),
                 'deadline_at' => $tender->deadline_at?->toAtomString()],
             'participation' => $work->present($participation),
             'documents' => $participation ? app(ParticipationDocumentService::class)->present($participation, $team) : [],

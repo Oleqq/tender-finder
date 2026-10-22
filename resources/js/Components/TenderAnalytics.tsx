@@ -8,13 +8,17 @@ import {
     type TenderSummary,
 } from '../lib/tenderSummary';
 import { Badge, GlassCard } from './ui';
+import type { TenderInsights as Insights } from '../lib/tenderAnalytics';
+import { TenderInsights } from './TenderInsights';
 
 export function TenderAnalytics({
     summary,
     compact = false,
+    analytics,
 }: {
     summary: TenderSummary;
     compact?: boolean;
+    analytics?: Insights;
 }) {
     const [now, setNow] = useState(Date.now);
     useEffect(() => {
@@ -47,11 +51,21 @@ export function TenderAnalytics({
     }
 
     return (
-        <GlassCard className="tender-analytics">
+        <GlassCard
+            className={
+                'tender-analytics tender-analytics--' + (analytics?.tier ?? 'basic')
+            }
+        >
             <header className="tender-analytics__heading">
                 <div>
                     <p>Быстрая оценка</p>
-                    <h2>Краткая аналитика</h2>
+                    <h2>
+                        {analytics?.tier === 'ultra'
+                            ? 'Аналитика Ultra'
+                            : analytics?.tier === 'pro'
+                              ? 'Аналитика Pro'
+                              : 'Краткая аналитика'}
+                    </h2>
                 </div>
                 <Badge tone={deadline.tone}>
                     {deadline.contradictory
@@ -136,6 +150,9 @@ export function TenderAnalytics({
                     ? ' · данные получены ' + summaryDate(summary.observed_at)
                     : ''}
             </p>
+            {analytics ? (
+                <TenderInsights analytics={analytics} summary={summary} />
+            ) : null}
         </GlassCard>
     );
 }

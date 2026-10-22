@@ -2,6 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
 import { TenderAnalytics } from '../Components/TenderAnalytics';
 import type { TenderSummary } from '../lib/tenderSummary';
+import type { TenderInsights } from '../lib/tenderAnalytics';
 import { Badge, GlassCard, InlineAlert } from '../Components/ui';
 import type { PageProps } from '../types';
 
@@ -9,6 +10,7 @@ type TenderDetailProps = {
     tender: {
         id: number;
         summary: TenderSummary;
+        analytics: TenderInsights;
         title: string;
         description: string | null;
         reg_number: string | null;
@@ -57,7 +59,11 @@ export default function TenderDetail() {
                     </Link>
                 </GlassCard>
 
-                <TenderAnalytics summary={tender.summary} />
+                <TenderAnalytics
+                    key={tender.id}
+                    summary={tender.summary}
+                    analytics={tender.analytics}
+                />
 
                 <section className="tender-detail-section page-enter page-enter--delay">
                     <h2>Участники и реквизиты закупки</h2>

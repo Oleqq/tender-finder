@@ -309,6 +309,7 @@ class LocalMvpTenderWorkspaceService
 
         return [
             ...$this->tenderDto($tender, $matchReasons[$tender->id] ?? null),
+            'analytics' => app(TenderAnalyticsService::class)->forTender($user, $tender),
             'reg_number' => $tender->reg_number,
             'customer' => $this->nullableMetadataText($metadata['customer'] ?? null),
             'category' => $this->nullableMetadataText($metadata['category'] ?? null),

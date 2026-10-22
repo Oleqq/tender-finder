@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Tender;
 use App\Models\TenderQueryMatch;
+use App\Services\TenderAnalyticsService;
 use App\Services\TenderFacts;
 use App\Services\TenderSummary;
 use App\Services\TenderTitle;
@@ -53,6 +54,7 @@ final class TenderDetailController extends Controller
             'tender' => [
                 'id' => $tender->id,
                 'summary' => TenderSummary::forTender($tender),
+                'analytics' => app(TenderAnalyticsService::class)->forTender($user, $tender),
                 'title' => TenderTitle::display($tender->title),
                 'description' => $tender->description,
                 'reg_number' => $tender->reg_number,

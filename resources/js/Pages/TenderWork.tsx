@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { TenderAnalytics } from '../Components/TenderAnalytics';
 import type { TenderSummary } from '../lib/tenderSummary';
+import type { TenderInsights } from '../lib/tenderAnalytics';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { Badge, Button, GlassCard } from '../Components/ui';
 import {
@@ -51,6 +52,7 @@ export default function TenderWork() {
                 templates: ChecklistTemplate[];
                 tender: {
                     summary: TenderSummary;
+                    analytics: TenderInsights;
                     id: number;
                     title: string;
                     canonical_url: string;
@@ -182,7 +184,11 @@ export default function TenderWork() {
                         Проверить первоисточник
                     </a>
                 </GlassCard>
-                <TenderAnalytics summary={tender.summary} />
+                <TenderAnalytics
+                    key={tender.id}
+                    summary={tender.summary}
+                    analytics={tender.analytics}
+                />
                 <div aria-live="polite">
                     {notice ? <p className="work-success">{notice}</p> : null}
                 </div>
