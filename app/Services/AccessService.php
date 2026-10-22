@@ -69,19 +69,19 @@ class AccessService
             return AccessSnapshot::fromEntitlement($entitlement, $state);
         }
 
-        $lastEntitlement = Entitlement::query()
+        $hasExpiredAccess = $user->trial_used_at !== null || Entitlement::query()
+            ->where('user_id', $user->id)
+            ->where('code', 'active_queries')
+            ->whereHas('subscription', fn ($subscription) => $subscription->where('source', SubscriptionSource::TelegramStars))
+            ->exists();
+
+        $lastEntitlement = $hasExpiredAccess ? Entitlement::query()
             ->where('user_id', $user->id)
             ->where('code', 'active_queries')
             ->whereNotNull('ends_at')
             ->where('ends_at', '<=', now())
             ->orderByDesc('ends_at')
-            ->first();
-
-        $hasExpiredAccess = $user->trial_used_at !== null || $lastEntitlement !== null || Entitlement::query()
-            ->where('user_id', $user->id)
-            ->where('code', 'active_queries')
-            ->whereHas('subscription', fn ($subscription) => $subscription->where('source', SubscriptionSource::TelegramStars))
-            ->exists();
+            ->first() : null;
 
         return new AccessSnapshot(
             $hasExpiredAccess ? AccessState::Expired : AccessState::Preview,
