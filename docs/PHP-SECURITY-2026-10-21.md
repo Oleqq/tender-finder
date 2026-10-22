@@ -51,8 +51,8 @@ docker compose --env-file .env.production -f compose.production.yml exec -T web 
 
 On 21 October the VPS was confirmed to run PHP 8.3.35. The multipart switch
 was enabled and checked externally (`503` for multipart, `200` for `/health`),
-and upload progress was set to `0` in the running web container. These remain
-partial, temporary mitigations until the patched image is live.
+and upload progress was set to `0` in the running web container. Those were
+temporary mitigations until the patched image was deployed on 22 October.
 
 ## Complete update
 
@@ -81,3 +81,22 @@ and GPG signature. The deployment script then supports
 Docker Hub pull only for that explicit run and still rejects an old PHP image
 before migrations or service replacement. Normal releases continue to pull
 the base image.
+
+## Production result, 22 October 2026
+
+The official `php:8.3.36-cli-alpine` tag became available. Revision `eb3b2a0`
+was built and deployed with the normal pull path in `deploy/vps-deploy.sh`.
+The script verified PHP 8.3.36 and disabled upload progress before running
+migrations (`Nothing to migrate`) and replacing the services. Runtime checks
+confirmed `8.3.36 upload_progress=0` in `web`, `queue`, and `scheduler`.
+
+All six Compose services were running; `web`, PostgreSQL, and Redis were
+healthy. Public HTTPS `/health` and `/open` returned 200. After the patched
+containers were live, `PHP_BLOCK_MULTIPART=false` was set and Caddy recreated.
+A harmless multipart POST to the GET-only `/health` route then returned 405,
+confirming that the temporary proxy block no longer intercepted it. This
+does not replace an authenticated document-upload test. A verified database
+backup exists at
+`/var/backups/tenderfinder/postgres/tender-finder-2026-10-21T14-44-37Z.sql.gz`,
+and the previous application tree was kept at
+`/opt/tenderfinder-pre-eb3b2a0` for source-level rollback.
