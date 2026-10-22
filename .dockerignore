@@ -11,4 +11,10 @@ storage/logs
 dump.rdb
 tmp-free-zakupki-monitor
 deploy/local-ca/*.pem
+deploy/local-runtime.env
+# VPS-only files must never be copied into application images.
+/backups
+/releases
+/.release-commit
+/.release-commit.next
 *.md
