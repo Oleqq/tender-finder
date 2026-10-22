@@ -76,6 +76,9 @@ Route::get('/onboarding', fn (LocalMvpSubscriberService $subscriber) => Inertia:
 ]))->name('onboarding');
 Route::get('/offer', [LegalDocumentController::class, 'offer'])->name('legal.offer');
 Route::get('/privacy', [LegalDocumentController::class, 'privacy'])->name('legal.privacy');
+Route::get('/requisites', fn () => Inertia::render('Requisites', [
+    'company' => config('company'),
+]))->name('legal.requisites');
 
 Route::post('/telegram/session', [TelegramSessionController::class, 'store'])
     ->middleware('throttle:telegram-session')

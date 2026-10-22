@@ -262,6 +262,9 @@ export default function Profile() {
                 </details>
 
                 <GlassCard className="settings-list">
+                    <Link className="profile-support-entry__link" href="/requisites">
+                        Реквизиты <Icon name="chevron-right" size={17} />
+                    </Link>
                     <Link className="profile-support-entry__link" href="/offer">
                         Оферта <Icon name="chevron-right" size={17} />
                     </Link>

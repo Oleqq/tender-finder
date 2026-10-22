@@ -9,6 +9,8 @@ export type IconName =
     | 'check'
     | 'chevron-right'
     | 'compass'
+    | 'copy'
+    | 'download'
     | 'filter'
     | 'home'
     | 'layers'
@@ -95,6 +97,19 @@ export function Icon({ name, size = 20, ...props }: IconProps) {
                 <svg {...shared}>
                     <circle cx="12" cy="12" r="8" />
                     <path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8 4.8-2.2Z" />
+                </svg>
+            );
+        case 'copy':
+            return (
+                <svg {...shared}>
+                    <rect height="13" rx="2" width="13" x="8" y="8" />
+                    <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                </svg>
+            );
+        case 'download':
+            return (
+                <svg {...shared}>
+                    <path d="M12 3v12m-5-5 5 5 5-5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
                 </svg>
             );
         case 'filter':
