@@ -12,9 +12,11 @@ import {
 import type { PageProps } from '../types';
 
 export default function Support() {
-    const { tickets } = usePage<PageProps<{ tickets: SupportTicketSummary[] }>>().props;
+    const page = usePage<PageProps<{ tickets: SupportTicketSummary[] }>>();
+    const { tickets } = page.props;
     const paymentIssue =
-        new URLSearchParams(window.location.search).get('topic') === 'payment-access';
+        new URL(page.url, window.location.origin).searchParams.get('topic') ===
+        'payment-access';
     const form = useForm<{ category: SupportCategory; body: string }>({
         category: 'access',
         body: '',
