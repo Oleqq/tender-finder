@@ -46,6 +46,7 @@ export type ExternalCheckout =
           state: 'succeeded';
           order_id: string;
           plan_name: string;
+          workspace_url: string;
           access: Access & { state: 'active' };
       };
 

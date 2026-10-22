@@ -1,10 +1,10 @@
-import { Link } from '@inertiajs/react';
 import { Badge, Button, GlassCard, InlineAlert, PlanCard } from './ui';
 import type { ExternalCheckout, PurchasePlan } from '../types';
 
 type Props = {
     plans: PurchasePlan[];
     checkout: ExternalCheckout | null;
+    supportUrl: string;
     onSelectPlan: (code: string) => void;
     onRetry: () => void;
     onCancel: () => void;
@@ -16,6 +16,7 @@ type Props = {
 export function ExternalCheckoutJourney({
     plans,
     checkout,
+    supportUrl,
     onSelectPlan,
     onRetry,
     onCancel,
@@ -81,9 +82,12 @@ export function ExternalCheckoutJourney({
                     Лимит мониторингов:{' '}
                     {checkout.access.active_query_limit ?? 'не указан'}
                 </p>
-                <Link className="button button--primary button--md" href="/dashboard">
+                <a
+                    className="button button--primary button--md"
+                    href={checkout.workspace_url}
+                >
                     Вернуться к работе
-                </Link>
+                </a>
             </GlassCard>
         );
     }
@@ -100,9 +104,7 @@ export function ExternalCheckoutJourney({
                     <Button onClick={onRefresh} variant="secondary">
                         Проверить доступ
                     </Button>
-                    <Link href="/support?topic=payment-access">
-                        Обратиться в поддержку
-                    </Link>
+                    <a href={supportUrl}>Обратиться в поддержку</a>
                 </div>
             </GlassCard>
         );
@@ -168,7 +170,7 @@ export function ExternalCheckoutJourney({
             </p>
             <div className="external-checkout__actions">
                 <Button onClick={onRetry}>Попробовать снова</Button>
-                <Link href="/support?topic=payment-access">Нужна помощь</Link>
+                <a href={supportUrl}>Нужна помощь</a>
             </div>
         </GlassCard>
     );
