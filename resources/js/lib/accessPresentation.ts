@@ -31,8 +31,8 @@ export function presentAccess(access: Access | null): AccessPresentation {
                     access.mode === 'owner'
                         ? 'Доступ владельца'
                         : access.mode === 'developer'
-                        ? 'Про (Developer Mode)'
-                        : 'Доступ активен',
+                          ? 'Про (Developer Mode)'
+                          : (planName(access.plan_code) ?? 'Доступ активен'),
                 title: 'Рабочее пространство открыто',
                 description: 'Поиск, мониторинги и работа с закупками доступны.',
                 detail: period,
@@ -65,6 +65,19 @@ export function presentAccess(access: Access | null): AccessPresentation {
                 detail: '72 часа · до 3 мониторингов',
                 tone: 'accent',
             };
+    }
+}
+
+function planName(code: string | null): string | null {
+    switch (code) {
+        case 'basic':
+            return 'Basic';
+        case 'pro':
+            return 'Про';
+        case 'ultra':
+            return 'Ультра';
+        default:
+            return null;
     }
 }
 

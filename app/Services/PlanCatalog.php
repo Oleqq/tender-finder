@@ -10,6 +10,8 @@ class PlanCatalog
 
     public const PRO_CODE = 'pro';
 
+    public const ULTRA_CODE = 'ultra';
+
     public function basic(): Plan
     {
         /** @var Plan $plan */
@@ -45,11 +47,30 @@ class PlanCatalog
         return $plan;
     }
 
+    public function ultra(): Plan
+    {
+        /** @var Plan $plan */
+        $plan = Plan::query()->firstOrCreate(
+            ['code' => self::ULTRA_CODE],
+            [
+                'name' => 'Ультра',
+                'is_active' => true,
+                'limits' => [
+                    'active_queries' => (int) config('tender.access.ultra_active_query_limit', 30),
+                    'ai_scoring' => true,
+                ],
+            ],
+        );
+
+        return $plan;
+    }
+
     public function byCode(string $code): ?Plan
     {
         return match ($code) {
             self::BASIC_CODE => $this->basic(),
             self::PRO_CODE => $this->pro(),
+            self::ULTRA_CODE => $this->ultra(),
             default => null,
         };
     }

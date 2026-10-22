@@ -259,7 +259,11 @@ class DeliverTelegramNotification implements ShouldQueue
     /** @param array<string, mixed> $payload */
     private function accessText(array $payload, string $verb): string
     {
-        $plan = ($payload['plan_code'] ?? '') === 'pro' ? 'Про' : 'Basic';
+        $plan = match ($payload['plan_code'] ?? '') {
+            'pro' => 'Про',
+            'ultra' => 'Ультра',
+            default => 'Basic',
+        };
         $mode = ($payload['developer_mode'] ?? false) === true ? ' (Developer Mode)' : '';
         $end = is_string($payload['ends_at'] ?? null)
             ? ' до '.Carbon::parse($payload['ends_at'])->timezone('Europe/Moscow')->format('d.m.Y H:i').' МСК'

@@ -160,7 +160,7 @@ class RostenderTemplateFeedService
 
         return match ($plan) {
             PlanCatalog::BASIC_CODE => max(0, (int) config('tender.rostender.basic_active_monitor_limit', 0)),
-            PlanCatalog::PRO_CODE => max(0, (int) config('tender.rostender.pro_active_monitor_limit', 0)),
+            PlanCatalog::PRO_CODE, PlanCatalog::ULTRA_CODE => max(0, (int) config('tender.rostender.pro_active_monitor_limit', 0)),
             default => 0,
         };
     }
@@ -171,7 +171,7 @@ class RostenderTemplateFeedService
 
         return match ($plan) {
             PlanCatalog::BASIC_CODE => max(0, (int) config('tender.rostender.basic_poll_interval_seconds', 86400)),
-            PlanCatalog::PRO_CODE => max(0, (int) config('tender.rostender.pro_poll_interval_seconds', 86400)),
+            PlanCatalog::PRO_CODE, PlanCatalog::ULTRA_CODE => max(0, (int) config('tender.rostender.pro_poll_interval_seconds', 86400)),
             default => 0,
         };
     }

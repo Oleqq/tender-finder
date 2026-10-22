@@ -48,7 +48,7 @@ class RostenderManualCheckService
 
         return match ($plan) {
             PlanCatalog::BASIC_CODE => max(0, (int) config('tender.rostender.basic_manual_checks_per_day', 0)),
-            PlanCatalog::PRO_CODE => max(0, (int) config('tender.rostender.pro_manual_checks_per_day', 0)),
+            PlanCatalog::PRO_CODE, PlanCatalog::ULTRA_CODE => max(0, (int) config('tender.rostender.pro_manual_checks_per_day', 0)),
             default => 0,
         };
     }

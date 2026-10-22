@@ -116,6 +116,53 @@ it('enforces the server-side three active query limit', function () {
         ->assertJsonValidationErrors('limit');
 });
 
+it('allows 30 active monitorings on Ultra and rejects the thirty-first', function () {
+    config()->set([
+        'tender.rostender.enabled' => true,
+        'tender.rostender.public_distribution_approved' => true,
+        'tender.rostender.api_key' => 'test',
+        'tender.rostender.pro_active_monitor_limit' => 30,
+    ]);
+    Cache::put('rostender:search-templates:v1', [new RostenderSearchTemplate(42, 'Серверы')], 60);
+    $user = User::factory()->create(['telegram_id' => 'ultra-limit-test']);
+    $plan = app(PlanCatalog::class)->byCode(PlanCatalog::ULTRA_CODE);
+
+    expect($plan)->not->toBeNull()
+        ->and($plan->limits['active_queries'])->toBe(30);
+
+    Entitlement::query()->create([
+        'user_id' => $user->id,
+        'code' => 'active_queries',
+        'status' => SubscriptionStatus::Active,
+        'value' => $plan->limits['active_queries'],
+        'plan_id' => $plan->id,
+        'starts_at' => now()->subMinute(),
+        'ends_at' => now()->addDay(),
+    ]);
+
+    foreach (range(1, 29) as $number) {
+        SearchQuery::query()->create([
+            'user_id' => $user->id,
+            'name' => "Мониторинг {$number}",
+            'keywords' => ["слово {$number}"],
+            'status' => 'active',
+            'monitoring_started_at' => now(),
+        ]);
+    }
+
+    $this->actingAs($user)->postJson('/queries', [
+        'keywords' => ['тридцатый'],
+        'filters' => ['source' => ['rostender_template_id' => 42]],
+    ])->assertCreated();
+
+    $this->actingAs($user)->postJson('/queries', [
+        'keywords' => ['тридцать первый'],
+        'filters' => ['source' => ['rostender_template_id' => 42]],
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('limit');
+});
+
 it('lets an owner update or delete a saved query without exposing it to another user', function () {
     config()->set([
         'tender.rostender.enabled' => true,

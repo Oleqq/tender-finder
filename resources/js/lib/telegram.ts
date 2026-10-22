@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { applySystemTheme, syncThemeColor } from './theme';
 
 type TelegramThemeParams = {
     bg_color?: string;
@@ -16,6 +17,7 @@ type TelegramThemeParams = {
 
 type TelegramWebApp = {
     initData?: string;
+    platform?: string;
     colorScheme?: 'light' | 'dark';
     themeParams?: TelegramThemeParams;
     viewportStableHeight?: number;
@@ -30,6 +32,7 @@ type TelegramWebApp = {
     expand: () => void;
     setHeaderColor?: (color: string) => void;
     setBackgroundColor?: (color: string) => void;
+    setBottomBarColor?: (color: string) => void;
     onEvent?: (
         eventType: 'themeChanged' | 'viewportChanged',
         callback: () => void,
@@ -49,6 +52,38 @@ declare global {
 const setCssVariable = (name: string, value?: string | number): void => {
     if (value !== undefined && value !== '') {
         document.documentElement.style.setProperty(name, String(value));
+    } else {
+        document.documentElement.style.removeProperty(name);
+    }
+};
+
+// This selects visual styling only; authentication still verifies initData on the server.
+const isTelegramContext = (webApp: TelegramWebApp): boolean =>
+    Boolean(webApp.initData) ||
+    Boolean(webApp.platform && webApp.platform !== 'unknown');
+
+const syncTelegramChrome = (webApp: TelegramWebApp, background: string): void => {
+    try {
+        webApp.setHeaderColor?.(background);
+    } catch {
+        // Clients older than 6.9 accept only a Telegram color key for the header.
+        try {
+            webApp.setHeaderColor?.('secondary_bg_color');
+        } catch {
+            // A missing chrome capability must not prevent local theme updates.
+        }
+    }
+
+    try {
+        webApp.setBackgroundColor?.(background);
+    } catch {
+        // Keep the CSS palette even if the client's chrome API is unavailable.
+    }
+
+    try {
+        webApp.setBottomBarColor?.(background);
+    } catch {
+        // The bottom bar is optional on older clients.
     }
 };
 
@@ -82,6 +117,7 @@ const applyTelegramTheme = (webApp: TelegramWebApp): void => {
         safeArea?.bottom ? `${safeArea.bottom}px` : '0px',
     );
     setCssVariable('--tg-safe-left', safeArea?.left ? `${safeArea.left}px` : '0px');
+    syncTelegramChrome(webApp, syncThemeColor());
 };
 
 /**
@@ -101,28 +137,42 @@ export const useTelegramWebApp = (): TelegramWebApp | undefined => {
     }, []);
 
     useEffect(() => {
-        if (!webApp) {
-            return;
-        }
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+        const sync = (): void => {
+            if (webApp && isTelegramContext(webApp)) {
+                applyTelegramTheme(webApp);
+            } else {
+                applySystemTheme(systemTheme.matches);
+            }
+        };
 
-        const sync = (): void => applyTelegramTheme(webApp);
+        sync();
+        systemTheme.addEventListener('change', sync);
 
         try {
-            webApp.ready();
-            webApp.expand();
-            webApp.setHeaderColor?.('secondary_bg_color');
-            webApp.setBackgroundColor?.('bg_color');
-            sync();
-            webApp.onEvent?.('themeChanged', sync);
-            webApp.onEvent?.('viewportChanged', sync);
+            if (webApp && isTelegramContext(webApp)) {
+                webApp.ready();
+                webApp.expand();
+            }
         } catch {
-            // A browser extension or an older Telegram client may expose only
-            // part of the SDK. The Mini App still works with local CSS defaults.
+            // A partial SDK must not prevent theme subscriptions.
+        }
+
+        try {
+            webApp?.onEvent?.('themeChanged', sync);
+            webApp?.onEvent?.('viewportChanged', sync);
+        } catch {
+            // The local palette is already applied if event support is missing.
         }
 
         return () => {
-            webApp.offEvent?.('themeChanged', sync);
-            webApp.offEvent?.('viewportChanged', sync);
+            systemTheme.removeEventListener('change', sync);
+            try {
+                webApp?.offEvent?.('themeChanged', sync);
+                webApp?.offEvent?.('viewportChanged', sync);
+            } catch {
+                // Partial SDK implementations may also omit event cleanup.
+            }
         };
     }, [webApp]);
 

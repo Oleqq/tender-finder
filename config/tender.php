@@ -28,6 +28,7 @@ return [
         'trial_hours' => (int) env('TRIAL_DURATION_HOURS', 72),
         'basic_active_query_limit' => (int) env('BASIC_ACTIVE_QUERY_LIMIT', 3),
         'pro_active_query_limit' => (int) env('PRO_ACTIVE_QUERY_LIMIT', 10),
+        'ultra_active_query_limit' => (int) env('ULTRA_ACTIVE_QUERY_LIMIT', 30),
     ],
 
     'payments' => [

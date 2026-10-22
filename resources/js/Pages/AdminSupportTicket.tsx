@@ -45,6 +45,19 @@ const eventLabel: Record<string, string> = {
     access_revoked: 'Отозван ручной доступ',
 };
 
+function planLabel(code: string | null): string {
+    switch (code) {
+        case 'basic':
+            return 'Basic';
+        case 'pro':
+            return 'Про';
+        case 'ultra':
+            return 'Ультра';
+        default:
+            return code ?? 'не назначен';
+    }
+}
+
 export default function AdminSupportTicket() {
     const { ticket, diagnostics, assignees, manualGrant, grantBlockReason } = usePage<
         PageProps<{
@@ -257,15 +270,7 @@ export default function AdminSupportTicket() {
                                             : 'Basic выдан поддержкой для решения обращения.'
                                         : access.description}
                                 </p>
-                                <p>
-                                    Тариф:{' '}
-                                    {diagnostics.access.plan_code === 'basic'
-                                        ? 'Basic'
-                                        : diagnostics.access.plan_code === 'pro'
-                                          ? 'Про'
-                                          : (diagnostics.access.plan_code ??
-                                            'не назначен')}
-                                </p>
+                                <p>Тариф: {planLabel(diagnostics.access.plan_code)}</p>
                                 <p>
                                     Срок:{' '}
                                     {diagnostics.access.ends_at
@@ -486,7 +491,7 @@ export default function AdminSupportTicket() {
                                                     : 'участник удалён'
                                                 : `${['created', 'user_reply'].includes(event.action) ? 'пользователь' : 'администратор'} #${event.actor_id}`}
                                             {event.access_entitlement_id
-                                                ? ` · ${event.access_plan_code === 'basic' ? 'Basic' : event.access_plan_code} · запись #${event.access_entitlement_id}`
+                                                ? ` · ${planLabel(event.access_plan_code)} · запись #${event.access_entitlement_id}`
                                                 : ''}
                                             {event.access_ends_at
                                                 ? ` · срок до ${supportDate(event.access_ends_at)}`

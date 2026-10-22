@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0d0f17">
+  <meta name="description" content="TenderFinder — поиск тендеров, уведомления и командная работа по заявкам. Три тарифа с доступом на 30 дней: Basic, Про и Ультра.">
+  <title>Месячный доступ — TenderFinder · тёмная тема</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+      color: #171b2c;
+      background: #f8f9fc;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      --blue: #4c53ef;
+      --muted: #697184;
+      --line: #e6e8f0;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 106px; }
+    body { margin: 0; min-width: 320px; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    h1, h2, h3, p, ul { margin: 0; }
+    a, button, summary { -webkit-tap-highlight-color: transparent; }
+    :focus-visible { outline: 3px solid #9096ff; outline-offset: 5px; }
+    ::selection { color: #252071; background: #dddfff; }
+    .icon { display: inline-block; width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+    .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .container { width: min(1160px, calc(100% - 64px)); margin-inline: auto; }
+    .eyebrow { display: flex; align-items: center; gap: 10px; color: var(--blue); font-size: 11px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+    .eyebrow::before { width: 19px; height: 2px; background: currentColor; content: ""; }
+    .section-title { font-size: clamp(34px, 3.9vw, 49px); line-height: 1.13; font-weight: 700; letter-spacing: -.055em; text-wrap: balance; }
+    .section-copy { color: var(--muted); font-size: 16px; line-height: 1.65; }
+    .button { display: inline-flex; justify-content: center; align-items: center; gap: 18px; min-height: 52px; padding: 0 23px; border: 1px solid transparent; border-radius: 13px; font-size: 14px; font-weight: 650; transition: background .2s, transform .2s, box-shadow .2s; }
+    .button .icon { width: 17px; height: 17px; }
+    .button-primary { color: #fff; background: var(--blue); box-shadow: 0 6px 15px #4c53ef20; }
+    .button-secondary { color: #4e5568; border-color: #e0e3ed; background: #ffffffb3; }
+    .button-primary:hover { background: #3d43d6; box-shadow: 0 8px 22px #4c53ef30; }
+    .button-secondary:hover { background: #fff; }
+    .skip-link { position: fixed; z-index: 50; top: 10px; left: 16px; padding: 12px 18px; border-radius: 10px; background: #fff; transform: translateY(-150%); }
+    .skip-link:focus { transform: translateY(0); }
+
+    /* Navigation */
+    .header-shell { position: sticky; z-index: 20; top: 0; border-bottom: 1px solid #e6e8f0a6; background: #f8f9fce8; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 84px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; font-size: 20px; font-weight: 750; letter-spacing: -.055em; }
+    .brand-mark { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 11px; background: var(--blue); color: #fff; box-shadow: inset 0 1px 0 #ffffff40, 0 4px 10px #4c53ef18; }
+    .brand-mark .icon { width: 21px; height: 21px; stroke-width: 1.9; }
+    .nav { display: flex; align-items: center; gap: 30px; color: #697184; font-size: 13px; font-weight: 550; }
+    .nav a:hover { color: var(--blue); }
+    .nav .nav-cta { display: flex; align-items: center; gap: 17px; min-height: 40px; padding: 0 16px; border-radius: 10px; background: #202437; color: #fff; }
+    .nav-cta .icon { width: 15px; height: 15px; }
+
+    /* Opening */
+    .hero-wrap { position: relative; isolation: isolate; overflow: hidden; }
+    .hero-wrap::before { position: absolute; z-index: -1; top: 30px; right: -200px; width: 840px; height: 780px; background: radial-gradient(ellipse, #e6e6ff 0%, #edeeff60 38%, transparent 68%); content: ""; }
+    .hero { display: grid; grid-template-columns: 1fr 1.05fr; align-items: center; gap: 64px; padding-top: 76px; padding-bottom: 68px; }
+    .launch-label { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 29px; padding: 7px 10px 7px 8px; border: 1px solid #dedff1; border-radius: 8px; background: #ffffffa6; color: #697184; font-size: 11px; }
+    .launch-label span { display: inline-flex; align-items: center; gap: 5px; padding: 3px 6px; border-radius: 4px; background: #ecebff; color: #6660c9; font-size: 10px; font-weight: 700; }
+    .launch-label span::before { width: 4px; height: 4px; border-radius: 50%; background: #827be9; content: ""; }
+    h1 { font-size: clamp(44px, 5.4vw, 70px); font-weight: 720; line-height: 1.065; letter-spacing: -.065em; text-wrap: balance; }
+    h1 em { font-style: normal; color: var(--blue); }
+    .hero-lede { max-width: 455px; margin-top: 24px; color: #71798b; font-size: 16px; line-height: 1.75; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+    .hero-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 17px; margin-top: 22px; color: #697184; font-size: 11px; line-height: 1.5; }
+    .hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
+    .hero-meta .icon { width: 14px; height: 14px; color: #8f95ac; }
+
+    /* Product illustration */
+    .product-stage { position: relative; min-width: 0; padding: 22px 0 30px; }
+    .orbit { position: absolute; z-index: -1; top: 0; right: -42px; width: 490px; height: 490px; border: 1px solid #d9dbf46e; border-radius: 50%; }
+    .orbit::before { position: absolute; inset: 40px; border: 1px dashed #d9dbf4a6; border-radius: 50%; content: ""; }
+    .product-window { position: relative; overflow: hidden; border: 1px solid #fff; border-radius: 18px; background: #fff; box-shadow: 0 30px 70px -25px #3b3c6f40, 0 0 0 1px #dfe1efb3; transform: rotate(-2deg); }
+    .window-top { display: flex; align-items: center; gap: 6px; height: 35px; padding: 0 15px; border-bottom: 1px solid #eceef5; background: #fafbfe; }
+    .window-dot { width: 6px; height: 6px; border: 1px solid #d6dae7; border-radius: 50%; }
+    .window-address { margin: auto; padding-right: 30px; color: #a2a7b6; font-size: 9px; letter-spacing: .02em; }
+    .workspace { display: grid; grid-template-columns: 54px minmax(0, 1fr); min-height: 365px; }
+    .workspace-sidebar { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 19px 0 14px; border-right: 1px solid #eef0f6; background: #fbfbfe; }
+    .sidebar-brand { display: grid; place-items: center; width: 26px; height: 26px; margin-bottom: 13px; border-radius: 8px; color: #fff; background: var(--blue); }
+    .sidebar-brand .icon { width: 16px; height: 16px; }
+    .sidebar-item { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: #a0a6b8; }
+    .sidebar-item .icon { width: 16px; height: 16px; }
+    .sidebar-item.current { color: var(--blue); background: #eeeeff; }
+    .sidebar-item:last-child { margin-top: auto; }
+    .workspace-main { min-width: 0; padding: 23px 22px 21px; }
+    .workspace-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .workspace-heading strong { font-size: 16px; letter-spacing: -.04em; }
+    .avatar { display: grid; place-items: center; width: 25px; height: 25px; border: 3px solid #fff; border-radius: 50%; color: #7772c5; background: #edeaff; font-size: 8px; font-weight: 750; box-shadow: 0 0 0 1px #eeedf6; }
+    .workspace-tabs { display: flex; gap: 15px; margin-bottom: 17px; border-bottom: 1px solid #eceef5; color: #9a9fb0; font-size: 9px; }
+    .workspace-tabs span { padding-bottom: 9px; }
+    .workspace-tabs .current { border-bottom: 2px solid var(--blue); color: var(--blue); font-weight: 650; }
+    .demo-query { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 10px; border: 1px solid #e9ebf4; border-radius: 8px; color: #7d8497; font-size: 9px; }
+    .demo-query .icon { width: 12px; height: 12px; color: #969bb2; }
+    .demo-query > span:last-child { margin-left: auto; padding: 3px 5px; border-radius: 4px; background: #efefff; color: var(--blue); font-size: 8px; }
+    .tender-card { position: relative; padding: 15px; border: 1px solid #dfdff7; border-radius: 10px; background: #fff; box-shadow: 0 4px 12px #24247105; }
+    .tender-card-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 10px; }
+    .tender-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 4px; background: #ebf7f0; color: #37916a; font-size: 8px; font-weight: 650; }
+    .tender-tag .icon { width: 9px; height: 9px; }
+    .tender-card-top > .icon { width: 13px; height: 13px; color: #9a9fb4; }
+    .tender-card h3 { max-width: 250px; margin-bottom: 8px; font-size: 12px; line-height: 1.5; font-weight: 650; letter-spacing: -.02em; }
+    .tender-location { display: flex; align-items: center; gap: 4px; color: #9a9fb0; font-size: 8px; }
+    .tender-location .icon { width: 10px; height: 10px; }
+    .tender-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 13px; padding-top: 10px; border-top: 1px solid #eff0f6; color: #989eae; font-size: 8px; }
+    .tender-bottom span:last-child { color: #7772ce; }
+    .skeleton-card { display: flex; align-items: center; gap: 10px; margin-top: 9px; padding: 12px; border: 1px solid #eff0f6; border-radius: 9px; }
+    .skeleton-square { width: 25px; height: 25px; border-radius: 7px; background: #f0f1fa; }
+    .skeleton-lines { flex: 1; }
+    .skeleton-lines::before, .skeleton-lines::after { display: block; height: 5px; border-radius: 3px; background: #eff0f6; content: ""; }
+    .skeleton-lines::before { width: 78%; margin-bottom: 7px; }
+    .skeleton-lines::after { width: 48%; }
+    .notification { position: absolute; right: -18px; bottom: 1px; display: flex; align-items: center; gap: 12px; width: 293px; padding: 14px 16px; border: 1px solid #ffffff; border-radius: 14px; background: #fffffff2; box-shadow: 0 14px 36px -8px #38396026, 0 0 0 1px #ebedf5; transform: rotate(3deg); }
+    .telegram-icon { display: grid; place-items: center; flex: 0 0 35px; height: 35px; border-radius: 11px; background: #e9f5ff; color: #429cda; }
+    .telegram-icon .icon { width: 19px; height: 19px; }
+    .notification strong { display: block; margin-bottom: 4px; color: #34394c; font-size: 10px; font-weight: 650; }
+    .notification p { color: #8e94a6; font-size: 9px; line-height: 1.5; }
+    .notification-time { position: absolute; top: 12px; right: 14px; color: #b0b5c2; font-size: 8px; }
+    .demo-caption { margin: 20px 0 0; color: #9298aa; font-size: 10px; text-align: center; }
+
+    /* Compact benefit strip */
+    .benefit-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 25px; padding: 28px 0 33px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .benefit { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .benefit > .icon { width: 21px; height: 21px; color: #737b96; }
+    .benefit strong { display: block; color: #343b50; font-size: 12px; font-weight: 650; }
+    .benefit p { margin-top: 4px; color: #71798d; font-size: 11px; }
+
+    /* Features */
+    .features-section { padding: 96px 0; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 40px; margin-bottom: 34px; }
+    .section-heading .eyebrow { margin-bottom: 17px; }
+    .section-heading .section-copy { max-width: 355px; padding-bottom: 3px; font-size: 14px; }
+    .feature-grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 16px; }
+    .feature { position: relative; overflow: hidden; padding: 28px; border: 1px solid #e6e8f1; border-radius: 20px; background: #fff; }
+    .feature.feature-search { display: grid; grid-template-columns: 1fr; background: #eeeffc; border-color: #e5e5f7; }
+    .feature-icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 30px; border: 1px solid #e6e7f7; border-radius: 12px; background: #f7f7fd; color: var(--blue); }
+    .feature-search .feature-icon { background: #ffffffb3; border-color: #ffffffc7; }
+    .feature h3 { margin-bottom: 11px; font-size: 20px; line-height: 1.25; font-weight: 650; letter-spacing: -.04em; }
+    .feature p { color: #6b7387; font-size: 13px; line-height: 1.7; }
+    .feature-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 24px; }
+    .feature-tags span { padding: 6px 9px; border: 1px solid #dcdef4; border-radius: 6px; background: #ffffff80; color: #7a7ba2; font-size: 10px; }
+    .feature-tags span:first-child { color: #5d5bbc; border-color: #cfd0ef; background: #ffffffc7; }
+    .feature-bottom { display: flex; align-items: center; gap: 8px; min-height: 30px; margin-top: 24px; color: #777f95; font-size: 11px; }
+    .mini-avatars { display: flex; padding-left: 0; }
+    .mini-avatars .avatar { width: 27px; height: 27px; margin-left: -6px; box-shadow: none; }
+    .mini-avatars .avatar:first-child { margin-left: 0; }
+    .mini-avatars .avatar:nth-child(2) { color: #4c927b; background: #e5f5ee; }
+    .mini-avatars .avatar:nth-child(3) { color: #b48755; background: #fff1df; }
+
+    /* Plans */
+    .plans-section { position: relative; padding: 88px 0 72px; border-top: 1px solid #e8eaf3; border-bottom: 1px solid #e8eaf3; background: #f0f2f8; }
+    .plans-heading { max-width: 620px; margin: 0 auto 38px; text-align: center; }
+    .plans-heading .eyebrow { justify-content: center; margin-bottom: 17px; }
+    .plans-heading .section-copy { max-width: 470px; margin: 17px auto 0; font-size: 14px; }
+    .period-label { display: inline-flex; align-items: center; gap: 8px; margin-top: 23px; padding: 8px 12px; border: 1px solid #e0e2ed; border-radius: 9px; background: #f8f9fc; color: #777e92; font-size: 11px; }
+    .period-label .icon { width: 14px; height: 14px; color: #8c91aa; }
+    .period-label strong { color: #454d65; font-weight: 650; }
+    .plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 18px; }
+    .plan { --card-ink: #252b40; --card-muted: #697184; --card-line: #eceef5; position: relative; display: flex; flex-direction: column; min-width: 0; padding: 27px; border: 1px solid #e0e3ed; border-radius: 23px; background: #fff; color: var(--card-ink); box-shadow: 0 7px 22px -12px #202c5426; transition: transform .25s, box-shadow .25s; }
+    .plan-pro { --card-ink: #fff; --card-muted: #d0d1ff; --card-line: #ffffff2b; border-color: #5054e6; background: radial-gradient(ellipse at 100% 0%, #8080ff50, transparent 65%), #4b4fdf; box-shadow: 0 18px 35px -14px #3e43c25c; }
+    .plan-ultra { --card-ink: #fff; --card-muted: #b2b5c2; --card-line: #ffffff24; border-color: #282b34; background: radial-gradient(ellipse at 100% 0%, #42444f66, transparent 68%), #111218; box-shadow: 0 18px 35px -14px #14162145; }
+    .plan-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 30px; }
+    .plan-icon { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #e7e8f5; border-radius: 11px; background: #f8f8fd; color: #7375b6; }
+    .plan-icon .icon { width: 21px; height: 21px; }
+    .plan-pro .plan-icon, .plan-ultra .plan-icon { border-color: #ffffff2e; background: #ffffff0f; color: #fff; }
+    .plan-audience { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 6px; background: #f4f5f9; color: #8c91a4; font-size: 10px; font-weight: 550; }
+    .plan-pro .plan-audience { background: #ffffff1c; color: #ededff; }
+    .plan-ultra .plan-audience { border: 1px solid #ffffff26; background: #ffffff09; color: #c9ccd8; }
+    .plan h3 { margin-bottom: 9px; font-size: 27px; font-weight: 650; letter-spacing: -.05em; }
+    .plan-description { min-height: 45px; color: var(--card-muted); font-size: 13px; line-height: 1.7; text-wrap: pretty; }
+    .plan-capacity { margin: 25px 0 23px; }
+    .capacity-number { display: flex; align-items: baseline; gap: 9px; }
+    .capacity-number strong { font-size: 83px; line-height: 1; font-weight: 600; letter-spacing: -.075em; font-variant-numeric: lining-nums tabular-nums; }
+    .capacity-number > span { padding-left: 3px; color: var(--card-muted); font-size: 10px; letter-spacing: .02em; }
+    .capacity-caption { margin-top: 8px; font-size: 12px; font-weight: 550; }
+    .capacity-meter { display: flex; align-items: center; gap: 4px; height: 20px; margin-top: 14px; }
+    .capacity-meter span { flex: 1; height: 3px; border-radius: 2px; background: #eceef6; }
+    .capacity-meter span.on { background: #9598db; }
+    .plan-pro .capacity-meter span { background: #ffffff24; }
+    .plan-pro .capacity-meter span.on { background: #bcbfff; }
+    .plan-ultra .capacity-meter span { background: #f2f3f8; }
+    .plan-price { display: flex; align-items: center; gap: 9px; min-height: 61px; padding: 13px 0; border-top: 1px solid var(--card-line); border-bottom: 1px solid var(--card-line); }
+    .plan-price > .icon { width: 16px; height: 16px; color: var(--card-muted); }
+    .plan-price strong { display: block; font-size: 12px; font-weight: 550; }
+    .plan-price p { margin-top: 4px; color: var(--card-muted); font-size: 10px; }
+    .plan-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px; margin: 19px 0 23px; padding: 10px; border: 1px solid #e1e4ef; border-radius: 10px; background: #f2f3f8; color: #858b9e; font-size: 12px; font-weight: 600; cursor: not-allowed; opacity: 1; }
+    .plan-button .icon { width: 13px; height: 13px; }
+    .plan-pro .plan-button { border-color: #fff; background: #f4f4ff; color: #7777b2; }
+    .plan-ultra .plan-button { border-color: #ffffff21; background: #ffffff0c; color: #b9bdcb; }
+    .plan-list-label { margin-bottom: 16px; color: var(--card-muted); font-size: 10px; font-weight: 600; letter-spacing: .04em; }
+    .plan ul { display: grid; gap: 12px; padding: 0; list-style: none; color: #626c83; font-size: 12px; line-height: 1.55; }
+    .plan-pro ul { color: #e9e9ff; }
+    .plan-ultra ul { color: #cfd2dc; }
+    .plan li { display: flex; align-items: flex-start; gap: 8px; }
+    .plan li .icon { width: 14px; height: 14px; margin-top: 1px; color: #9297c8; }
+    .plan-pro li .icon { color: #d0d1ff; }
+    .plan-ultra li .icon { color: #f1f2f7; }
+    .plans-note { display: flex; align-items: flex-start; justify-content: center; gap: 8px; max-width: 710px; margin: 25px auto 0; color: #697184; font-size: 11px; line-height: 1.7; text-align: center; }
+    .plans-note .icon { width: 14px; height: 14px; margin-top: 2px; }
+    .included-strip { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px 24px; margin-top: 35px; color: #959bae; font-size: 11px; }
+    .included-strip > span { display: inline-flex; align-items: center; gap: 7px; }
+    .included-strip > span .icon { width: 14px; height: 14px; color: #9a9fb1; }
+
+    /* Getting started */
+    .workflow-section { padding: 86px 0 82px; }
+    .workflow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px; margin-top: 35px; }
+    .step { position: relative; padding-top: 17px; border-top: 1px solid #dfe3ef; }
+    .step::before { position: absolute; top: -3px; left: 0; width: 5px; height: 5px; border-radius: 50%; background: #a4a7d5; content: ""; }
+    .step-number { display: block; margin-bottom: 21px; color: #adb2c5; font-size: 11px; font-variant-numeric: tabular-nums; }
+    .step h3 { margin-bottom: 10px; font-size: 17px; font-weight: 650; letter-spacing: -.025em; }
+    .step p { max-width: 310px; color: #697184; font-size: 13px; line-height: 1.7; }
+
+    /* FAQ */
+    .faq-section { display: grid; grid-template-columns: .85fr 1.15fr; align-items: start; gap: 90px; padding: 68px 0 88px; border-top: 1px solid var(--line); }
+    .faq-intro .eyebrow { margin-bottom: 17px; }
+    .faq-intro .section-copy { max-width: 280px; margin-top: 17px; font-size: 14px; }
+    .faq-list { border-top: 1px solid #dfe3ee; }
+    .faq-list details { border-bottom: 1px solid #dfe3ee; }
+    .faq-list summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 70px; padding: 18px 0; list-style: none; cursor: pointer; font-size: 13px; font-weight: 550; line-height: 1.5; }
+    .faq-list summary::-webkit-details-marker { display: none; }
+    .faq-list summary::after { display: grid; place-items: center; flex: 0 0 22px; width: 22px; height: 22px; border: 1px solid #dfe3ee; border-radius: 50%; color: #9399ae; font-size: 16px; font-weight: 400; content: "+"; }
+    .faq-list details[open] summary::after { content: "−"; color: var(--blue); border-color: #c9ccf6; }
+    .faq-list details[open] summary { color: var(--blue); }
+    .faq-list p { padding: 0 35px 22px 0; color: #697184; font-size: 13px; line-height: 1.8; }
+    .footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 25px 0 30px; border-top: 1px solid var(--line); }
+    .footer .brand { font-size: 16px; }
+    .footer .brand-mark { width: 27px; height: 27px; border-radius: 8px; }
+    .footer .brand-mark .icon { width: 16px; height: 16px; }
+    .footer p { color: #a1a7b6; font-size: 10px; line-height: 1.7; }
+    .footer a.back-to-top { display: flex; align-items: center; gap: 6px; color: #8d94a7; font-size: 11px; }
+    .back-to-top .icon { width: 13px; height: 13px; transform: rotate(-90deg); }
+
+    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+      .plan:hover { transform: translateY(-6px); box-shadow: 0 20px 40px -20px #202c5440; }
+      .plan-pro:hover { box-shadow: 0 24px 45px -18px #3e43c280; }
+      .plan-ultra:hover { box-shadow: 0 24px 45px -18px #14162170; }
+    }
+    @media (max-width: 1100px) {
+      .hero { gap: 36px; }
+      h1 { font-size: 59px; }
+      .notification { right: -4px; }
+      .plan { padding: 23px; }
+      .section-heading { gap: 28px; }
+      .feature { padding: 24px; }
+      .faq-section { gap: 55px; }
+    }
+    @media (max-width: 900px) {
+      .container { width: min(760px, calc(100% - 48px)); }
+      .header { min-height: 76px; }
+      .nav { gap: 22px; }
+      .nav a[href="#workflow"] { display: none; }
+      .hero { grid-template-columns: 1fr 1fr; gap: 25px; padding-top: 57px; padding-bottom: 58px; }
+      h1 { font-size: 47px; }
+      .hero-lede { font-size: 14px; line-height: 1.75; }
+      .hero-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
+      .hero-actions .button { min-height: 46px; font-size: 12px; }
+      .hero-meta { gap: 9px; font-size: 10px; }
+      .launch-label { flex-wrap: wrap; gap: 7px; font-size: 10px; }
+      .workspace { grid-template-columns: 35px minmax(0, 1fr); min-height: 330px; }
+      .workspace-main { padding: 18px 13px; }
+      .workspace-sidebar { gap: 12px; }
+      .sidebar-item { width: 25px; height: 25px; }
+      .sidebar-brand { width: 23px; height: 23px; }
+      .workspace-heading strong { font-size: 14px; }
+      .workspace-tabs { gap: 10px; font-size: 8px; }
+      .tender-card { padding: 11px; }
+      .tender-card h3 { font-size: 10px; }
+      .notification { bottom: -2px; right: -5px; width: 244px; padding: 12px; gap: 9px; }
+      .notification strong { font-size: 9px; }
+      .notification p { font-size: 8px; }
+      .notification-time { display: none; }
+      .telegram-icon { flex-basis: 31px; height: 31px; }
+      .demo-caption { margin-top: 18px; font-size: 9px; }
+      .orbit { top: 20px; right: -25px; width: 340px; height: 340px; }
+      .benefit-strip { gap: 14px; }
+      .benefit { justify-content: flex-start; gap: 9px; }
+      .benefit strong { font-size: 11px; }
+      .benefit p { font-size: 10px; }
+      .benefit > .icon { width: 19px; height: 19px; }
+      .section-heading { align-items: start; flex-direction: column; gap: 16px; }
+      .section-heading .section-copy { max-width: 480px; }
+      .feature-grid { grid-template-columns: 1fr 1fr; }
+      .feature-search { grid-column: 1 / -1; }
+      .feature.feature-search { grid-template-columns: 1fr 1fr; gap: 18px; align-items: end; }
+      .feature-search .feature-tags { margin: 0 0 4px; align-content: end; justify-content: end; }
+      .feature-search .feature-icon { margin-bottom: 20px; }
+      .plan-grid { gap: 12px; }
+      .plan { padding: 20px 17px; border-radius: 20px; }
+      .plan-top { gap: 6px; margin-bottom: 25px; }
+      .plan-icon { width: 31px; height: 31px; border-radius: 9px; }
+      .plan-icon .icon { width: 17px; height: 17px; }
+      .plan-audience { padding: 5px 6px; font-size: 9px; }
+      .plan h3 { font-size: 25px; }
+      .plan-description { min-height: 58px; font-size: 11px; }
+      .capacity-number strong { font-size: 70px; }
+      .capacity-caption { font-size: 11px; }
+      .plan-price strong { font-size: 11px; }
+      .plan-price p { font-size: 9px; }
+      .plan-price > .icon { display: none; }
+      .plan ul { font-size: 10px; gap: 10px; }
+      .plan li { gap: 6px; }
+      .plan li .icon { width: 12px; height: 12px; }
+      .plan-button { font-size: 10px; }
+      .faq-section { gap: 38px; grid-template-columns: .8fr 1.2fr; }
+      .section-title { font-size: 38px; }
+      .workflow-grid { gap: 23px; }
+    }
+    @media (max-width: 760px) {
+      .plan-grid { grid-template-columns: 1fr; gap: 16px; max-width: 470px; margin-inline: auto; }
+      .plan { padding: 25px; border-radius: 21px; }
+      .plan-top { margin-bottom: 24px; }
+      .plan-icon { width: 37px; height: 37px; border-radius: 11px; }
+      .plan-icon .icon { width: 20px; height: 20px; }
+      .plan-audience { font-size: 10px; padding: 6px 9px; }
+      .plan h3 { font-size: 29px; }
+      .plan-description { min-height: 0; max-width: 330px; font-size: 12px; }
+      .plan-capacity { margin-top: 22px; margin-bottom: 18px; }
+      .capacity-number strong { font-size: 82px; }
+      .capacity-number > span { font-size: 11px; }
+      .capacity-caption { font-size: 12px; }
+      .capacity-meter { margin-top: 11px; }
+      .plan-price { min-height: 63px; }
+      .plan-price > .icon { display: block; }
+      .plan-price strong { font-size: 12px; }
+      .plan-price p { font-size: 10px; }
+      .plan-button { min-height: 47px; margin: 18px 0 23px; font-size: 12px; }
+      .plan ul { gap: 12px; font-size: 12px; }
+      .plan li { gap: 9px; }
+      .plan li .icon { width: 14px; height: 14px; }
+    }
+    @media (max-width: 640px) {
+      html { scroll-padding-top: 87px; }
+      .container { width: calc(100% - 40px); }
+      .header { min-height: 69px; gap: 12px; }
+      .brand { font-size: 18px; gap: 8px; }
+      .brand-mark { width: 31px; height: 31px; border-radius: 10px; }
+      .nav > a:not(.nav-cta) { display: none; }
+      .nav .nav-cta { min-height: 35px; padding: 0 12px; gap: 10px; font-size: 11px; }
+      .hero { grid-template-columns: 1fr; gap: 16px; padding-top: 36px; padding-bottom: 35px; }
+      .hero-wrap::before { top: 250px; right: -260px; width: 730px; height: 660px; }
+      .launch-label { margin-bottom: 25px; padding: 6px 8px; font-size: 10px; }
+      h1 { max-width: 440px; font-size: clamp(43px, 11.6vw, 66px); line-height: 1.07; letter-spacing: -.06em; }
+      .hero-lede { max-width: 410px; margin-top: 20px; font-size: 14px; line-height: 1.75; }
+      .hero-actions { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); margin-top: 24px; }
+      .hero-actions .button { padding: 0 12px; gap: 10px; min-height: 48px; font-size: 11px; }
+      .hero-actions .button .icon { width: 14px; height: 14px; }
+      .hero-meta { gap: 15px; margin-top: 16px; font-size: 10px; }
+      .product-stage { width: min(100% - 10px, 435px); margin: 14px auto 0; padding-top: 10px; padding-bottom: 22px; }
+      .workspace { grid-template-columns: 41px minmax(0, 1fr); min-height: 302px; }
+      .workspace-main { padding: 17px; }
+      .workspace-sidebar { padding-top: 15px; gap: 10px; }
+      .sidebar-brand { margin-bottom: 8px; }
+      .workspace-heading { margin-bottom: 14px; }
+      .workspace-tabs { margin-bottom: 14px; }
+      .tender-card { padding: 12px; }
+      .tender-card h3 { font-size: 11px; }
+      .window-top { height: 30px; }
+      .notification { right: -4px; bottom: -5px; width: 255px; padding: 12px 14px; }
+      .notification strong { font-size: 9px; }
+      .notification p { font-size: 8px; }
+      .demo-caption { margin-top: 23px; font-size: 9px; }
+      .orbit { top: -10px; right: -15px; width: 350px; height: 350px; }
+      .benefit-strip { grid-template-columns: 1fr; gap: 18px; padding: 24px 0; }
+      .benefit { gap: 12px; }
+      .benefit > .icon { width: 19px; height: 19px; }
+      .benefit > div { display: flex; align-items: center; flex-wrap: wrap; column-gap: 7px; row-gap: 2px; }
+      .benefit strong { font-size: 11px; }
+      .benefit p { margin: 0; font-size: 11px; }
+      .features-section { padding: 58px 0; }
+      .section-title { font-size: 35px; }
+      .eyebrow { font-size: 10px; }
+      .section-heading { gap: 14px; margin-bottom: 25px; }
+      .section-heading .eyebrow { margin-bottom: 15px; }
+      .section-heading .section-copy { font-size: 13px; }
+      .feature-grid { grid-template-columns: 1fr; gap: 12px; }
+      .feature, .feature.feature-search { display: block; grid-column: auto; padding: 24px; border-radius: 18px; }
+      .feature-icon, .feature-search .feature-icon { width: 36px; height: 36px; margin-bottom: 23px; border-radius: 11px; }
+      .feature h3 { font-size: 20px; }
+      .feature p { font-size: 13px; }
+      .feature-search .feature-tags { justify-content: start; margin-top: 20px; }
+      .feature-bottom { margin-top: 20px; }
+      .plans-section { padding: 57px 0 43px; }
+      .plans-heading { margin-bottom: 28px; text-align: left; }
+      .plans-heading .eyebrow { justify-content: start; }
+      .plans-heading .section-copy { margin-top: 15px; font-size: 13px; }
+      .period-label { margin-top: 19px; font-size: 10px; }
+      .plans-note { margin-top: 23px; font-size: 10px; text-align: left; }
+      .included-strip { justify-content: start; gap: 13px 17px; margin-top: 25px; font-size: 10px; }
+      .workflow-section { padding: 58px 0; }
+      .workflow-grid { grid-template-columns: 1fr; gap: 25px; margin-top: 29px; }
+      .step { display: grid; grid-template-columns: 27px 1fr; column-gap: 10px; padding-top: 19px; }
+      .step-number { grid-row: span 2; padding-top: 3px; margin: 0; }
+      .step h3 { font-size: 16px; margin-bottom: 8px; }
+      .step p { max-width: none; font-size: 12px; }
+      .faq-section { grid-template-columns: 1fr; gap: 28px; padding-top: 49px; padding-bottom: 50px; }
+      .faq-intro .section-copy { max-width: 320px; margin-top: 14px; font-size: 13px; }
+      .faq-list summary { min-height: 68px; font-size: 12px; }
+      .faq-list p { padding-right: 22px; font-size: 12px; }
+      .footer { flex-wrap: wrap; gap: 19px; padding: 23px 0; }
+      .footer p { order: 3; width: 100%; font-size: 10px; }
+      .footer .back-to-top { margin-left: auto; font-size: 10px; }
+    }
+    @media (max-width: 360px) {
+      .container { width: calc(100% - 32px); }
+      .brand { font-size: 16px; }
+      .nav .nav-cta { padding: 0 10px; gap: 7px; font-size: 10px; }
+      .hero-actions { grid-template-columns: 1fr; }
+      .hero-actions .button { min-height: 46px; font-size: 12px; }
+      h1 { font-size: 42px; }
+      .hero-meta { gap: 10px; font-size: 9px; }
+      .workspace-main { padding: 15px 12px; }
+      .workspace-tabs { gap: 10px; font-size: 7px; }
+      .notification { right: -2px; width: 235px; }
+      .demo-query { padding: 8px; font-size: 8px; }
+      .demo-query > span:last-child { font-size: 7px; }
+      .section-title { font-size: 31px; }
+      .feature { padding: 21px; }
+      .plan { padding: 23px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+
+  <style>
+    /* Dark palette; layout and responsive rules are shared with the light preview. */
+    :root {
+      color-scheme: dark;
+      color: #f1f3fa;
+      background: #0d0f17;
+      --blue: #a3a7ff;
+      --action: #5c62e9;
+      --muted: #adb4c6;
+      --line: #282c3c;
+    }
+    ::selection { color: #fff; background: #555bc1; }
+    :focus-visible { outline-color: #afb3ff; }
+    .button-primary { color: #fff; background: var(--action); box-shadow: 0 6px 24px #5c62e92b; }
+    .button-primary:hover { background: #6b71f3; box-shadow: 0 8px 28px #5c62e940; }
+    .button-secondary { color: #d2d6e7; border-color: #303548; background: #1b1e2c; }
+    .button-secondary:hover { background: #262a3d; }
+    .skip-link { color: #f1f3fa; background: #252a40; }
+    .header-shell { border-color: #292d3b9c; background: #0d0f17e8; }
+    .brand-mark { background: var(--action); box-shadow: inset 0 1px 0 #ffffff33, 0 4px 16px #5c62e92b; }
+    .nav { color: #b0b7cb; }
+    .nav .nav-cta { color: #1a1e31; background: #e5e8fa; }
+    .nav .nav-cta:hover { background: #fff; }
+    .hero-wrap::before { background: radial-gradient(ellipse, #34306c60 0%, #23224b3d 38%, transparent 68%); }
+    .launch-label { border-color: #35364f; background: #191c2bcc; color: #b1b8ce; }
+    .launch-label span { color: #b9b7ff; background: #7771dd24; }
+    .launch-label span::before { background: #b2acff; }
+    .hero-lede, .hero-meta { color: #adb4c6; }
+    .hero-meta .icon { color: #929bb5; }
+    .orbit { border-color: #605b9640; }
+    .orbit::before { border-color: #6763a033; }
+    .product-window { border-color: #3a3e55; background: #191c2a; box-shadow: 0 30px 70px -25px #000000b3, 0 0 0 1px #4543632b; }
+    .window-top { border-color: #303449; background: #1f2233; }
+    .window-dot { border-color: #666b86; }
+    .window-address { color: #939bb4; }
+    .workspace-sidebar { border-color: #303449; background: #151824; }
+    .sidebar-brand { background: var(--action); }
+    .sidebar-item { color: #858fae; }
+    .sidebar-item.current { color: #b2b6ff; background: #7477ef21; }
+    .avatar { color: #c0bbff; border-color: #1c2030; background: #393151; box-shadow: 0 0 0 1px #494259; }
+    .workspace-tabs { border-color: #33374b; color: #919bb5; }
+    .demo-query { border-color: #35394f; color: #b3bbd1; background: #1d2030; }
+    .demo-query .icon { color: #929bb8; }
+    .demo-query > span:last-child { color: #b5b8ff; background: #7477ef24; }
+    .tender-card { border-color: #494a7a; background: #222638; box-shadow: 0 4px 12px #0000001a; }
+    .tender-tag { color: #98dcb6; background: #77cf9d16; }
+    .tender-card-top > .icon { color: #a7afc7; }
+    .tender-location { color: #a5afc6; }
+    .tender-bottom { color: #9fa9c0; border-color: #363b53; }
+    .tender-bottom span:last-child { color: #b5b2ff; }
+    .skeleton-card { border-color: #303449; background: #1c2030; }
+    .skeleton-square { background: #30354d; }
+    .skeleton-lines::before, .skeleton-lines::after { background: #363b52; }
+    .notification { border-color: #42475e; background: #262a3bf5; box-shadow: 0 14px 36px -8px #00000080, 0 0 0 1px #00000026; }
+    .telegram-icon { color: #9bd6ff; background: #69baff1c; }
+    .notification strong { color: #edf1fd; }
+    .notification p { color: #b5bed4; }
+    .notification-time { color: #9fa8c2; }
+    .demo-caption { color: #949db4; }
+    .benefit > .icon { color: #979fbf; }
+    .benefit strong { color: #dce1f1; }
+    .benefit p { color: #a5aec4; }
+    .feature { border-color: #303448; background: #181c29; }
+    .feature.feature-search { border-color: #3a3b5f; background: #22223b; }
+    .feature-icon { border-color: #3b3d5a; background: #26283f; }
+    .feature-search .feature-icon { border-color: #535174; background: #393657; }
+    .feature p { color: #b0b8ce; }
+    .feature-tags span { color: #bbbdd9; border-color: #484862; background: #303048; }
+    .feature-tags span:first-child { color: #d0ccff; border-color: #65608e; background: #43405e; }
+    .feature-bottom { color: #a4aec8; }
+    .mini-avatars .avatar { border-color: #181c29; }
+    .mini-avatars .avatar:nth-child(2) { color: #afe4cd; background: #28463e; }
+    .mini-avatars .avatar:nth-child(3) { color: #edd2a8; background: #4a3a2d; }
+    .plans-section { border-color: #282d40; background: #121622; }
+    .period-label { color: #a9b2c9; border-color: #353b52; background: #1b2030; }
+    .period-label .icon { color: #a1abc5; }
+    .period-label strong { color: #d9dff3; }
+    .plan {
+      --card-ink: #f1f3fc;
+      --card-muted: #adb6ce;
+      --card-line: #343a4e;
+      border-color: #3b4257;
+      background: #1d2231;
+      box-shadow: 0 12px 28px -12px #00000066;
+    }
+    .plan-pro {
+      --card-ink: #fff;
+      --card-muted: #dddfff;
+      --card-line: #ffffff33;
+      border-color: #777af0;
+      background: radial-gradient(ellipse at 100% 0%, #8a84ff40, transparent 65%), #454bd4;
+      box-shadow: 0 18px 40px -14px #3034b55c;
+    }
+    .plan-ultra {
+      --card-ink: #f5f6fb;
+      --card-muted: #bbc0ce;
+      --card-line: #ffffff29;
+      border-color: #444955;
+      background: radial-gradient(ellipse at 100% 0%, #35384459, transparent 68%), #07080c;
+      box-shadow: 0 18px 40px -14px #000000a6;
+    }
+    .plan-icon { color: #b4b6ff; border-color: #494c69; background: #2a2e45; }
+    .plan-pro .plan-icon, .plan-ultra .plan-icon { color: #fff; border-color: #ffffff38; background: #ffffff0f; }
+    .plan-audience { color: #c0c8df; background: #ffffff0a; }
+    .plan-pro .plan-audience { color: #f0f0ff; background: #ffffff1f; }
+    .plan-ultra .plan-audience { color: #d1d5e1; border-color: #ffffff30; background: #ffffff0c; }
+    .capacity-meter span { background: #3b4259; }
+    .capacity-meter span.on { background: #b0b2ff; }
+    .plan-pro .capacity-meter span { background: #ffffff29; }
+    .plan-pro .capacity-meter span.on { background: #dadcff; }
+    .plan-ultra .capacity-meter span { background: #f2f3f8; }
+    .plan-button { color: #aab4cd; border-color: #41485e; background: #292f42; }
+    .plan-pro .plan-button { color: #6164a2; border-color: #ededff; background: #e5e7ff; }
+    .plan-ultra .plan-button { color: #bfc5d6; border-color: #ffffff2b; background: #ffffff0f; }
+    .plan ul { color: #c4cde2; }
+    .plan-pro ul { color: #f0f0ff; }
+    .plan-ultra ul { color: #d2d7e3; }
+    .plan li .icon { color: #b4b8fa; }
+    .plan-pro li .icon { color: #dddfff; }
+    .plan-ultra li .icon { color: #f1f2f7; }
+    .plans-note { color: #adb6ce; }
+    .included-strip { color: #a3aec7; }
+    .included-strip > span .icon { color: #a3aec7; }
+    .step { border-color: #343a50; }
+    .step::before { background: #868dc5; }
+    .step-number { color: #a0abc7; }
+    .step p, .faq-list p { color: #adb4c6; }
+    .faq-list, .faq-list details { border-color: #343a50; }
+    .faq-list summary::after { color: #b1bad5; border-color: #424a65; }
+    .faq-list details[open] summary::after { color: #b9bcff; border-color: #797bc0; }
+    .footer p { color: #a1acc6; }
+    .footer a.back-to-top { color: #b0bad3; }
+    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+      .plan:hover { box-shadow: 0 22px 44px -18px #0000008c; }
+      .plan-pro:hover { box-shadow: 0 24px 48px -18px #494de280; }
+      .plan-ultra:hover { box-shadow: 0 24px 45px -18px #000000cc; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.3"/><rect x="14.5" y="14.5" width="6" height="6" rx="1.3"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M5 10a7 7 0 0 1 14 0c0 7 2 7 2 8H3c0-1 2-1 2-8m5 11h4"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M7.5 3v4m9-4v4M4 10h16m-12 4h2m4 0h2m-8 3h2"/></symbol>
+    <symbol id="i-document" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Zm0 0v6h6M8 13h8m-8 4h5"/></symbol>
+    <symbol id="i-team" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-17a3 3 0 0 1 0 6m3 11v-3a6 6 0 0 0-2-4"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h3m6 0h7M4 17h7m6 0h3"/><circle cx="10" cy="7" r="3"/><circle cx="14" cy="17" r="3"/></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 4h12v17l-6-4-6 4Z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.2"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m21 3-7 18-4-7-7-4Zm0 0L10 14"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-13h-7Z"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8Zm-10 9 10 5 10-5M2 16l10 5 10-5"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/></symbol>
+  </svg>
+  <a class="skip-link" href="#main">К содержанию</a>
+  <div class="header-shell">
+    <header class="container header">
+      <a class="brand" href="#top" aria-label="TenderFinder — наверх">
+        <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></span>
+        TenderFinder
+      </a>
+      <nav class="nav" aria-label="Главная навигация">
+        <a href="#features">Возможности</a>
+        <a href="#workflow">Как это работает</a>
+        <a href="#faq">Вопросы</a>
+        <a class="nav-cta" href="#plans">Тарифы <svg class="icon" aria-hidden="true"><use href="#i-arrow-up"/></svg></a>
+      </nav>
+    </header>
+  </div>
+  <main id="main">
+    <div class="hero-wrap" id="top">
+      <section class="container hero" aria-labelledby="hero-title">
+        <div class="hero-content">
+          <div class="launch-label"><span>Предпросмотр</span> Готовим запуск оплаты</div>
+          <h1 id="hero-title">От нужного<br>тендера —<br><em>к вашему<br>результату.</em></h1>
+          <p class="hero-lede">Находите подходящие закупки, получайте уведомления в Telegram и ведите работу по заявке вместе с командой.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#plans">Выбрать тариф <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+            <a class="button button-secondary" href="#features">Что внутри</a>
+          </div>
+          <div class="hero-meta">
+            <span><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg> Доступ на 30 дней</span>
+            <span><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg> Без автопродления*</span>
+          </div>
+        </div>
+        <div>
+          <div class="product-stage" role="img" aria-label="Пример интерфейса: лента тендеров, подходящая закупка и уведомление в Telegram">
+            <div class="orbit"></div>
+            <div class="product-window">
+              <div class="window-top"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span><span class="window-address">TenderFinder · рабочее пространство</span></div>
+              <div class="workspace">
+                <div class="workspace-sidebar">
+                  <span class="sidebar-brand"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></span>
+                  <span class="sidebar-item current"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg></span>
+                  <span class="sidebar-item"><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></span>
+                  <span class="sidebar-item"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg></span>
+                  <span class="sidebar-item"><svg class="icon" aria-hidden="true"><use href="#i-team"/></svg></span>
+                  <span class="sidebar-item"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg></span>
+                </div>
+                <div class="workspace-main">
+                  <div class="workspace-heading"><strong>Ваши возможности</strong><span class="avatar">TF</span></div>
+                  <div class="workspace-tabs"><span class="current">Подходящие тендеры</span><span>Сохранённые</span><span>Мониторинги</span></div>
+                  <div class="demo-query"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span>Разработка сайтов</span><span>Мониторинг</span></div>
+                  <div class="tender-card">
+                    <div class="tender-card-top"><span class="tender-tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Подходит по условиям</span><svg class="icon" aria-hidden="true"><use href="#i-bookmark"/></svg></div>
+                    <h3>Разработка и поддержка корпоративного сайта</h3>
+                    <div class="tender-location"><svg class="icon" aria-hidden="true"><use href="#i-pin"/></svg> Москва · пример закупки</div>
+                    <div class="tender-bottom"><span>По вашему мониторингу</span><span>Открыть карточку ↗</span></div>
+                  </div>
+                  <div class="skeleton-card"><span class="skeleton-square"></span><span class="skeleton-lines"></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="notification">
+              <span class="telegram-icon"><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg></span>
+              <div><strong>TenderFinder</strong><p>Новый тендер по вашему мониторингу.<br>Посмотрите, подходит ли он вам.</p></div>
+              <span class="notification-time">сейчас</span>
+            </div>
+          </div>
+          <p class="demo-caption">Иллюстрация возможностей, не реальная закупка</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="container benefit-strip">
+      <div class="benefit"><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg><div><strong>Меньше лишнего</strong><p>Фильтры под ваши задачи</p></div></div>
+      <div class="benefit"><svg class="icon" aria-hidden="true"><use href="#i-bell"/></svg><div><strong>Всегда в курсе</strong><p>Уведомления в Telegram</p></div></div>
+      <div class="benefit"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg><div><strong>Всё под рукой</strong><p>От поиска до работы по заявке</p></div></div>
+    </div>
+
+    <section class="container features-section" id="features" aria-labelledby="features-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">Одно рабочее пространство</p><h2 class="section-title" id="features-title">Больше, чем<br>поиск тендеров.</h2></div>
+        <p class="section-copy">От первого совпадения до решения об участии — нужные инструменты уже рядом.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature feature-search">
+          <div><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></span><h3>Находите своё.</h3><p>Настройте направления поиска, ключевые и минус-слова, регион, бюджет и сроки. Смотрите подходящие закупки в общей ленте.</p></div>
+          <div class="feature-tags" aria-label="Примеры фильтров"><span>Ключевые слова</span><span>Регион</span><span>Бюджет</span><span>Сроки</span></div>
+        </article>
+        <article class="feature">
+          <span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-bell"/></svg></span><h3>Узнавайте вовремя.</h3><p>Получайте новые совпадения и ежедневный дайджест в Telegram. Выбирайте удобные настройки уведомлений.</p>
+          <div class="feature-bottom"><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg> Прямо в привычный мессенджер</div>
+        </article>
+        <article class="feature">
+          <span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-team"/></svg></span><h3>Действуйте вместе.</h3><p>Ведите заявки, задачи, календарь и документы. Обсуждайте решения с командой и оценивайте результаты участия.</p>
+          <div class="feature-bottom"><span class="mini-avatars" aria-hidden="true"><span class="avatar">А</span><span class="avatar">М</span><span class="avatar">К</span></span> В одном рабочем пространстве</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="plans-section" id="plans" aria-labelledby="plans-title">
+      <div class="container">
+        <div class="plans-heading">
+          <p class="eyebrow">Ваш масштаб. Ваш тариф.</p>
+          <h2 class="section-title" id="plans-title">Выберите, сколько<br>возможностей искать.</h2>
+          <p class="section-copy">Все инструменты — в каждом тарифе. Выбирайте количество одновременно активных мониторингов.</p>
+          <div class="period-label"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg><strong>30 дней доступа</strong><span>· разовая покупка*</span></div>
+        </div>
+        <div class="plan-grid">
+          <article class="plan" aria-labelledby="basic-title">
+            <div class="plan-top"><span class="plan-icon"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="plan-audience">Для личной работы</span></div>
+            <h3 id="basic-title">Basic</h3>
+            <p class="plan-description">Сосредоточьтесь на главных направлениях вашего бизнеса.</p>
+            <div class="plan-capacity">
+              <div class="capacity-number"><strong>3</strong><span>/ одновременно</span></div>
+              <p class="capacity-caption">активных мониторинга</p>
+              <div class="capacity-meter" aria-hidden="true"><span class="on"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="plan-price"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><div><strong>Цена появится перед запуском</strong><p>За 30 дней доступа</p></div></div>
+            <button class="plan-button" type="button" disabled><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> Скоро в продаже</button>
+            <p class="plan-list-label">Всё для ежедневной работы</p>
+            <ul>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Лента тендеров и гибкие фильтры</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Уведомления и ежедневный дайджест</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Заявки, задачи, календарь, документы</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Командная работа и аналитика</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Поддержка пользователей</li>
+            </ul>
+          </article>
+          <article class="plan plan-pro" aria-labelledby="pro-title">
+            <div class="plan-top"><span class="plan-icon"><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg></span><span class="plan-audience">Для нескольких направлений</span></div>
+            <h3 id="pro-title">Про</h3>
+            <p class="plan-description">Расширьте поиск и держите больше направлений в фокусе.</p>
+            <div class="plan-capacity">
+              <div class="capacity-number"><strong>10</strong><span>/ одновременно</span></div>
+              <p class="capacity-caption">активных мониторингов</p>
+              <div class="capacity-meter" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="plan-price"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><div><strong>Цена появится перед запуском</strong><p>За 30 дней доступа</p></div></div>
+            <button class="plan-button" type="button" disabled><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> Скоро в продаже</button>
+            <p class="plan-list-label">Все возможности Basic</p>
+            <ul>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> До 10 активных мониторингов</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Уведомления и ежедневный дайджест</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Заявки, задачи, календарь, документы</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Командная работа и аналитика</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Поддержка пользователей</li>
+            </ul>
+          </article>
+          <article class="plan plan-ultra" aria-labelledby="ultra-title">
+            <div class="plan-top"><span class="plan-icon"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg></span><span class="plan-audience">Максимальный охват</span></div>
+            <h3 id="ultra-title">Ультра</h3>
+            <p class="plan-description">Для широкого поиска и большого числа направлений.</p>
+            <div class="plan-capacity">
+              <div class="capacity-number"><strong>30</strong><span>/ одновременно</span></div>
+              <p class="capacity-caption">активных мониторингов</p>
+              <div class="capacity-meter" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="plan-price"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><div><strong>Цена появится перед запуском</strong><p>За 30 дней доступа</p></div></div>
+            <button class="plan-button" type="button" disabled><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> Скоро в продаже</button>
+            <p class="plan-list-label">Все возможности Про</p>
+            <ul>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> До 30 активных мониторингов</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Уведомления и ежедневный дайджест</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Заявки, задачи, календарь, документы</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Командная работа и аналитика</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Поддержка пользователей</li>
+            </ul>
+          </article>
+        </div>
+        <p class="plans-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>* Предварительное предложение. Планируется разовая покупка без автопродления. Цены, условия и число участников команды ещё утверждаются. Приём платежей пока закрыт.</span></p>
+        <div class="included-strip"><span><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg> Все функции в каждом тарифе</span><span><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg> Лимиты отдельных источников учитываются отдельно</span></div>
+      </div>
+    </section>
+
+    <section class="container workflow-section" id="workflow" aria-labelledby="workflow-title">
+      <p class="eyebrow">От настройки — к действию</p>
+      <h2 class="section-title" id="workflow-title" style="margin-top:17px">Простой рабочий ритм.</h2>
+      <div class="workflow-grid">
+        <article class="step"><span class="step-number">01 /</span><h3>Задайте направление</h3><p>Создайте мониторинг под нужные закупки. Добавьте ключевые слова и фильтры.</p></article>
+        <article class="step"><span class="step-number">02 /</span><h3>Получайте совпадения</h3><p>Смотрите ленту и уведомления в Telegram. Сохраняйте то, что подходит.</p></article>
+        <article class="step"><span class="step-number">03 /</span><h3>Работайте по заявке</h3><p>Планируйте задачи, собирайте документы и принимайте решения вместе с командой.</p></article>
+      </div>
+    </section>
+
+    <section class="container faq-section" id="faq" aria-labelledby="faq-title">
+      <div class="faq-intro"><p class="eyebrow">Остались вопросы?</p><h2 class="section-title" id="faq-title">Всё важное<br>об условиях.</h2><p class="section-copy">Окончательные условия покупки опубликуем до открытия продаж.</p></div>
+      <div class="faq-list">
+        <details><summary>Чем тарифы отличаются друг от друга?</summary><p>Общим лимитом одновременно активных мониторингов: Basic — 3, Про — 10, Ультра — 30. Основные инструменты одинаковы. Для отдельных источников действуют собственные ограничения доступности и использования.</p></details>
+        <details><summary>Деньги будут списываться автоматически?</summary><p>Для первого запуска планируется разовая покупка доступа на 30 дней без автоматического продления. Точные условия будут опубликованы перед началом продаж.</p></details>
+        <details><summary>Можно ли работать вместе с командой?</summary><p>В TenderFinder есть общие заявки, задачи, документы и командные действия. Число участников, покрываемых одной покупкой, ещё предстоит утвердить.</p></details>
+        <details><summary>Что будет после окончания доступа?</summary><p>Текущая логика приложения замораживает активные мониторинги и прекращает новые уведомления. Порядок хранения данных будет закреплён в условиях сервиса.</p></details>
+        <details><summary>Когда можно будет купить доступ?</summary><p>Продажи откроются после утверждения цен, условий и подключения платёжной системы. Сейчас это страница предварительного предложения; она не создаёт заказ и не принимает платежи.</p></details>
+      </div>
+    </section>
+  </main>
+  <footer class="container footer">
+    <a class="brand" href="#top"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></span>TenderFinder</a>
+    <p>Поиск тендеров и работа по заявкам.<br>Предпросмотр предложения · платежи пока не принимаются.</p>
+    <a class="back-to-top" href="#top">Наверх <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+  </footer>
+</body>
+</html>

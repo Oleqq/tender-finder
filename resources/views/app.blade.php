@@ -7,7 +7,7 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <meta name="theme-color" content="#081426">
+        <meta name="theme-color" content="#f8f9fc">
 
         <!-- Keep the official Telegram bridge on our origin so a blocked
              telegram.org request cannot leave the Mini App loading forever. -->

@@ -1,0 +1,95 @@
+/* Light application theme, based on subscription-offer-preview.html. */
+:root[data-theme='light'] ::selection { color: #252071; background: #dddfff; }
+:root[data-theme='light'] .mini-app {
+    background: radial-gradient(ellipse 600px 440px at 100% 0, rgba(126, 123, 238, .06), transparent 70%), var(--tf-bg);
+}
+
+/* App chrome and navigation */
+:root[data-theme='light'] .top-bar {
+    border-bottom: 1px solid var(--tf-line);
+    padding-bottom: 16px;
+}
+:root[data-theme='light'] .top-bar__title p { color: var(--tf-faint); font-weight: 550; }
+:root[data-theme='light'] .top-bar__title h1 { font-weight: 650; letter-spacing: -.035em; }
+:root[data-theme='light'] .brand-mark {
+    border-color: transparent;
+    border-radius: 12px;
+    color: #fff;
+    background: var(--tf-accent-fill);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 4px 12px rgba(76, 83, 239, .12);
+}
+:root[data-theme='light'] .icon-button { border-radius: 12px; background: var(--tf-surface); box-shadow: none; }
+:root[data-theme='light'] .icon-button--soft { background: #f2f3f9; }
+:root[data-theme='light'] .bottom-navigation {
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .96);
+    box-shadow: 0 10px 32px rgba(32, 44, 84, .08);
+}
+:root[data-theme='light'] .bottom-navigation__item { border-radius: 12px; font-weight: 600; }
+:root[data-theme='light'] .work-nav { border-radius: 18px; background: #f0f2f8; }
+:root[data-theme='light'] .work-nav a { border-radius: 12px; }
+:root[data-theme='light'] .work-nav a.is-active {
+    border-color: #dcdef4;
+    background: var(--tf-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Cards and actions */
+:root[data-theme='light'] .glass-card { box-shadow: var(--shadow-sm); }
+:root[data-theme='light'] .glass-card--accent { background: var(--tf-accent-soft); border-color: #dcdff3; }
+:root[data-theme='light'] .button { border-radius: 12px; font-weight: 650; }
+:root[data-theme='light'] .button--primary {
+    background: var(--tf-accent-fill);
+    box-shadow: 0 6px 15px rgba(76, 83, 239, .13);
+}
+:root[data-theme='light'] .button--secondary { color: #4e5568; border-color: #e0e3ed; background: var(--tf-surface); }
+:root[data-theme='light'] .badge { border-radius: 8px; font-weight: 650; }
+:root[data-theme='light'] .metric-card--accent { background: #4b4fdf; border-color: #5054e6; }
+:root[data-theme='light'] .signal-core { background: var(--tf-accent-fill); }
+:root[data-theme='light'] .profile-avatar { background: #edeaff; border-color: #ddd8f4; color: #655aa6; box-shadow: var(--shadow-sm); }
+:root[data-theme='light'] .welcome-promise__icon { background: var(--tf-accent-soft); }
+:root[data-theme='light'] .dashboard-hero h2,
+:root[data-theme='light'] .work-page-hero h2,
+:root[data-theme='light'] .plans-intro h2 { font-weight: 700; }
+:root[data-theme='light'] .work-page-hero { background: var(--tf-surface); box-shadow: var(--shadow-sm); }
+:root[data-theme='light'] .participation-card,
+:root[data-theme='light'] .calendar-panel,
+:root[data-theme='light'] .tender-feed-card { box-shadow: var(--shadow-sm); }
+:root[data-theme='light'] .tender-feed-card__facts > div { background: #f8f9fc; }
+
+/* Inputs, selected states and dialogs */
+:root[data-theme='light'] .search-input,
+:root[data-theme='light'] .form-field input,
+:root[data-theme='light'] .form-field select,
+:root[data-theme='light'] .form-field textarea { border-color: #dfe3ed; background-color: var(--tf-surface); box-shadow: none; }
+:root[data-theme='light'] input::placeholder,
+:root[data-theme='light'] textarea::placeholder { color: var(--tf-faint); opacity: 1; }
+:root[data-theme='light'] .form-field input:focus,
+:root[data-theme='light'] .form-field select:focus,
+:root[data-theme='light'] .form-field textarea:focus,
+:root[data-theme='light'] .search-input:focus-within {
+    border-color: var(--tf-accent);
+    box-shadow: 0 0 0 3px rgba(76, 83, 239, .12);
+}
+:root[data-theme='light'] .form-field.has-error input,
+:root[data-theme='light'] .form-field.has-error select,
+:root[data-theme='light'] .form-field.has-error textarea { border-color: var(--tf-danger); }
+:root[data-theme='light'] .segmented-control,
+:root[data-theme='light'] .mvp-workspace__source-filters,
+:root[data-theme='light'] .mvp-workspace__advanced-search { background: #f0f2f8; }
+:root[data-theme='light'] .segmented-control__item.is-active { background: var(--tf-surface); box-shadow: var(--shadow-sm); }
+:root[data-theme='light'] .toggle-row input:checked + .toggle,
+:root[data-theme='light'] .consent-row input:checked + .consent-row__box,
+:root[data-theme='light'] [type='checkbox']:checked,
+:root[data-theme='light'] [type='radio']:checked { border-color: var(--tf-accent-fill); background-color: var(--tf-accent-fill); }
+:root[data-theme='light'] .work-calendar button.is-selected { background: var(--tf-accent-fill); }
+:root[data-theme='light'] .monitoring-wizard__preview { border-color: color-mix(in srgb, var(--tf-success) 32%, var(--tf-line)); }
+:root[data-theme='light'] .sheet-layer { background: rgba(23, 27, 44, .36); }
+:root[data-theme='light'] .bottom-sheet { background: var(--tf-surface-strong); }
+
+@media (hover: hover) {
+    :root[data-theme='light'] .button--primary:hover:not(:disabled) { background: #3d43d6; }
+    :root[data-theme='light'] .button--secondary:hover:not(:disabled),
+    :root[data-theme='light'] .icon-button:hover { border-color: #cfd3e8; background: #f7f7fd; }
+    :root[data-theme='light'] .dashboard-shortcuts a:hover { border-color: #cfd0ef; background: #f5f5ff; }
+}

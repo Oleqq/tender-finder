@@ -139,8 +139,10 @@ ROSTENDER_PRO_ACTIVE_MONITOR_LIMIT=0
 ```
 
 The monitoring attachment service applies the Basic/Pro active-source and
-refresh-frequency limits; the manual-check service applies the matching
-Moscow-day per-user plan cap. Production exposes the approved monitoring and
+refresh-frequency limits. Ultra currently follows Pro's source-specific limits
+and refresh frequency, even though its overall limit is 30 active monitorings.
+The manual-check service applies the matching Moscow-day per-user plan cap;
+Ultra follows Pro's cap. Production exposes the approved monitoring and
 manual-check flow. Preserve a zero limit in a new environment until its
 product policy is approved.
 
