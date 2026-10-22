@@ -69,13 +69,26 @@ class AccessService
             return AccessSnapshot::fromEntitlement($entitlement, $state);
         }
 
-        $hasExpiredAccess = $user->trial_used_at !== null || Entitlement::query()
+        $lastEntitlement = Entitlement::query()
+            ->where('user_id', $user->id)
+            ->where('code', 'active_queries')
+            ->whereNotNull('ends_at')
+            ->where('ends_at', '<=', now())
+            ->orderByDesc('ends_at')
+            ->first();
+
+        $hasExpiredAccess = $user->trial_used_at !== null || $lastEntitlement !== null || Entitlement::query()
             ->where('user_id', $user->id)
             ->where('code', 'active_queries')
             ->whereHas('subscription', fn ($subscription) => $subscription->where('source', SubscriptionSource::TelegramStars))
             ->exists();
 
-        return new AccessSnapshot($hasExpiredAccess ? AccessState::Expired : AccessState::Preview, null, null, null);
+        return new AccessSnapshot(
+            $hasExpiredAccess ? AccessState::Expired : AccessState::Preview,
+            null,
+            null,
+            $hasExpiredAccess ? $lastEntitlement?->ends_at?->toAtomString() : null,
+        );
     }
 
     public function activeQueryLimitFor(User $user): ?int

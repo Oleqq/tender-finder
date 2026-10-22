@@ -13,6 +13,8 @@ import type { PageProps } from '../types';
 
 export default function Support() {
     const { tickets } = usePage<PageProps<{ tickets: SupportTicketSummary[] }>>().props;
+    const paymentIssue =
+        new URLSearchParams(window.location.search).get('topic') === 'payment-access';
     const form = useForm<{ category: SupportCategory; body: string }>({
         category: 'access',
         body: '',
@@ -33,6 +35,13 @@ export default function Support() {
                 title="Поддержка"
             >
                 <div className="space-y-5">
+                    {paymentIssue ? (
+                        <InlineAlert title="Оплата прошла, доступа нет" tone="warning">
+                            Укажите дату, время и доступный идентификатор заказа.
+                            Поддержка проверит платёж и состояние доступа. Не
+                            отправляйте реквизиты карты.
+                        </InlineAlert>
+                    ) : null}
                     <InlineAlert title="Опишите проблему" tone="neutral">
                         Не добавляйте пароли, токены, поисковые фразы и содержимое
                         тендеров. Укажите, что не работает и когда вы это заметили.
@@ -70,6 +79,11 @@ export default function Support() {
                                     }
                                     required
                                     rows={5}
+                                    placeholder={
+                                        paymentIssue
+                                            ? 'Когда прошла оплата? Укажите идентификатор заказа и что видите на экране доступа.'
+                                            : undefined
+                                    }
                                     value={form.data.body}
                                 />
                             </label>

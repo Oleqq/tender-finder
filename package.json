@@ -7,7 +7,8 @@
         "lint": "eslint resources/js --max-warnings=0",
         "format": "prettier --write resources/js .eslintrc.cjs",
         "format:check": "prettier --check resources/js .eslintrc.cjs",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "test:ui": "node --test tests/js/*.test.mjs"
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",
