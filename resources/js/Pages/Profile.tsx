@@ -1,6 +1,10 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { type FormEvent, useState } from 'react';
 import { AppShell } from '../Components/AppShell';
+import {
+    DeveloperPlanSwitcher,
+    type DeveloperMode,
+} from '../Components/DeveloperPlanSwitcher';
 import { Icon } from '../Components/Icon';
 import { Badge, Button, GlassCard, InlineAlert, SelectField } from '../Components/ui';
 import { useAccessPresentation } from '../lib/useAccessPresentation';
@@ -22,6 +26,7 @@ type NotificationDelivery = {
 };
 
 type ProfilePageProps = PageProps<{
+    developerMode: DeveloperMode | null;
     notificationPreferences: NotificationPreferences;
     notificationDeliveries: NotificationDelivery[];
     openSupportTickets: number | null;
@@ -33,6 +38,7 @@ export default function Profile() {
         notificationPreferences,
         notificationDeliveries,
         openSupportTickets,
+        developerMode,
     } = usePage<ProfilePageProps>().props;
     const [preferences, setPreferences] = useState(notificationPreferences);
     const [saving, setSaving] = useState(false);
@@ -139,6 +145,8 @@ export default function Profile() {
                         <strong>{access.detail}</strong>
                     </div>
                 </GlassCard>
+
+                {developerMode ? <DeveloperPlanSwitcher mode={developerMode} /> : null}
 
                 <section className="profile-section page-enter page-enter--later">
                     <div className="section-heading">

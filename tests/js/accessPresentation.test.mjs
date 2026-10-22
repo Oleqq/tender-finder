@@ -43,3 +43,10 @@ test('owner access and expired access do not turn into a purchase claim', () => 
     assert.equal(expired.phase, 'expired');
     assert.match(expired.detail, /до /);
 });
+
+test('Developer Mode badge follows the actual selected plan', () => {
+    for (const [code, name] of [['basic', 'Basic'], ['pro', 'Про'], ['ultra', 'Ультра']]) {
+        const result = presentAccess({state: 'active', plan_code: code, active_query_limit: 3, ends_at: null, mode: 'developer'}, now);
+        assert.equal(result.badge, name + ' (Developer Mode)');
+    }
+});

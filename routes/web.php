@@ -7,6 +7,7 @@ use App\Http\Controllers\CalendarSubscriptionController;
 use App\Http\Controllers\ChecklistTemplateController;
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeveloperPlanController;
 use App\Http\Controllers\LegalDocumentController;
 use App\Http\Controllers\LocalMvpOperatorSessionController;
 use App\Http\Controllers\LocalMvpSubscriberSessionController;
@@ -165,6 +166,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/tenders/{tender}/state', TenderPersonalStateController::class)
         ->name('tenders.state');
     Route::get('/profile', ProfileController::class)->name('profile');
+    Route::put('/profile/developer-plan', [DeveloperPlanController::class, 'update'])
+        ->middleware('throttle:20,1')->name('profile.developer-plan');
     Route::put('/profile/notification-preferences', [NotificationPreferenceController::class, 'update'])
         ->name('profile.notification-preferences.update');
     Route::get('/plans', [BillingController::class, 'index'])->name('plans');

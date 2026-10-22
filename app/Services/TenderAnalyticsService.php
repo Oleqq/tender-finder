@@ -22,7 +22,7 @@ final class TenderAnalyticsService
         if (! in_array($access->state, [AccessState::Active, AccessState::Trialing], true)) {
             return 'basic';
         }
-        if ($user->role === UserRole::SuperAdmin || in_array($access->planCode, ['local_mvp_full_access', 'local_mvp_operator'], true)) {
+        if ($access->mode !== 'developer' && ($user->role === UserRole::SuperAdmin || in_array($access->planCode, ['local_mvp_full_access', 'local_mvp_operator'], true))) {
             return 'ultra';
         }
 

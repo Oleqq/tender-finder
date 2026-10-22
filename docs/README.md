@@ -14,6 +14,7 @@
 | [COMPANY-REQUISITES](COMPANY-REQUISITES.md) | Публичная страница реквизитов ИП, исходный PDF и порядок обновления данных. |
 | [TENDER-ANALYTICS-AND-SOURCES](TENDER-ANALYTICS-AND-SOURCES.md) | Краткая аналитика в карточке, выбор площадок мониторинга и множественный фильтр ленты. |
 | [TENDER-ANALYTICS-TIERS](TENDER-ANALYTICS-TIERS.md) | Разделение аналитики Basic / Pro / Ultra, методика расчётов и серверный контроль доступа. |
+| [DEVELOPER-PLAN-SWITCHING](DEVELOPER-PLAN-SWITCHING.md) | Переключение Basic / Pro / Ultra в Developer Mode, разрешения, сохранение выбора и сброс. |
 | [YOOKASSA-INTEGRATION](YOOKASSA-INTEGRATION.md) | Реализованная серверная основа ЮKassa и оставшиеся шаги до тестового платежа. |
 | [TELEGRAM-STARS-RUNBOOK](TELEGRAM-STARS-RUNBOOK.md) | Архив решения о выводе Stars из эксплуатации и порядок разбора неожиданного старого события. |
 | [LEGAL-PRODUCTION-HANDOFF](LEGAL-PRODUCTION-HANDOFF.md) | Перечень документов и решений для юриста и бухгалтера перед публичным платным запуском; не готовые юридические тексты. |

@@ -199,14 +199,21 @@ trial. Миграция
 
 Операторская команда для проверенного `subscriber` может выдать Pro без срока:
 `subscriptions.ends_at` и `entitlements.ends_at` остаются `NULL`, source —
-`admin_grant`. `entitlements.metadata.developer_mode=true` добавляет только
-видимую пометку `Developer Mode`, не меняя роль и лимиты плана. Выдача
+`admin_grant`. `entitlements.metadata.developer_mode=true` добавляет
+пометку `Developer Mode`, не меняя роль и лимиты исходной подписки. Выдача
 сохраняет причину в `support_ticket_events` и понятное пользователю
 сообщение в отдельном закрытом обращении. Уведомления
 `access_granted`/`access_updated`/`access_revoked` используют
 `notification_deliveries` и ключ `access-change:{event_id}`; повтор одного
 события не создаёт новую отправку. Сообщение об отзыве не требует активного
 entitlement. Новая миграция не нужна.
+
+Дополнение 22 октября: миграция
+`2026_10_22_230000_add_developer_plan_code_to_users` добавляет nullable-колонку
+`users.developer_plan_code`. Она хранит только выбранный тестовый тариф
+`basic` / `pro` / `ultra`; null означает исходный доступ. Выбор применяется
+лишь при действующем Developer-разрешении, не изменяет подписку и исключён
+из массового присваивания. Подробнее: [Developer Mode](DEVELOPER-PLAN-SWITCHING.md).
 
 Права на эти строки выводятся из владельца личной заявки либо активного
 членства и роли в команде. Архив команды оставляет данные доступными для чтения

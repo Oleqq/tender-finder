@@ -1,0 +1,25 @@
+.developer-plan-switcher { min-width: 0; padding: 22px; margin-top: 20px; }
+.developer-plan-switcher__heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.developer-plan-switcher__heading p { margin: 0 0 5px; color: var(--app-muted); font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.developer-plan-switcher__heading h2 { margin: 0; color: var(--app-ink); font-size: 21px; letter-spacing: -.03em; }
+.developer-plan-switcher__description { margin: 16px 0; color: var(--app-muted); font-size: 13px; line-height: 1.7; }
+.developer-plan-switcher fieldset { min-width: 0; padding: 0; margin: 0; border: 0; }
+.developer-plan-switcher__plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.developer-plan-switcher__plans button { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; padding: 16px 12px; border: 1px solid var(--tf-line); border-radius: 14px; color: var(--app-ink); background: transparent; text-align: left; cursor: pointer; transition: border-color .15s, background .15s; }
+.developer-plan-switcher__plans strong { font-size: 18px; font-weight: 750; letter-spacing: -.03em; }
+.developer-plan-switcher__plans span, .developer-plan-switcher__plans small { font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.developer-plan-switcher__plans small { color: var(--app-muted); }
+.developer-plan-switcher__plans button[aria-pressed="true"] { border-color: var(--tf-accent); background: var(--tf-accent-soft); box-shadow: inset 0 0 0 1px var(--tf-accent); }
+.developer-plan-switcher__plans button[data-plan="ultra"][aria-pressed="true"] { background: #101218; border-color: #101218; color: #fff; box-shadow: none; }
+.developer-plan-switcher__plans button[data-plan="ultra"][aria-pressed="true"] small { color: #b9becf; }
+.developer-plan-switcher__reset { width: 100%; margin-top: 12px; padding: 12px; border: 1px solid var(--tf-line); border-radius: 12px; color: var(--app-ink); background: transparent; font-size: 12px; cursor: pointer; }
+.developer-plan-switcher button:focus-visible { outline: 2px solid var(--tf-accent); outline-offset: 4px; }
+.developer-plan-switcher button:disabled, .developer-plan-switcher fieldset:disabled { opacity: .6; cursor: default; }
+.developer-plan-switcher__note { margin: 16px 0 0; color: var(--app-muted); font-size: 11px; line-height: 1.7; }
+.developer-plan-switcher__notice { margin: 14px 0 0; color: var(--app-ink); font-size: 12px; line-height: 1.6; }
+.developer-plan-switcher__error { margin: 14px 0 0; color: var(--tf-warning); font-size: 12px; line-height: 1.6; }
+@media (max-width: 520px) {
+    .developer-plan-switcher__plans { grid-template-columns: minmax(0, 1fr); }
+    .developer-plan-switcher__plans button { display: grid; grid-template-columns: 1fr auto; align-items: center; }
+    .developer-plan-switcher__plans small { grid-column: 1 / -1; }
+}

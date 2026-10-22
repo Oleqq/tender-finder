@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\UserRole;
 use App\Models\NotificationPreference;
 use App\Models\SupportTicket;
+use App\Services\DeveloperPlanService;
 use App\Services\LocalMvpOperatorService;
 use App\Services\NotificationDeliveryPresenter;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class ProfileController extends Controller
         );
 
         return Inertia::render('Profile', [
+            'developerMode' => app(DeveloperPlanService::class)->contextFor($user),
             'notificationPreferences' => [
                 'instant_enabled' => $preference->instant_enabled,
                 'digest_enabled' => $preference->digest_enabled,

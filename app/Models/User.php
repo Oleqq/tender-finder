@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property UserRole $role
  * @property Carbon|null $last_seen_at
  * @property Carbon|null $trial_used_at
+ * @property string|null $developer_plan_code
  */
 class User extends Authenticatable
 {

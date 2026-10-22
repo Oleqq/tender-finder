@@ -57,7 +57,7 @@ export function presentAccess(
                     access.mode === 'owner'
                         ? 'Доступ владельца'
                         : access.mode === 'developer'
-                          ? 'Про (Developer Mode)'
+                          ? `${planName(access.plan_code) ?? 'Доступ'} (Developer Mode)`
                           : (planName(access.plan_code) ?? 'Доступ активен'),
                 title: 'Рабочее пространство открыто',
                 description: 'Поиск, мониторинги и работа с закупками доступны.',

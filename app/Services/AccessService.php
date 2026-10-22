@@ -18,6 +18,11 @@ class AccessService
 
     public function snapshotFor(User $user): AccessSnapshot
     {
+        $developer = app(DeveloperPlanService::class)->overrideFor($user);
+        if ($developer !== null) {
+            return $developer;
+        }
+
         if ($this->localMvpFullAccess->isEnabled()) {
             return new AccessSnapshot(
                 AccessState::Active,
