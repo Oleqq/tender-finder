@@ -54,7 +54,7 @@ export default function Plans() {
                               ? 'Мониторинги не проверяют новые тендеры. Настройки и найденные данные сохранены.'
                               : access.phase === 'active'
                                 ? auth.access?.active_query_limit === null
-                                    ? 'Мониторинги доступны без указанного лимита'
+                                    ? 'Мониторинги доступны без лимита'
                                     : `До ${auth.access?.active_query_limit} активных мониторингов`
                                 : 'Пробный период начнётся после принятия документов'}
                     </span>
@@ -95,7 +95,9 @@ export default function Plans() {
                         className="button button--primary button--md access-main-action"
                         href="/consents"
                     >
-                        Начать 3 дня бесплатно
+                        {auth.access?.mode === 'temporary_full_access_pending'
+                            ? 'Подтвердить условия'
+                            : 'Начать 3 дня бесплатно'}
                     </Link>
                 ) : trial || access.phase === 'active' ? (
                     <Link

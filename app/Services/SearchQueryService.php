@@ -122,7 +122,7 @@ class SearchQueryService
             throw new QueryAccessDeniedException;
         }
 
-        if ($snapshot->mode === 'owner') {
+        if (in_array($snapshot->mode, ['owner', 'temporary_full_access'], true)) {
             return;
         }
 

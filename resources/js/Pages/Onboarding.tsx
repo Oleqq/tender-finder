@@ -7,9 +7,13 @@ import type { PageProps } from '../types';
 
 type OnboardingProps = {
     localSubscriberEntryEnabled: boolean;
+    temporaryFullAccessEnabled: boolean;
 };
 
-export default function Onboarding({ localSubscriberEntryEnabled }: OnboardingProps) {
+export default function Onboarding({
+    localSubscriberEntryEnabled,
+    temporaryFullAccessEnabled,
+}: OnboardingProps) {
     const { auth } = usePage<PageProps>().props;
     const telegramSession = useTelegramSessionState();
 
@@ -45,6 +49,17 @@ export default function Onboarding({ localSubscriberEntryEnabled }: OnboardingPr
                             href="/local/mvp-subscriber"
                         >
                             <span>Продолжить локально</span>
+                            <Icon name="arrow-right" size={20} />
+                        </Link>
+                    ) : temporaryFullAccessEnabled ? (
+                        <Link
+                            as="button"
+                            className="button button--primary button--lg"
+                            href="/guest/session"
+                            method="post"
+                            type="button"
+                        >
+                            <span>Войти как гость</span>
                             <Icon name="arrow-right" size={20} />
                         </Link>
                     ) : telegramSession === 'checking' ||

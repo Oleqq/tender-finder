@@ -17,6 +17,7 @@ Schedule::command('tenders:dispatch-etp-region')->everyMinute()->withoutOverlapp
 Schedule::command('tenders:dispatch-b2b-center')->everyMinute()->withoutOverlapping();
 Schedule::command('tenders:dispatch-platform-catalog')->everyMinute()->withoutOverlapping();
 Schedule::command('trials:process-lifecycle')->everyMinute()->withoutOverlapping();
+Schedule::command('access:reconcile-temporary-full-access')->everyMinute()->withoutOverlapping();
 Schedule::command('notifications:send-due-digests')->everyMinute()->withoutOverlapping();
 
 Schedule::command('notifications:send-tender-reminders')->everyMinute()->withoutOverlapping();

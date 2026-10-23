@@ -4,15 +4,19 @@ import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
 import { GlassCard } from '../Components/ui';
 
-export default function Consents() {
+export default function Consents({
+    temporaryFullAccessEnabled = false,
+}: {
+    temporaryFullAccessEnabled?: boolean;
+}) {
     const [offerAccepted, setOfferAccepted] = useState(false);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
-    const canStartTrial = offerAccepted && privacyAccepted;
+    const canContinue = offerAccepted && privacyAccepted;
 
-    const acceptAndStartTrial = async (): Promise<void> => {
-        if (!canStartTrial || isSubmitting) {
+    const acceptAndContinue = async (): Promise<void> => {
+        if (!canContinue || isSubmitting) {
             return;
         }
 
@@ -51,7 +55,7 @@ export default function Consents() {
             setError(
                 typeof message === 'string' && message.trim() !== ''
                     ? message
-                    : 'Не удалось начать пробный период. Откройте Mini App в Telegram и попробуйте ещё раз.',
+                    : 'Не удалось подтвердить условия. Обновите страницу и попробуйте ещё раз.',
             );
         } finally {
             setIsSubmitting(false);
@@ -76,8 +80,9 @@ export default function Consents() {
                         <br />и под контролем.
                     </h2>
                     <p>
-                        Мы запишем принятие оферты и согласие на обработку персональных
-                        данных, а затем сразу включим ваш единственный пробный период.
+                        {temporaryFullAccessEnabled
+                            ? 'Мы запишем принятие оферты и согласие на обработку персональных данных, а затем откроем полный доступ на время проверки.'
+                            : 'Мы запишем принятие оферты и согласие на обработку персональных данных, а затем сразу включим ваш единственный пробный период.'}
                     </p>
                 </section>
                 <GlassCard className="consent-card page-enter page-enter--delay">
@@ -100,17 +105,19 @@ export default function Consents() {
                     обработку персональных данных. Их версии сохраняются на сервере.
                 </p>
                 <div className="consent-actions page-enter page-enter--later">
-                    {canStartTrial ? (
+                    {canContinue ? (
                         <button
                             className="button button--primary button--lg"
                             disabled={isSubmitting}
-                            onClick={() => void acceptAndStartTrial()}
+                            onClick={() => void acceptAndContinue()}
                             type="button"
                         >
                             <span>
                                 {isSubmitting
-                                    ? 'Включаем 3 дня бесплатно…'
-                                    : 'Начать 3 дня бесплатно'}
+                                    ? 'Открываем доступ…'
+                                    : temporaryFullAccessEnabled
+                                      ? 'Открыть доступ'
+                                      : 'Начать 3 дня бесплатно'}
                             </span>
                             <Icon name="arrow-right" size={20} />
                         </button>

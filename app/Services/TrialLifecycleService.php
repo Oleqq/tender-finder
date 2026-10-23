@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class TrialLifecycleService
 {
-    public function __construct(private readonly AccessFreezeService $freeze) {}
+    public function __construct(
+        private readonly AccessFreezeService $freeze,
+        private readonly TemporaryFullAccessService $temporaryFullAccess,
+    ) {}
 
     public function processDue(): void
     {
@@ -77,6 +80,10 @@ class TrialLifecycleService
 
     private function queueReminder(Entitlement $entitlement, int $hoursRemaining, Carbon $now): void
     {
+        if ($this->temporaryFullAccess->isActive()) {
+            return;
+        }
+
         $delivery = NotificationDelivery::query()->firstOrCreate(
             ['idempotency_key' => "trial-reminder:{$entitlement->id}:{$hoursRemaining}h"],
             [

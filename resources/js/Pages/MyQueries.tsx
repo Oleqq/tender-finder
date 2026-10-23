@@ -17,8 +17,8 @@ import {
     GlassCard,
     InlineAlert,
 } from '../Components/ui';
-import { presentAccess } from '../lib/accessPresentation';
 import { tenderSourceOptions } from '../lib/tenderSources';
+import { useAccessPresentation } from '../lib/useAccessPresentation';
 import type { PageProps } from '../types';
 
 type QueryStatus = 'active' | 'paused' | 'frozen';
@@ -423,16 +423,18 @@ export default function MyQueries() {
         }
     };
 
-    const access = presentAccess(auth.access);
-    const accessText =
-        auth.access?.mode === 'owner'
-            ? `${queries.filter((query) => query.status === 'active').length} активных · без лимита`
-            : auth.access?.active_query_limit
-              ? `${queries.filter((query) => query.status === 'active').length} из ${auth.access.active_query_limit} активных`
-              : 'Лимит появится после активации доступа';
+    const access = useAccessPresentation(auth.access);
+    const accessText = ['owner', 'temporary_full_access'].includes(
+        auth.access?.mode ?? '',
+    )
+        ? `${queries.filter((query) => query.status === 'active').length} активных · без лимита`
+        : auth.access?.active_query_limit
+          ? `${queries.filter((query) => query.status === 'active').length} из ${auth.access.active_query_limit} активных`
+          : 'Лимит появится после активации доступа';
     const canCreate =
-        ['trialing', 'active'].includes(auth.access?.state ?? '') &&
-        (auth.access?.mode === 'owner' || auth.access?.active_query_limit !== null);
+        ['trial', 'trial_ending', 'active'].includes(access.phase) &&
+        (['owner', 'temporary_full_access'].includes(auth.access?.mode ?? '') ||
+            auth.access?.active_query_limit !== null);
     const canRunManually = canCreate;
 
     return (

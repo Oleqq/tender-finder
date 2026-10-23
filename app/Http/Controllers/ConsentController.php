@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ConsentDocument;
+use App\Services\AccessService;
 use App\Services\ConsentService;
 use App\Services\LegalDocumentsUnavailableException;
+use App\Services\TemporaryFullAccessService;
 use App\Services\TrialAlreadyUsedException;
 use App\Services\TrialService;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +20,8 @@ class ConsentController extends Controller
         Request $request,
         ConsentService $consents,
         TrialService $trials,
+        TemporaryFullAccessService $temporaryFullAccess,
+        AccessService $accessService,
     ): JsonResponse {
         $validated = $request->validate([
             'documents' => ['required', 'array', 'size:2'],
@@ -37,6 +41,13 @@ class ConsentController extends Controller
 
         try {
             $consents->acceptCurrent($request->user(), $documents, $request->ip());
+
+            if ($temporaryFullAccess->isActive()) {
+                return response()->json([
+                    'status' => 'access_granted',
+                    'access' => $accessService->snapshotFor($request->user())->toArray(),
+                ], 201);
+            }
 
             // Accepting the current documents is the only user action needed to
             // begin a trial. Keeping this on the server avoids a half-completed

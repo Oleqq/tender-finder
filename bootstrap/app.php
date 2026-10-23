@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\ExpireBrowserGuestSession;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogHttpRequest;
 use Illuminate\Foundation\Application;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         }
 
         $middleware->web(append: [
+            ExpireBrowserGuestSession::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);

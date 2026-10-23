@@ -5,7 +5,8 @@ import { Badge, GlassCard } from '../Components/ui';
 import type { PageProps } from '../types';
 
 export default function Welcome() {
-    const { auth } = usePage<PageProps>().props;
+    const { auth, guestEntryEnabled } =
+        usePage<PageProps<{ guestEntryEnabled?: boolean }>>().props;
     const isSuperAdmin = auth.user?.role === 'super_admin';
     const needsFirstStart = auth.user !== null && auth.access?.state === 'preview';
 
@@ -75,7 +76,10 @@ export default function Welcome() {
                             >
                                 <span>
                                     {needsFirstStart
-                                        ? 'Начать 3 дня бесплатно'
+                                        ? auth.access?.mode ===
+                                          'temporary_full_access_pending'
+                                            ? 'Подтвердить условия'
+                                            : 'Начать 3 дня бесплатно'
                                         : 'Открыть рабочее пространство'}
                                 </span>
                                 <Icon name="arrow-right" size={20} />
@@ -91,16 +95,29 @@ export default function Welcome() {
                         </>
                     ) : (
                         <>
+                            {guestEntryEnabled ? (
+                                <Link
+                                    as="button"
+                                    className="button button--primary button--lg"
+                                    href="/guest/session"
+                                    method="post"
+                                    type="button"
+                                >
+                                    Войти как гость
+                                    <Icon name="arrow-right" size={20} />
+                                </Link>
+                            ) : null}
                             <Link
-                                className="button button--primary button--lg"
+                                className={`button ${guestEntryEnabled ? 'button--secondary' : 'button--primary'} button--lg`}
                                 href="/onboarding"
                             >
                                 <span>Как это работает</span>
                                 <Icon name="arrow-right" size={20} />
                             </Link>
                             <p className="welcome-footnote">
-                                Вход в рабочее пространство подтверждается Telegram Mini
-                                App на сервере.
+                                {guestEntryEnabled
+                                    ? 'Гостевой вход работает в обычном браузере только на время проверки. Ваши данные сохраняются в отдельном гостевом аккаунте этого браузера.'
+                                    : 'Вход в рабочее пространство подтверждается Telegram Mini App на сервере.'}
                             </p>
                         </>
                     )}

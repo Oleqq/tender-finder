@@ -3,6 +3,7 @@
 use App\Enums\AccessState;
 use App\Http\Controllers\AdminSupportController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BrowserGuestSessionController;
 use App\Http\Controllers\CalendarSubscriptionController;
 use App\Http\Controllers\ChecklistTemplateController;
 use App\Http\Controllers\ConsentController;
@@ -44,15 +45,16 @@ use App\Http\Controllers\TenderWorkController;
 use App\Http\Controllers\TrialController;
 use App\Services\AccessService;
 use App\Services\LocalMvpSubscriberService;
+use App\Services\TemporaryFullAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function (Request $request, AccessService $access) {
+Route::get('/', function (Request $request, AccessService $access, TemporaryFullAccessService $temporary) {
     $user = $request->user();
 
     if ($user === null) {
-        return Inertia::render('Welcome');
+        return Inertia::render('Welcome', ['guestEntryEnabled' => $temporary->isActive()]);
     }
 
     return match ($access->snapshotFor($user)->state) {
@@ -64,6 +66,9 @@ Route::get('/', function (Request $request, AccessService $access) {
 
 Route::get('/open', MiniAppOpenController::class)->name('mini-app.open');
 
+Route::post('/guest/session', [BrowserGuestSessionController::class, 'store'])
+    ->middleware('throttle:10,1')->name('guest.session.store');
+
 Route::get('/local/mvp-operator', [LocalMvpOperatorSessionController::class, 'store'])
     ->name('local.mvp-operator.session');
 Route::get('/mvp/operator/access', [RemoteMvpOperatorSessionController::class, 'store'])
@@ -72,8 +77,9 @@ Route::get('/mvp/operator/access', [RemoteMvpOperatorSessionController::class, '
 Route::get('/local/mvp-subscriber', [LocalMvpSubscriberSessionController::class, 'store'])
     ->name('local.mvp-subscriber.session');
 
-Route::get('/onboarding', fn (LocalMvpSubscriberService $subscriber) => Inertia::render('Onboarding', [
+Route::get('/onboarding', fn (LocalMvpSubscriberService $subscriber, TemporaryFullAccessService $temporary) => Inertia::render('Onboarding', [
     'localSubscriberEntryEnabled' => $subscriber->isEnabled(),
+    'temporaryFullAccessEnabled' => $temporary->isActive(),
 ]))->name('onboarding');
 Route::get('/offer', [LegalDocumentController::class, 'offer'])->name('legal.offer');
 Route::get('/privacy', [LegalDocumentController::class, 'privacy'])->name('legal.privacy');
@@ -131,7 +137,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/checklist-templates/{template}', [ChecklistTemplateController::class, 'update']);
     Route::delete('/checklist-templates/{template}', [ChecklistTemplateController::class, 'destroy']);
     Route::post('/tenders/{tender}/templates/{template}', [ChecklistTemplateController::class, 'apply']);
-    Route::get('/consents', fn () => Inertia::render('Consents'))->name('consents');
+    Route::get('/consents', fn (TemporaryFullAccessService $temporary) => Inertia::render('Consents', [
+        'temporaryFullAccessEnabled' => $temporary->isActive(),
+    ]))->name('consents');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
     Route::get('/tenders/{tender}', TenderDetailController::class)->name('tenders.show');

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\SubscriptionSource;
 use App\Enums\SubscriptionStatus;
+use App\Enums\UserRole;
 use App\Models\Entitlement;
 use App\Models\Subscription;
 use App\Models\User;
@@ -15,6 +16,7 @@ class TrialService
         private readonly ConsentService $consents,
         private readonly PlanCatalog $plans,
         private readonly AccessService $access,
+        private readonly TemporaryFullAccessService $temporaryFullAccess,
     ) {}
 
     public function start(User $user): AccessSnapshot
@@ -22,6 +24,18 @@ class TrialService
         return DB::transaction(function () use ($user): AccessSnapshot {
             /** @var User $lockedUser */
             $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
+
+            if ($lockedUser->is_browser_guest && ! $this->temporaryFullAccess->isActive()) {
+                throw new TrialAlreadyUsedException;
+            }
+
+            if ($lockedUser->role === UserRole::Subscriber && $this->temporaryFullAccess->isActive()) {
+                if (! $this->consents->hasCurrentRequiredConsents($lockedUser)) {
+                    throw new TrialConsentRequiredException;
+                }
+
+                return $this->access->snapshotFor($lockedUser);
+            }
 
             if ($lockedUser->trial_used_at !== null) {
                 throw new TrialAlreadyUsedException;
