@@ -318,9 +318,12 @@ export default function MyQueries() {
             );
             replaceQuery(response.data.query);
             setEditingQuery(null);
-        } catch {
+        } catch (error) {
             setEditError(
-                'Не удалось сохранить изменения. Настройки не изменены — попробуйте ещё раз.',
+                requestErrorMessage(
+                    error,
+                    'Не удалось сохранить изменения. Настройки не изменены — попробуйте ещё раз.',
+                ),
             );
         } finally {
             setIsSavingEdit(false);
@@ -338,9 +341,12 @@ export default function MyQueries() {
                 `/queries/${query.id}/${action}`,
             );
             replaceQuery(response.data.query);
-        } catch {
+        } catch (error) {
             setActionError(
-                'Не удалось изменить состояние мониторинга. Ничего не потеряно — попробуйте ещё раз.',
+                requestErrorMessage(
+                    error,
+                    'Не удалось изменить состояние мониторинга. Ничего не потеряно — попробуйте ещё раз.',
+                ),
             );
         }
     };
@@ -1161,6 +1167,7 @@ function QueryFields({
                 <label className="form-field">
                     <span>Название мониторинга</span>
                     <input
+                        maxLength={120}
                         onChange={(event) => onChange('name', event.target.value)}
                         placeholder="например, Поддержка сайта"
                         value={form.name}

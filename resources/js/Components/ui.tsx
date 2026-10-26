@@ -4,6 +4,7 @@ import type {
     ReactNode,
     SelectHTMLAttributes,
 } from 'react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { Icon, type IconName } from './Icon';
 
 const join = (...classes: Array<string | false | null | undefined>): string =>
@@ -583,36 +584,24 @@ export function BottomSheet({
     onClose: () => void;
     title: string;
 }) {
-    if (!open) {
-        return null;
-    }
-
     return (
-        <div
-            aria-modal="true"
-            className="sheet-layer"
-            onMouseDown={onClose}
-            role="dialog"
-        >
-            <section
-                className="bottom-sheet"
-                onMouseDown={(event) => event.stopPropagation()}
-            >
+        <Dialog className="sheet-layer" open={open} onClose={onClose}>
+            <DialogPanel className="bottom-sheet">
                 <div className="bottom-sheet__handle" />
                 <div className="bottom-sheet__heading">
-                    <h2>{title}</h2>
+                    <DialogTitle as="h2">{title}</DialogTitle>
                     <button
                         aria-label="Закрыть"
                         className="icon-button"
                         onClick={onClose}
                         type="button"
                     >
-                        ×
+                        <Icon name="close" size={20} />
                     </button>
                 </div>
                 {children}
-            </section>
-        </div>
+            </DialogPanel>
+        </Dialog>
     );
 }
 

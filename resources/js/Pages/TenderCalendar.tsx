@@ -167,7 +167,7 @@ export default function TenderCalendar() {
                             aria-label="Предыдущий месяц"
                             disabled={month === '2000-01'}
                         >
-                            ←
+                            <Icon name="arrow-left" size={18} />
                         </Button>
                         <h2>
                             {first.toLocaleDateString('ru-RU', {
@@ -182,7 +182,7 @@ export default function TenderCalendar() {
                             aria-label="Следующий месяц"
                             disabled={month === '2099-12'}
                         >
-                            →
+                            <Icon name="arrow-right" size={18} />
                         </Button>
                     </div>
                     <label className="work-month-label">

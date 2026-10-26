@@ -1,7 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { type FormEvent } from 'react';
 import { AppShell } from '../Components/AppShell';
-import { Badge, Button, GlassCard } from '../Components/ui';
+import { Badge, Button, FieldError, GlassCard } from '../Components/ui';
 import {
     categoryLabel,
     statusLabel,
@@ -25,6 +25,7 @@ export default function SupportTicket() {
         <>
             <Head title={`Обращение #${ticket.id}`} />
             <AppShell
+                className="support-page"
                 activeNav="/profile"
                 backHref="/support"
                 eyebrow={categoryLabel[ticket.category]}
@@ -50,7 +51,7 @@ export default function SupportTicket() {
                         {ticket.messages.map((message) => (
                             <li key={message.id}>
                                 <GlassCard
-                                    className="p-4 sm:p-5"
+                                    className="support-card"
                                     tone={message.is_staff ? 'accent' : 'quiet'}
                                 >
                                     <strong>
@@ -64,7 +65,7 @@ export default function SupportTicket() {
                             </li>
                         ))}
                     </ol>
-                    <GlassCard className="p-4 sm:p-5">
+                    <GlassCard className="support-card">
                         <form className="space-y-3" onSubmit={submit}>
                             <label className="form-field">
                                 <span>Ответить</span>
@@ -79,7 +80,9 @@ export default function SupportTicket() {
                                     value={form.data.body}
                                 />
                             </label>
-                            {form.errors.body ? <p>{form.errors.body}</p> : null}
+                            {form.errors.body ? (
+                                <FieldError>{form.errors.body}</FieldError>
+                            ) : null}
                             <Button
                                 disabled={
                                     form.processing || form.data.body.trim().length < 2

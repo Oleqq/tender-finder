@@ -81,8 +81,8 @@ export function AssigneeSelect({
     label?: string;
 }) {
     return (
-        <label>
-            {label}
+        <label className="form-field">
+            <span>{label}</span>
             <select
                 value={value ?? ''}
                 disabled={disabled}

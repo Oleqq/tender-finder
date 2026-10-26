@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function (): void {
+    // The captured response was published on 11 October; keep the 14-day
+    // import-window assertions independent of the day the suite is run.
+    $this->travelTo(new DateTimeImmutable('2026-10-13 12:00:00 UTC'));
     config()->set([
         'tender.etp_region.enabled' => true,
         'tender.etp_region.pages_per_poll' => 10,
@@ -20,6 +23,10 @@ beforeEach(function (): void {
         'tender.etp_region.request_timeout_seconds' => 15,
         'tender.etp_region.user_agent' => 'TenderFinder tests',
     ]);
+});
+
+afterEach(function (): void {
+    $this->travelBack();
 });
 
 it('parses a live search result and converts its Ekaterinburg deadline to UTC', function () {

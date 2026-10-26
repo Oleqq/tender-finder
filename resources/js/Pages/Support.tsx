@@ -1,7 +1,7 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { type FormEvent } from 'react';
 import { AppShell } from '../Components/AppShell';
-import { Badge, Button, GlassCard, InlineAlert } from '../Components/ui';
+import { Badge, Button, FieldError, GlassCard, InlineAlert } from '../Components/ui';
 import {
     categoryLabel,
     statusLabel,
@@ -31,6 +31,7 @@ export default function Support() {
         <>
             <Head title="Поддержка" />
             <AppShell
+                className="support-page"
                 activeNav="/profile"
                 backHref="/profile"
                 eyebrow="Помощь"
@@ -48,7 +49,7 @@ export default function Support() {
                         Не добавляйте пароли, токены, поисковые фразы и содержимое
                         тендеров. Укажите, что не работает и когда вы это заметили.
                     </InlineAlert>
-                    <GlassCard className="p-4 sm:p-5">
+                    <GlassCard className="support-card">
                         <h2 className="text-lg font-semibold">Новое обращение</h2>
                         <form className="mt-4 space-y-4" onSubmit={submit}>
                             <label className="form-field">
@@ -90,9 +91,7 @@ export default function Support() {
                                 />
                             </label>
                             {form.errors.body ? (
-                                <p className="text-sm text-red-300">
-                                    {form.errors.body}
-                                </p>
+                                <FieldError>{form.errors.body}</FieldError>
                             ) : null}
                             <p className="work-help">
                                 Опишите проблему минимум в 20 символах.
@@ -111,12 +110,12 @@ export default function Support() {
                         <h2 className="text-lg font-semibold">Мои обращения</h2>
                         {tickets.length === 0 ? <p>Пока нет обращений.</p> : null}
                         {tickets.map((ticket) => (
-                            <GlassCard className="p-4 sm:p-5" key={ticket.id}>
+                            <GlassCard className="support-card" key={ticket.id}>
                                 <Link
                                     className="block space-y-2"
                                     href={`/support/${ticket.id}`}
                                 >
-                                    <div className="flex items-center justify-between gap-3">
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
                                         <strong>
                                             #{ticket.id} ·{' '}
                                             {categoryLabel[ticket.category]}
