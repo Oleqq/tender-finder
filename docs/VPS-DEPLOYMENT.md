@@ -1,5 +1,31 @@
 # Tender Finder: VPS deployment
 
+## 26 октября: основной домен tenderfinder.ru
+
+Основной адрес приложения — `https://tenderfinder.ru`. Делегирование на четыре
+NS Timeweb завершилось; A-запись на `200.165.238.247` подтверждена в панели,
+авторитетной зоне и публичных DNS Google/Cloudflare. После делегирования
+оставшаяся ошибка `ERR_SSL_PROTOCOL_ERROR` была вызвана конфигурацией Caddy,
+которая принимала только прежнее техническое имя.
+
+В `.env.production` установлены `APP_URL=https://tenderfinder.ru`, новые
+`LEGAL_OFFER_URL`/`LEGAL_PRIVACY_URL` и
+`APP_DOMAIN="200.165.238.247.sslip.io, tenderfinder.ru"`. Пробел после запятой
+обязателен для Caddy. Caddy получил сертификат Let's Encrypt и автоматически
+обновляет его; платный сертификат из панели Timeweb для текущего HTTPS не
+используется. Старый адрес продолжает обслуживаться для существующих ссылок
+Telegram; настройки webhook и кнопки бота в этом изменении не заменялись.
+
+Выполнено изменение конфигурации без замены исходников релиза `67a6faf`:
+пересозданы Caddy, web, queue и scheduler. Предыдущий env сохранён с режимом
+`600` в `/opt/tenderfinder/backups/domain-tenderfinder-20261026T071129Z`.
+Проверены Chrome, валидный сертификат, `/`, `/health`, `/offer`, `/privacy`,
+`/open`, ресурс Welcome и редирект HTTP → HTTPS. Все шесть сервисов работают.
+Результат отправлен в тикет Timeweb `12906807`.
+
+Двухдневное окно гостевого доступа завершилось 25 октября в 10:53:46 МСК;
+при настройке домена срок не продлевался.
+
 ## Временный браузерный доступ для проверки ЮKassa
 
 Окно включается только настройкой `TEMP_FULL_ACCESS_UNTIL` в
@@ -157,9 +183,10 @@ alongside the private application network. This gives Telegram API calls an
 IPv6 route when the VPS IPv4 path to Telegram is unavailable. PostgreSQL and
 Redis remain on the private network and have no published ports.
 
-The technical production address is `https://200.165.238.247.sslip.io`. It is
-not a business domain and should be replaced before public promotion. The old
-VPS is retained unchanged and is not part of this deployment target.
+The primary production address is `https://tenderfinder.ru` as of 26 October
+2026. `https://200.165.238.247.sslip.io` remains an HTTPS alias for existing
+Telegram links. The old VPS is retained unchanged and is not part of this
+deployment target.
 
 The VPS is updated through the GitHub Actions workflow named **Deploy to VPS**.
 It is triggered manually (`workflow_dispatch`) after both repositories pass CI.
@@ -419,8 +446,9 @@ checkouts.
 
 These items cannot be safely guessed or created by deployment code:
 
-1. A domain controlled by the business. `200.165.238.247.sslip.io` is the
-   current temporary technical address; it is not a brand domain.
+1. Completed on 26 October: `tenderfinder.ru` is the business domain and
+   primary application URL. The former `200.165.238.247.sslip.io` alias is
+   retained for existing Telegram entry points.
 2. Approved XTR prices for Basic and Pro. The historic 990 ₽ / 2990 ₽ policy
    is not an exchange-rate instruction for Telegram Stars.
 3. Public offer and privacy-policy URLs/versions. The current product copy is

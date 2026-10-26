@@ -521,7 +521,12 @@ Chromium. Подробности —
 
 ## Production VPS
 
-Технический адрес нового production-стека: `https://200.165.238.247.sslip.io`.
+С 26 октября основной адрес production-стека: `https://tenderfinder.ru`.
+Домен делегирован на NS Timeweb и указывает на `200.165.238.247`; Caddy
+обслуживает его с автоматически обновляемым сертификатом Let's Encrypt.
+`APP_URL` и адреса оферты/политики переведены на новый домен. Прежний
+`https://200.165.238.247.sslip.io` остаётся рабочим HTTPS-адресом для уже
+настроенных webhook и кнопки Telegram. Подробнее — [VPS-DEPLOYMENT](VPS-DEPLOYMENT.md).
 
 На новом VPS развернуты Docker Compose-сервисы `web`, `queue`, `scheduler`,
 PostgreSQL, Redis и Caddy; `web`, PostgreSQL и Redis проходят health-check.
