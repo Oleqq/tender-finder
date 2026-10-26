@@ -1,4 +1,5 @@
 .workspace-header { display: grid; gap: var(--space-5); min-width: 0; }
+.work-page > .workspace-header + * { margin-top: 0; }
 .work-page-hero__status { margin-top: 10px; }
 
 .work-page {
