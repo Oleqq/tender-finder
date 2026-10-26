@@ -2,7 +2,7 @@ import { scopedUrl } from '../lib/workspace';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
-import { TenderWorkNav } from '../Components/TenderWorkNav';
+import { TenderWorkspaceHeader } from '../Components/TenderWorkspaceHeader';
 import { Badge, GlassCard } from '../Components/ui';
 import {
     formatWorkDeadline,
@@ -10,7 +10,7 @@ import {
     stageLabel,
     type Stage,
 } from '../lib/participation';
-import { WorkspacePicker, type TeamScope } from '../Components/WorkspacePicker';
+import type { TeamScope } from '../Components/WorkspacePicker';
 import type { PageProps } from '../types';
 
 type Row = {
@@ -53,21 +53,7 @@ export default function ParticipationPage() {
                 className="work-page participation-page"
                 activeNav="/tenders"
             >
-                <TenderWorkNav active="/participation" />
-                <WorkspacePicker path="/participation" />
-                <section className="work-page-hero page-enter">
-                    <span className="work-page-hero__icon">
-                        <Icon name="check" size={23} />
-                    </span>
-                    <div>
-                        <p>Рабочий процесс</p>
-                        <h2>Ваши заявки</h2>
-                        <span>
-                            Добавляйте закупки из ленты, готовьте документы и фиксируйте
-                            результат.
-                        </span>
-                    </div>
-                </section>
+                <TenderWorkspaceHeader tab="participation" />
                 <nav className="work-stages" aria-label="Этап участия">
                     <Link
                         className={!stage ? 'is-active' : ''}

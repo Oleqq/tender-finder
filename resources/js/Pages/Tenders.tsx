@@ -5,13 +5,9 @@ import { SourcePicker } from '../Components/SourcePicker';
 import { TenderAnalytics } from '../Components/TenderAnalytics';
 import type { TenderSummary } from '../lib/tenderSummary';
 import { summaryMoney } from '../lib/tenderSummary';
-import { TenderWorkNav } from '../Components/TenderWorkNav';
+import { TenderWorkspaceHeader } from '../Components/TenderWorkspaceHeader';
 import { TenderFeedbackActions } from '../Components/TenderFeedbackActions';
-import {
-    AssigneeSelect,
-    type TeamScope,
-    WorkspacePicker,
-} from '../Components/WorkspacePicker';
+import { AssigneeSelect, type TeamScope } from '../Components/WorkspacePicker';
 import { Icon } from '../Components/Icon';
 import {
     Badge,
@@ -481,23 +477,42 @@ export default function Tenders() {
         />
     );
 
+    const workspaceHeader = (
+        <TenderWorkspaceHeader
+            tab="feed"
+            description={
+                hasMonitoring ? (
+                    <>
+                        {team
+                            ? 'Общая очередь разбора'
+                            : filters.query_id === 0
+                              ? 'Все мои темы'
+                              : `Поиск: ${monitoringName ?? 'моя тема'}`}
+                        {' · '}
+                        {tenderMatches.total === 0
+                            ? 'Карточек по выбранным условиям нет'
+                            : `${tenderMatches.total} ${tenderWord(tenderMatches.total)} в потоке`}
+                    </>
+                ) : undefined
+            }
+            status={
+                hasExplicitFilters ? <Badge tone="accent">Фильтр</Badge> : undefined
+            }
+        />
+    );
+
     if (isEmptyPersonalFeed) {
         return (
             <>
                 <Head title="Мои тендеры" />
                 <AppShell
                     activeNav="/tenders"
-                    className="tenders-page"
+                    className="work-page tenders-page"
                     eyebrow="Мой поток"
                     title="Тендеры"
                 >
-                    {hasMonitoring ? (
-                        <>
-                            <TenderWorkNav active="/tenders" />
-                            <WorkspacePicker path="/tenders" />
-                            {monitoringPicker}
-                        </>
-                    ) : null}
+                    {workspaceHeader}
+                    {hasMonitoring ? monitoringPicker : null}
                     <section className="tenders-first-run page-enter">
                         <Badge tone="accent">
                             {hasMonitoring ? 'Моя лента' : 'Первый шаг'}
@@ -592,12 +607,11 @@ export default function Tenders() {
             <Head title={team ? `Лента · ${team.name}` : 'Мои тендеры'} />
             <AppShell
                 activeNav="/tenders"
-                className="tenders-page"
+                className="work-page tenders-page"
                 eyebrow={team ? 'Командный поток' : 'Мой поток'}
                 title={team ? `Лента · ${team.name}` : 'Тендеры'}
             >
-                <TenderWorkNav active="/tenders" />
-                <WorkspacePicker path="/tenders" />
+                {workspaceHeader}
                 {team ? (
                     <>
                         <TeamMonitoringPanel
@@ -618,29 +632,6 @@ export default function Tenders() {
                         ) : null}
                     </>
                 ) : null}
-                <GlassCard className="tenders-summary page-enter" tone="quiet">
-                    <span className="tenders-summary__mark">
-                        <Icon name="layers" size={19} />
-                    </span>
-                    <div>
-                        <p>
-                            {team
-                                ? 'Общая очередь разбора'
-                                : filters.query_id === 0
-                                  ? 'Все мои темы'
-                                  : `Поиск: ${monitoringName ?? 'моя тема'}`}
-                        </p>
-                        <strong>
-                            {tenderMatches.total === 0
-                                ? 'Карточек по выбранным условиям нет'
-                                : tenderMatches.total +
-                                  ' ' +
-                                  tenderWord(tenderMatches.total) +
-                                  ' в потоке'}
-                        </strong>
-                    </div>
-                    {hasExplicitFilters ? <Badge tone="accent">Фильтр</Badge> : null}
-                </GlassCard>
 
                 <GlassCard className="tender-feed-controls page-enter page-enter--delay">
                     <form className="tender-feed-search" onSubmit={submitSearch}>

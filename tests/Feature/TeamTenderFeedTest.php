@@ -1,11 +1,31 @@
 <?php
 
 use App\Models\SearchQuery;
+use App\Models\Team;
 use App\Models\TenderParticipation;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 require_once __DIR__.'/../Fixtures/team-workspace.php';
+
+it('provides the same authorized workspace choices on personal and team feeds', function () {
+    [$owner, , , $team] = teamFixture();
+    $other = User::factory()->create();
+    $otherTeam = Team::query()->create(['owner_id' => $other->id, 'name' => 'Чужая команда']);
+    DB::table('team_members')->insert([
+        'team_id' => $otherTeam->id, 'user_id' => $other->id, 'role' => 'owner',
+        'created_at' => now(), 'updated_at' => now(),
+    ]);
+
+    $this->actingAs($owner)->get('/tenders')->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('team', null)->has('teams', 1)->where('teams.0.id', $team->id)
+            ->where('teams.0.role', 'owner')->has('members', 0)->where('can_edit', true));
+    $this->get('/tenders?team_id='.$team->id)->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('team.id', $team->id)->has('teams', 1)->where('teams.0.id', $team->id));
+});
 
 it('shares only an editors own monitoring and keeps unshared matches private', function () {
     [$owner, $member, $viewer, $team, $tender] = teamFixture();

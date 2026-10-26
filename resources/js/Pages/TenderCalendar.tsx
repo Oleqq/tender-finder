@@ -3,9 +3,9 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
-import { TenderWorkNav } from '../Components/TenderWorkNav';
+import { TenderWorkspaceHeader } from '../Components/TenderWorkspaceHeader';
 import { Badge, Button, GlassCard } from '../Components/ui';
-import { WorkspacePicker, type TeamScope } from '../Components/WorkspacePicker';
+import type { TeamScope } from '../Components/WorkspacePicker';
 import type { PageProps } from '../types';
 
 type CalendarEvent = {
@@ -137,16 +137,10 @@ export default function TenderCalendar() {
                 activeNav="/tenders"
                 className="work-page tender-calendar-page"
             >
-                <TenderWorkNav active="/calendar" />
-                <WorkspacePicker path="/calendar" />
-                <section className="work-page-hero page-enter">
-                    <span className="work-page-hero__icon">
-                        <Icon name="calendar" size={23} />
-                    </span>
-                    <div>
-                        <p>Планирование</p>
-                        <h2>Сроки под контролем</h2>
-                        <span>
+                <TenderWorkspaceHeader
+                    tab="calendar"
+                    description={
+                        <>
                             Подача заявок, личные действия и задачи ·{' '}
                             {(
                                 {
@@ -156,9 +150,9 @@ export default function TenderCalendar() {
                                     'Asia/Vladivostok': 'Владивосток (UTC+10)',
                                 } as Record<string, string>
                             )[timezone] ?? timezone}
-                        </span>
-                    </div>
-                </section>
+                        </>
+                    }
+                />
                 <GlassCard className="work-card calendar-panel">
                     <div className="work-toolbar">
                         <Button

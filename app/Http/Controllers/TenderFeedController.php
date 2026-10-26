@@ -169,6 +169,7 @@ class TenderFeedController extends Controller
             app(MonitoringStatusService::class)->forQueries(collect([$monitoring]))[$monitoring->id];
 
         return Inertia::render('Tenders', [
+            ...$scope->props($user, null),
             'tenderMatches' => $paginator,
             'filters' => [
                 'q' => $search,

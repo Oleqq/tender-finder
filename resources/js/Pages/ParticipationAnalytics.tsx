@@ -2,9 +2,9 @@ import { scopedUrl } from '../lib/workspace';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
-import { TenderWorkNav } from '../Components/TenderWorkNav';
+import { TenderWorkspaceHeader } from '../Components/TenderWorkspaceHeader';
 import { Badge, GlassCard } from '../Components/ui';
-import { WorkspacePicker, type TeamScope } from '../Components/WorkspacePicker';
+import type { TeamScope } from '../Components/WorkspacePicker';
 import type { PageProps } from '../types';
 
 type Analytics = {
@@ -63,21 +63,7 @@ export default function ParticipationAnalytics() {
                 activeNav="/tenders"
                 wide
             >
-                <TenderWorkNav active="/participation/analytics" />
-                <WorkspacePicker path="/participation/analytics" />
-                <section className="work-page-hero page-enter">
-                    <span className="work-page-hero__icon">
-                        <Icon name="chart" size={23} />
-                    </span>
-                    <div>
-                        <p>Результаты участия</p>
-                        <h2>Воронка и экономика</h2>
-                        <span>
-                            Следите за движением заявок, конверсией и финансовым
-                            результатом.
-                        </span>
-                    </div>
-                </section>
+                <TenderWorkspaceHeader tab="analytics" />
                 <GlassCard className="work-toolbar analytics-toolbar" tone="quiet">
                     <nav className="work-stages" aria-label="Период аналитики">
                         {[
