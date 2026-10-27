@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0d0f17">
-  <meta name="description" content="TenderFinder — поиск тендеров, уведомления и командная работа по заявкам. Три тарифа с доступом на 30 дней: Basic, Про и Ультра.">
+  <meta name="description" content="TenderFinder — поиск тендеров, уведомления и командная работа по заявкам. Basic от 349 ₽, Pro от 599 ₽ и Ultra от 899 ₽ в месяц. Скидки на 3 месяца и год.">
   <title>Месячный доступ — TenderFinder · тёмная тема</title>
   <style>
     :root {
@@ -424,6 +424,7 @@
       html { scroll-behavior: auto; }
       *, *::before, *::after { transition: none !important; }
     }
+
   </style>
 
   <style>
@@ -563,6 +564,50 @@
       .plan-pro:hover { box-shadow: 0 24px 48px -18px #494de280; }
       .plan-ultra:hover { box-shadow: 0 24px 45px -18px #000000cc; }
     }
+
+    /* Subscription prices: one payment for the selected calendar period. */
+    :root { --pricing-surface: #fff; --pricing-ink: #252b40; --pricing-muted: #626b80; --pricing-border: #dde1ee; }
+    .period-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; max-width: 480px; margin: 25px auto 12px; padding: 6px; border: 1px solid var(--pricing-border); border-radius: 17px; background: var(--pricing-surface); }
+    .period-switch[hidden] { display: none; }
+    .period-switch legend { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .period-option { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 0; min-height: 62px; padding: 10px 5px; border: 0; border-radius: 12px; background: transparent; color: var(--pricing-ink); cursor: pointer; font-weight: 650; font-size: 14px; }
+    .period-option span { font-size: 10px; font-weight: 500; }
+    .period-option[aria-pressed="true"] { color: #fff; background: #4b4fdf; box-shadow: 0 4px 12px #4b4fdf30; }
+    .period-option:hover:not([aria-pressed="true"]) { background: #8889b514; }
+    .period-hint { color: var(--pricing-muted); font-size: 12px; line-height: 1.7; }
+    .plan .plan-price { display: block; min-height: 147px; margin-top: 24px; padding: 20px 0 16px; }
+    .plan .plan-price strong { font-size: clamp(34px, 3.9vw, 50px); font-weight: 700; line-height: 1.1; letter-spacing: -.055em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .plan .plan-price p { margin-top: 8px; font-size: 12px; line-height: 1.5; }
+    .plan .plan-price .price-savings { color: var(--card-ink); font-weight: 600; }
+    .plan .plan-capacity { margin: 19px 0 0; }
+    .plan .capacity-number strong { font-size: 38px; letter-spacing: -.045em; }
+    .plan .capacity-meter { margin-top: 9px; }
+    .plan .plan-top { margin-bottom: 22px; }
+    .plan .plan-description { min-height: 45px; }
+    .pricing-comparison { margin-top: 40px; padding: 24px; border: 1px solid var(--pricing-border); border-radius: 20px; background: var(--pricing-surface); color: var(--pricing-ink); }
+    .pricing-comparison h3 { margin-bottom: 8px; font-size: 22px; letter-spacing: -.035em; }
+    .pricing-comparison > p { color: var(--pricing-muted); font-size: 12px; line-height: 1.65; }
+    .pricing-comparison table { width: 100%; margin-top: 20px; border-collapse: collapse; table-layout: fixed; text-align: right; font-variant-numeric: tabular-nums; }
+    .pricing-comparison th, .pricing-comparison td { padding: 16px 8px; border-bottom: 1px solid var(--pricing-border); font-size: 15px; white-space: nowrap; }
+    .pricing-comparison thead th { color: var(--pricing-muted); font-size: 12px; font-weight: 500; }
+    .pricing-comparison th:first-child { text-align: left; }
+    .pricing-comparison th span { display: block; margin-top: 5px; font-size: 10px; }
+    .pricing-comparison tbody tr:last-child > * { border-bottom: 0; }
+    .pricing-comparison caption { padding-top: 14px; caption-side: bottom; text-align: left; color: var(--pricing-muted); font-size: 11px; line-height: 1.7; }
+    .pricing-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    @media (max-width: 1024px) and (min-width: 761px) { .plan .plan-price strong { font-size: 34px; } }
+    @media (max-width: 760px) { .plan .plan-price strong { font-size: 46px; } .plan .plan-description { min-height: 0; } }
+    @media (max-width: 480px) {
+      .pricing-comparison { padding: 18px 12px; }
+      .pricing-comparison th, .pricing-comparison td { padding: 14px 2px; font-size: 12px; }
+      .pricing-comparison thead th { font-size: 11px; }
+      .pricing-comparison th:first-child { width: 19%; }
+      .period-option { font-size: 12px; }
+      .period-option span { font-size: 9px; }
+      .plan .plan-price strong { font-size: 43px; }
+    }
+
+    :root { --pricing-surface: #1b1e2c; --pricing-ink: #e8eaf4; --pricing-muted: #acb4cb; --pricing-border: #343a50; }
   </style>
 </head>
 <body>
@@ -615,7 +660,7 @@
             <a class="button button-secondary" href="#features">Что внутри</a>
           </div>
           <div class="hero-meta">
-            <span><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg> Доступ на 30 дней</span>
+            <span><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg> На месяц, 3 месяца или год</span>
             <span><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg> Без автопродления*</span>
           </div>
         </div>
@@ -690,20 +735,28 @@
         <div class="plans-heading">
           <p class="eyebrow">Ваш масштаб. Ваш тариф.</p>
           <h2 class="section-title" id="plans-title">Выберите, сколько<br>возможностей искать.</h2>
-          <p class="section-copy">Все инструменты — в каждом тарифе. Выбирайте количество одновременно активных мониторингов.</p>
-          <div class="period-label"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg><strong>30 дней доступа</strong><span>· разовая покупка*</span></div>
+          <p class="section-copy">Выбирайте количество мониторингов, глубину аналитики и удобный срок доступа.</p>
+          <fieldset class="period-switch" hidden>
+            <legend>Выберите срок доступа</legend>
+            <button class="period-option" type="button" data-months="1" aria-pressed="true">1 месяц<span>Без скидки</span></button>
+            <button class="period-option" type="button" data-months="3" aria-pressed="false">3 месяца<span>Скидка от 5%</span></button>
+            <button class="period-option" type="button" data-months="12" aria-pressed="false">1 год<span>Скидка от 10%</span></button>
+          </fieldset>
+          <p class="period-hint">Один платёж за весь период. Без автопродления.</p>
+          <p id="pricing-status" class="pricing-status" role="status" aria-live="polite" aria-atomic="true"></p>
         </div>
         <div class="plan-grid">
-          <article class="plan" aria-labelledby="basic-title">
+          <article class="plan" aria-labelledby="basic-title" data-plan="basic" data-name="Basic" data-price1="349" data-price3="989" data-price12="3769">
             <div class="plan-top"><span class="plan-icon"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="plan-audience">Для личной работы</span></div>
             <h3 id="basic-title">Basic</h3>
             <p class="plan-description">Сосредоточьтесь на главных направлениях вашего бизнеса.</p>
+            <div class="plan-price"><strong data-price>349 ₽</strong><p data-period-label>За 1 месяц · одним платежом</p><p class="price-savings" data-saving>Без автоматического продления</p></div>
             <div class="plan-capacity">
               <div class="capacity-number"><strong>3</strong><span>/ одновременно</span></div>
               <p class="capacity-caption">активных мониторинга</p>
               <div class="capacity-meter" aria-hidden="true"><span class="on"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
             </div>
-            <div class="plan-price"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><div><strong>Цена появится перед запуском</strong><p>За 30 дней доступа</p></div></div>
+
             <button class="plan-button" type="button" disabled><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> Скоро в продаже</button>
             <p class="plan-list-label">Всё для ежедневной работы</p>
             <ul>
@@ -714,16 +767,17 @@
               <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Поддержка пользователей</li>
             </ul>
           </article>
-          <article class="plan plan-pro" aria-labelledby="pro-title">
-            <div class="plan-top"><span class="plan-icon"><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg></span><span class="plan-audience">Для нескольких направлений</span></div>
-            <h3 id="pro-title">Про</h3>
+          <article class="plan plan-pro" aria-labelledby="pro-title" data-plan="pro" data-name="Pro" data-price1="599" data-price3="1699" data-price12="6469">
+            <div class="plan-top"><span class="plan-icon"><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg></span><span class="plan-audience">Рекомендуемый</span></div>
+            <h3 id="pro-title">Pro</h3>
             <p class="plan-description">Расширьте поиск и держите больше направлений в фокусе.</p>
+            <div class="plan-price"><strong data-price>599 ₽</strong><p data-period-label>За 1 месяц · одним платежом</p><p class="price-savings" data-saving>Без автоматического продления</p></div>
             <div class="plan-capacity">
               <div class="capacity-number"><strong>10</strong><span>/ одновременно</span></div>
               <p class="capacity-caption">активных мониторингов</p>
               <div class="capacity-meter" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
             </div>
-            <div class="plan-price"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><div><strong>Цена появится перед запуском</strong><p>За 30 дней доступа</p></div></div>
+
             <button class="plan-button" type="button" disabled><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> Скоро в продаже</button>
             <p class="plan-list-label">Все возможности Basic</p>
             <ul>
@@ -734,18 +788,19 @@
               <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Поддержка пользователей</li>
             </ul>
           </article>
-          <article class="plan plan-ultra" aria-labelledby="ultra-title">
+          <article class="plan plan-ultra" aria-labelledby="ultra-title" data-plan="ultra" data-name="Ultra" data-price1="899" data-price3="2559" data-price12="9709">
             <div class="plan-top"><span class="plan-icon"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg></span><span class="plan-audience">Максимальный охват</span></div>
-            <h3 id="ultra-title">Ультра</h3>
+            <h3 id="ultra-title">Ultra</h3>
             <p class="plan-description">Для широкого поиска и большого числа направлений.</p>
+            <div class="plan-price"><strong data-price>899 ₽</strong><p data-period-label>За 1 месяц · одним платежом</p><p class="price-savings" data-saving>Без автоматического продления</p></div>
             <div class="plan-capacity">
               <div class="capacity-number"><strong>30</strong><span>/ одновременно</span></div>
               <p class="capacity-caption">активных мониторингов</p>
               <div class="capacity-meter" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
             </div>
-            <div class="plan-price"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><div><strong>Цена появится перед запуском</strong><p>За 30 дней доступа</p></div></div>
+
             <button class="plan-button" type="button" disabled><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> Скоро в продаже</button>
-            <p class="plan-list-label">Все возможности Про</p>
+            <p class="plan-list-label">Все возможности Pro</p>
             <ul>
               <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> До 30 активных мониторингов</li>
               <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Уведомления и ежедневный дайджест</li>
@@ -755,8 +810,18 @@
             </ul>
           </article>
         </div>
-        <p class="plans-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>* Предварительное предложение. Планируется разовая покупка без автопродления. Цены, условия и число участников команды ещё утверждаются. Приём платежей пока закрыт.</span></p>
-        <div class="included-strip"><span><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg> Все функции в каждом тарифе</span><span><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg> Лимиты отдельных источников учитываются отдельно</span></div>
+
+        <section class="pricing-comparison" aria-labelledby="comparison-title">
+          <h3 id="comparison-title">Все цены — в одной таблице</h3>
+          <p>Чем дольше срок, тем выгоднее. Возможности тарифа одинаковы для всех периодов.</p>
+          <table>
+            <caption>Стоимость за весь период. Скидки рассчитаны от оплаты по месяцам, итог округлён вниз до цены с девяткой на конце. Поэтому фактическая скидка немного больше 5% или 10%.</caption>
+            <thead><tr><th scope="col">Тариф</th><th scope="col">1 месяц</th><th scope="col">3 месяца<span>от 5%</span></th><th scope="col">1 год<span>от 10%</span></th></tr></thead>
+            <tbody><tr><th scope="row">Basic</th><td>349 ₽</td><td>989 ₽</td><td>3 769 ₽</td></tr><tr><th scope="row">Pro</th><td>599 ₽</td><td>1 699 ₽</td><td>6 469 ₽</td></tr><tr><th scope="row">Ultra</th><td>899 ₽</td><td>2 559 ₽</td><td>9 709 ₽</td></tr></tbody>
+          </table>
+        </section>
+        <p class="plans-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>* Цены зафиксированы. Приём платежей пока закрыт. Условия покупки и число участников команды опубликуем до начала продаж.</span></p>
+        <div class="included-strip"><span><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg> Поиск и работа по заявкам во всех тарифах</span><span><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg> Лимиты отдельных источников учитываются отдельно</span></div>
       </div>
     </section>
 
@@ -774,10 +839,11 @@
       <div class="faq-intro"><p class="eyebrow">Остались вопросы?</p><h2 class="section-title" id="faq-title">Всё важное<br>об условиях.</h2><p class="section-copy">Окончательные условия покупки опубликуем до открытия продаж.</p></div>
       <div class="faq-list">
         <details><summary>Чем тарифы отличаются друг от друга?</summary><p>Лимитом мониторингов и глубиной аналитики: Basic — 3 и краткая сводка; Про — 10 и разбор условий и подготовки; Ультра — 30, сравнение бюджетов своей выборки, сценарии цены, история и готовность заявки. Для отдельных источников действуют собственные ограничения доступности и использования.</p></details>
-        <details><summary>Деньги будут списываться автоматически?</summary><p>Для первого запуска планируется разовая покупка доступа на 30 дней без автоматического продления. Точные условия будут опубликованы перед началом продаж.</p></details>
+        <details><summary>Деньги будут списываться автоматически?</summary><p>Предусмотрена разовая оплата за 1, 3 или 12 календарных месяцев без автоматического продления. После окончания выбранного срока новую покупку нужно будет оформить самостоятельно.</p></details>
+        <details><summary>Как рассчитывается скидка?</summary><p>За 3 месяца — скидка не меньше 5%, за год — не меньше 10% от суммы ежемесячных платежей. После скидки цена округляется вниз до целого числа рублей с девяткой на конце. Указанная сумма оплачивается целиком за выбранный срок.</p></details>
         <details><summary>Можно ли работать вместе с командой?</summary><p>В TenderFinder есть общие заявки, задачи, документы и командные действия. Число участников, покрываемых одной покупкой, ещё предстоит утвердить.</p></details>
         <details><summary>Что будет после окончания доступа?</summary><p>Текущая логика приложения замораживает активные мониторинги и прекращает новые уведомления. Порядок хранения данных будет закреплён в условиях сервиса.</p></details>
-        <details><summary>Когда можно будет купить доступ?</summary><p>Продажи откроются после утверждения цен, условий и подключения платёжной системы. Сейчас это страница предварительного предложения; она не создаёт заказ и не принимает платежи.</p></details>
+        <details><summary>Когда можно будет купить доступ?</summary><p>Цены уже определены. Продажи откроются после утверждения условий и подключения платёжной системы. Сейчас это страница предварительного предложения; она не создаёт заказ и не принимает платежи.</p></details>
       </div>
     </section>
   </main>
@@ -786,5 +852,33 @@
     <p>Поиск тендеров и работа по заявкам.<br>Предпросмотр предложения · платежи пока не принимаются.</p>
     <a class="back-to-top" href="#top">Наверх <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
   </footer>
+
+  <script>
+    (() => {
+      const switcher = document.querySelector('.period-switch');
+      const buttons = [...switcher.querySelectorAll('[data-months]')];
+      const cards = [...document.querySelectorAll('[data-plan]')];
+      const formatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+      const money = (value) => formatter.format(value) + '\u00a0₽';
+      const periods = { 1: '1 месяц', 3: '3 месяца', 12: '1 год' };
+      function selectPeriod(months) {
+        buttons.forEach((button) => button.setAttribute('aria-pressed', String(Number(button.dataset.months) === months)));
+        const announcement = [];
+        cards.forEach((card) => {
+          const total = Number(card.dataset['price' + months]);
+          const original = Number(card.dataset.price1) * months;
+          card.querySelector('[data-price]').textContent = money(total);
+          card.querySelector('[data-period-label]').textContent = 'За ' + periods[months] + ' · одним платежом';
+          card.querySelector('[data-saving]').textContent = months === 1
+            ? 'Без автоматического продления'
+            : 'Экономия ' + money(original - total);
+          announcement.push(card.dataset.name + ' — ' + money(total));
+        });
+        document.querySelector('#pricing-status').textContent = periods[months] + ': ' + announcement.join('; ') + '. Оплата за весь период.';
+      }
+      buttons.forEach((button) => button.addEventListener('click', () => selectPeriod(Number(button.dataset.months))));
+      switcher.hidden = false;
+    })();
+  </script>
 </body>
 </html>
