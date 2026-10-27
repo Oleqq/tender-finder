@@ -21,9 +21,17 @@ export function participationError(error: unknown): string {
             error,
         )
     ) {
+        const status = error.response?.status;
+        if (status === 404) return 'Заявка больше недоступна. Обновите список.';
+        if (status === 403)
+            return 'У вас больше нет прав на изменение этих заявок. Обновите список.';
+        if (status === 429)
+            return 'Слишком много действий подряд. Подождите немного и повторите.';
+        if (status && status >= 500)
+            return 'Сервер временно недоступен. Попробуйте ещё раз позже.';
         return (
-            Object.values(error.response?.data.errors ?? {}).flat()[0] ??
-            error.response?.data.message ??
+            Object.values(error.response?.data?.errors ?? {}).flat()[0] ||
+            error.response?.data?.message ||
             'Не удалось изменить список. Попробуйте ещё раз.'
         );
     }
