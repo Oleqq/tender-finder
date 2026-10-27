@@ -127,6 +127,7 @@ export default function Plans() {
                         отправляйте реквизиты карты.
                     </p>
                     <div className="billing-links">
+                        <a href="/pricing">Тарифы и цены</a>
                         <Link href="/support?topic=payment-access">
                             Оплатил, но доступа нет
                         </Link>

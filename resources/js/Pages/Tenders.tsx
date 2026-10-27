@@ -399,22 +399,22 @@ export default function Tenders() {
 
     const hasFilters = Boolean(
         filters.q ||
-        filters.status !== 'all' ||
-        filters.tag ||
-        filters.query_id ||
-        filters.assignee_id ||
-        filters.sources.length > 0 ||
-        filters.sort !== 'matched_desc' ||
-        filters.overdue,
+            filters.status !== 'all' ||
+            filters.tag ||
+            filters.query_id ||
+            filters.assignee_id ||
+            filters.sources.length > 0 ||
+            filters.sort !== 'matched_desc' ||
+            filters.overdue,
     );
     const hasExplicitFilters = Boolean(
         filters.q ||
-        filters.status !== 'all' ||
-        filters.tag ||
-        filters.assignee_id ||
-        filters.sources.length > 0 ||
-        filters.sort !== 'matched_desc' ||
-        filters.overdue,
+            filters.status !== 'all' ||
+            filters.tag ||
+            filters.assignee_id ||
+            filters.sources.length > 0 ||
+            filters.sort !== 'matched_desc' ||
+            filters.overdue,
     );
 
     const bulkUpdate = async (): Promise<void> => {

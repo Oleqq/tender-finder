@@ -25,6 +25,7 @@ use App\Http\Controllers\ParticipationCommentController;
 use App\Http\Controllers\ParticipationDocumentController;
 use App\Http\Controllers\ParticipationEconomicsController;
 use App\Http\Controllers\ParticipationLifecycleController;
+use App\Http\Controllers\PricingPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
 use App\Http\Controllers\SavedSearchRunController;
@@ -66,6 +67,9 @@ Route::get('/', function (Request $request, AccessService $access, TemporaryFull
 })->name('welcome');
 
 Route::get('/open', MiniAppOpenController::class)->name('mini-app.open');
+
+Route::get('/pricing/{theme?}', PricingPageController::class)
+    ->where('theme', 'light|dark')->name('pricing');
 
 Route::post('/guest/session', [BrowserGuestSessionController::class, 'store'])
     ->middleware('throttle:10,1')->name('guest.session.store');

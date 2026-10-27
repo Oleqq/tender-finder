@@ -283,6 +283,9 @@ export default function Profile() {
                 ) : null}
 
                 <GlassCard className="settings-list">
+                    <a className="profile-support-entry__link" href="/pricing">
+                        Тарифы и цены <Icon name="chevron-right" size={17} />
+                    </a>
                     <Link className="profile-support-entry__link" href="/requisites">
                         Реквизиты <Icon name="chevron-right" size={17} />
                     </Link>

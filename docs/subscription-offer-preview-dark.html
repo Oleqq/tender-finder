@@ -565,6 +565,9 @@
       .plan-ultra:hover { box-shadow: 0 24px 45px -18px #000000cc; }
     }
 
+    .website-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px 24px; padding: 24px 20px; color: var(--pricing-muted); font-size: 13px; }
+    .website-links[hidden] { display: none; }
+    .website-links a { text-decoration: underline; text-underline-offset: 4px; }
     /* Subscription prices: one payment for the selected calendar period. */
     :root { --pricing-surface: #fff; --pricing-ink: #252b40; --pricing-muted: #626b80; --pricing-border: #dde1ee; }
     .period-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; max-width: 480px; margin: 25px auto 12px; padding: 6px; border: 1px solid var(--pricing-border); border-radius: 17px; background: var(--pricing-surface); }
@@ -847,6 +850,7 @@
       </div>
     </section>
   </main>
+  <nav class="website-links" aria-label="Сервис и оформление" hidden><a href="/">В приложение</a><a href="/pricing">Светлая тема</a><a href="/requisites">Реквизиты</a></nav>
   <footer class="container footer">
     <a class="brand" href="#top"><span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></span>TenderFinder</a>
     <p>Поиск тендеров и работа по заявкам.<br>Предпросмотр предложения · платежи пока не принимаются.</p>
@@ -855,6 +859,9 @@
 
   <script>
     (() => {
+      if (location.protocol === 'https:' || location.protocol === 'http:') {
+        document.querySelector('.website-links').hidden = false;
+      }
       const switcher = document.querySelector('.period-switch');
       const buttons = [...switcher.querySelectorAll('[data-months]')];
       const cards = [...document.querySelectorAll('[data-plan]')];
