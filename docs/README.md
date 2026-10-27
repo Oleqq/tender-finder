@@ -6,6 +6,8 @@
 | Документ | Назначение |
 |---|---|
 | [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус MVP, пользовательский путь и ближайшие этапы. |
+| [MAINTENANCE-2026-10-27](MAINTENANCE-2026-10-27.md) | Проверка обоих remote, планов коллеги, адаптивных форм и раскрытых мониторингов. |
+| [UI-MAINTENANCE-2026-10-26](UI-MAINTENANCE-2026-10-26.md) | Общая вводная часть вкладок, темы, диалоги и предыдущая UI-приёмка. |
 | [MAINTENANCE-2026-10-20](MAINTENANCE-2026-10-20.md) | Чекап Git, VPS, источников, интерфейса и сценария нового пользователя. |
 | [PROGRESS](PROGRESS.md) | Хронология этапов, фактические выпуски и оставшаяся приёмка. |
 | [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
@@ -32,6 +34,7 @@
 | [ETP-GPB-SOURCE](ETP-GPB-SOURCE.md) | Официальный RSS ЭТП ГПБ, настройки и проверка перед включением. |
 | [RSS-MVP-SOURCE](RSS-MVP-SOURCE.md) | Архив выведенной из эксплуатации интеграции ЕИС. |
 | [PARTICIPATION-AND-CALENDAR](PARTICIPATION-AND-CALENDAR.md) | Участие, чек-листы, календарь, экспорт и проверка. |
+| [PARTICIPATION-LIFECYCLE](PARTICIPATION-LIFECYCLE.md) | Удаление и восстановление заявок, просроченные записи, статистика и остановка уведомлений. |
 | [TEAM-WORKSPACES](TEAM-WORKSPACES.md) | Команды, роли, ответственные, шаблоны и напоминания по задачам. |
 | [DATABASE](DATABASE.md) | Схема данных и правила хранения. |
 | [DEPLOYMENT](DEPLOYMENT.md) | Исторический чек-лист VPS cutover; текущий порядок — в VPS-DEPLOYMENT. |

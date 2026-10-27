@@ -17,6 +17,7 @@ final class TenderFollowUpService
     public function eligible(TenderUserState $state): bool
     {
         return ! in_array($state->status->value, ['dismissed', 'archived'], true)
+            && ! $state->tender->participations()->onlyTrashed()->whereNull('team_id')->where('user_id', $state->user_id)->exists()
             && $state->user->telegram_id !== null
             && $this->access->hasActiveAccess($state->user)
             && $state->tender->matches()->whereHas('searchQuery', fn ($q) => $q

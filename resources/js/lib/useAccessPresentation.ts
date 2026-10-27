@@ -12,7 +12,8 @@ export function useAccessPresentation(access: Access | null) {
             const current = Date.now();
             setNow(current);
             if (
-                access?.state === 'trialing' &&
+                (access?.state === 'trialing' ||
+                    access?.mode === 'temporary_full_access') &&
                 access.ends_at &&
                 current >= new Date(access.ends_at).getTime() &&
                 !reloadedExpired.current
@@ -23,7 +24,7 @@ export function useAccessPresentation(access: Access | null) {
         };
         const interval = window.setInterval(update, 30_000);
         return () => window.clearInterval(interval);
-    }, [access?.ends_at, access?.state]);
+    }, [access?.ends_at, access?.mode, access?.state]);
 
     return presentAccess(access, new Date(now));
 }

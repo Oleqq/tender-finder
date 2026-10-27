@@ -32,13 +32,20 @@ export default function Dashboard() {
     const access = useAccessPresentation(auth.access);
     const canUseMonitoring = ['trial', 'trial_ending', 'active'].includes(access.phase);
     const canStartTrial = access.phase === 'preview';
+    const temporaryPending = auth.access?.mode === 'temporary_full_access_pending';
     const accessHref = canStartTrial ? '/consents' : '/plans';
     const primaryAction = !canUseMonitoring
         ? {
               href: accessHref,
-              label: canStartTrial ? 'Начать 3 дня бесплатно' : 'Посмотреть доступ',
+              label: canStartTrial
+                  ? temporaryPending
+                      ? 'Подтвердить условия'
+                      : 'Начать 3 дня бесплатно'
+                  : 'Посмотреть доступ',
               description: canStartTrial
-                  ? 'Примите оферту и политику, чтобы включить пробный доступ и создать первый мониторинг.'
+                  ? temporaryPending
+                      ? 'Примите оферту и политику, чтобы открыть полный доступ на время проверки.'
+                      : 'Примите оферту и политику, чтобы включить пробный доступ и создать первый мониторинг.'
                   : 'Приём платежей пока закрыт. Посмотрите состояние доступа или напишите в поддержку.',
           }
         : !workspace.hasMonitoring

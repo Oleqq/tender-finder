@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AccessState;
 use App\Enums\NotificationStatus;
 use App\Enums\QueryStatus;
 use App\Models\NotificationDelivery;
@@ -37,5 +38,33 @@ final class AccessFreezeService
                 'failure_code' => 'access_expired',
                 'updated_at' => $at,
             ]);
+    }
+
+    public function reconcileCurrentLimit(User $user, Carbon $at): void
+    {
+        $snapshot = $this->access->snapshotFor($user);
+        if (! in_array($snapshot->state, [AccessState::Trialing, AccessState::Active], true)) {
+            $this->freezeIfInactive($user, $at);
+
+            return;
+        }
+
+        if ($snapshot->activeQueryLimit === null) {
+            return;
+        }
+
+        $excessIds = SearchQuery::query()
+            ->where('user_id', $user->id)
+            ->where('status', QueryStatus::Active)
+            ->orderBy('id')
+            ->limit(PHP_INT_MAX)
+            ->skip($snapshot->activeQueryLimit)
+            ->pluck('id');
+
+        SearchQuery::query()->whereKey($excessIds)->update([
+            'status' => QueryStatus::Frozen->value,
+            'frozen_at' => $at,
+            'updated_at' => $at,
+        ]);
     }
 }

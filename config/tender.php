@@ -69,6 +69,10 @@ return [
         'active_query_limit' => (int) env('LOCAL_MVP_FULL_ACCESS_QUERY_LIMIT', 20),
     ],
 
+    // Temporary public review window. UTC deadline makes the override expire
+    // without a deploy; an absent or invalid value leaves normal access intact.
+    'temporary_full_access_until' => env('TEMP_FULL_ACCESS_UNTIL'),
+
     'rostender' => [
         // The supplier's API licence must explicitly allow distribution to
         // Tender Finder users. Keep both switches false until that written

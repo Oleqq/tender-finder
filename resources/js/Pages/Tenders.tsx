@@ -5,13 +5,9 @@ import { SourcePicker } from '../Components/SourcePicker';
 import { TenderAnalytics } from '../Components/TenderAnalytics';
 import type { TenderSummary } from '../lib/tenderSummary';
 import { summaryMoney } from '../lib/tenderSummary';
-import { TenderWorkNav } from '../Components/TenderWorkNav';
+import { TenderWorkspaceHeader } from '../Components/TenderWorkspaceHeader';
 import { TenderFeedbackActions } from '../Components/TenderFeedbackActions';
-import {
-    AssigneeSelect,
-    type TeamScope,
-    WorkspacePicker,
-} from '../Components/WorkspacePicker';
+import { AssigneeSelect, type TeamScope } from '../Components/WorkspacePicker';
 import { Icon } from '../Components/Icon';
 import {
     Badge,
@@ -178,7 +174,7 @@ type TendersPageProps = PageProps<
 >;
 
 const statusOptions = [
-    { value: 'all', label: 'Все' },
+    { value: 'all', label: 'В ленте' },
     { value: 'new', label: 'Новые' },
     { value: 'favorite', label: 'Избранные' },
     { value: 'potential', label: 'Потенциальные' },
@@ -403,22 +399,22 @@ export default function Tenders() {
 
     const hasFilters = Boolean(
         filters.q ||
-            filters.status !== 'all' ||
-            filters.tag ||
-            filters.query_id ||
-            filters.assignee_id ||
-            filters.sources.length > 0 ||
-            filters.sort !== 'matched_desc' ||
-            filters.overdue,
+        filters.status !== 'all' ||
+        filters.tag ||
+        filters.query_id ||
+        filters.assignee_id ||
+        filters.sources.length > 0 ||
+        filters.sort !== 'matched_desc' ||
+        filters.overdue,
     );
     const hasExplicitFilters = Boolean(
         filters.q ||
-            filters.status !== 'all' ||
-            filters.tag ||
-            filters.assignee_id ||
-            filters.sources.length > 0 ||
-            filters.sort !== 'matched_desc' ||
-            filters.overdue,
+        filters.status !== 'all' ||
+        filters.tag ||
+        filters.assignee_id ||
+        filters.sources.length > 0 ||
+        filters.sort !== 'matched_desc' ||
+        filters.overdue,
     );
 
     const bulkUpdate = async (): Promise<void> => {
@@ -462,6 +458,48 @@ export default function Tenders() {
                 filters.sort !== 'matched_desc'
             ));
     const hasMonitoring = filterOptions.queries.length > 0;
+    const monitoringPicker = (
+        <SelectField
+            label="Мониторинг"
+            onChange={(event) =>
+                visit({
+                    query_id: event.target.value ? Number(event.target.value) : null,
+                })
+            }
+            options={[
+                { value: '0', label: 'Все мои темы' },
+                ...filterOptions.queries.map((query) => ({
+                    value: String(query.id),
+                    label: query.name,
+                })),
+            ]}
+            value={filters.query_id ?? ''}
+        />
+    );
+
+    const workspaceHeader = (
+        <TenderWorkspaceHeader
+            tab="feed"
+            description={
+                hasMonitoring ? (
+                    <>
+                        {team
+                            ? 'Общая очередь разбора'
+                            : filters.query_id === 0
+                              ? 'Все мои темы'
+                              : `Поиск: ${monitoringName ?? 'моя тема'}`}
+                        {' · '}
+                        {tenderMatches.total === 0
+                            ? 'Карточек по выбранным условиям нет'
+                            : `${tenderMatches.total} ${tenderWord(tenderMatches.total)} в потоке`}
+                    </>
+                ) : undefined
+            }
+            status={
+                hasExplicitFilters ? <Badge tone="accent">Фильтр</Badge> : undefined
+            }
+        />
+    );
 
     if (isEmptyPersonalFeed) {
         return (
@@ -469,16 +507,12 @@ export default function Tenders() {
                 <Head title="Мои тендеры" />
                 <AppShell
                     activeNav="/tenders"
-                    className="tenders-page"
+                    className="work-page tenders-page"
                     eyebrow="Мой поток"
                     title="Тендеры"
                 >
-                    {hasMonitoring ? (
-                        <>
-                            <TenderWorkNav active="/tenders" />
-                            <WorkspacePicker path="/tenders" />
-                        </>
-                    ) : null}
+                    {workspaceHeader}
+                    {hasMonitoring ? monitoringPicker : null}
                     <section className="tenders-first-run page-enter">
                         <Badge tone="accent">
                             {hasMonitoring ? 'Моя лента' : 'Первый шаг'}
@@ -573,12 +607,11 @@ export default function Tenders() {
             <Head title={team ? `Лента · ${team.name}` : 'Мои тендеры'} />
             <AppShell
                 activeNav="/tenders"
-                className="tenders-page"
+                className="work-page tenders-page"
                 eyebrow={team ? 'Командный поток' : 'Мой поток'}
                 title={team ? `Лента · ${team.name}` : 'Тендеры'}
             >
-                <TenderWorkNav active="/tenders" />
-                <WorkspacePicker path="/tenders" />
+                {workspaceHeader}
                 {team ? (
                     <>
                         <TeamMonitoringPanel
@@ -599,29 +632,6 @@ export default function Tenders() {
                         ) : null}
                     </>
                 ) : null}
-                <GlassCard className="tenders-summary page-enter" tone="quiet">
-                    <span className="tenders-summary__mark">
-                        <Icon name="layers" size={19} />
-                    </span>
-                    <div>
-                        <p>
-                            {team
-                                ? 'Общая очередь разбора'
-                                : filters.query_id === 0
-                                  ? 'Все мои темы'
-                                  : `Поиск: ${monitoringName ?? 'моя тема'}`}
-                        </p>
-                        <strong>
-                            {tenderMatches.total === 0
-                                ? 'Карточек по выбранным условиям нет'
-                                : tenderMatches.total +
-                                  ' ' +
-                                  tenderWord(tenderMatches.total) +
-                                  ' в потоке'}
-                        </strong>
-                    </div>
-                    {hasExplicitFilters ? <Badge tone="accent">Фильтр</Badge> : null}
-                </GlassCard>
 
                 <GlassCard className="tender-feed-controls page-enter page-enter--delay">
                     <form className="tender-feed-search" onSubmit={submitSearch}>
@@ -718,24 +728,7 @@ export default function Tenders() {
                                 </p>
                             </div>
                             <div className="tender-feed-selects">
-                                <SelectField
-                                    label="Мониторинг"
-                                    onChange={(event) =>
-                                        visit({
-                                            query_id: event.target.value
-                                                ? Number(event.target.value)
-                                                : null,
-                                        })
-                                    }
-                                    options={[
-                                        { value: '0', label: 'Все мои темы' },
-                                        ...filterOptions.queries.map((query) => ({
-                                            value: String(query.id),
-                                            label: query.name,
-                                        })),
-                                    ]}
-                                    value={filters.query_id ?? ''}
-                                />
+                                {monitoringPicker}
                                 {team ? (
                                     <SelectField
                                         label="Ответственный"
@@ -853,7 +846,10 @@ export default function Tenders() {
                                                             }
                                                             type="button"
                                                         >
-                                                            ×
+                                                            <Icon
+                                                                name="close"
+                                                                size={16}
+                                                            />
                                                         </button>
                                                     ) : null}
                                                 </span>
@@ -1434,6 +1430,7 @@ function TeamWorkflowPanel({
                         onSubmit={addRule}
                     >
                         <input
+                            aria-label="Название правила"
                             maxLength={120}
                             placeholder="Название правила"
                             required
@@ -1443,6 +1440,7 @@ function TeamWorkflowPanel({
                             }
                         />
                         <select
+                            aria-label="Источник правила"
                             value={rule.source}
                             onChange={(event) =>
                                 setRule({ ...rule, source: event.target.value })
@@ -1461,6 +1459,7 @@ function TeamWorkflowPanel({
                             <option value="sber_ast_catalog">Сбер АСТ (каталог)</option>
                         </select>
                         <select
+                            aria-label="Мониторинг правила"
                             value={rule.search_query_id}
                             onChange={(event) =>
                                 setRule({
@@ -1477,6 +1476,7 @@ function TeamWorkflowPanel({
                             ))}
                         </select>
                         <input
+                            aria-label="Регион правила"
                             maxLength={160}
                             placeholder="Регион содержит…"
                             value={rule.region}
@@ -1485,6 +1485,7 @@ function TeamWorkflowPanel({
                             }
                         />
                         <input
+                            aria-label="Минимальная сумма правила"
                             min="0"
                             placeholder="Минимальная сумма"
                             type="number"
@@ -1494,6 +1495,7 @@ function TeamWorkflowPanel({
                             }
                         />
                         <select
+                            aria-label="Исполнитель правила"
                             value={rule.assignee_id}
                             onChange={(event) =>
                                 setRule({

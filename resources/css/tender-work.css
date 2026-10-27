@@ -1,3 +1,7 @@
+.workspace-header { display: grid; gap: var(--space-5); min-width: 0; }
+.work-page > .workspace-header + * { margin-top: 0; }
+.work-page-hero__status { margin-top: 10px; }
+
 .work-page {
     gap: var(--space-5);
 }
@@ -90,7 +94,7 @@
 .workspace-picker__select > span > span:last-child { display: grid; min-width: 0; gap: 2px; }
 .workspace-picker__select small { color: var(--tf-muted); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .workspace-picker__select strong { overflow: hidden; color: var(--app-ink); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.workspace-picker__select select { position: absolute; inset: 0; width: 100%; cursor: pointer; opacity: 0; }
+.workspace-picker__select select { font-size: var(--tf-control-font); position: absolute; inset: 0; width: 100%; cursor: pointer; opacity: 0; }
 .workspace-picker__manage { display: inline-flex; min-height: 42px; align-items: center; gap: 4px; border-radius: 13px; padding: 0 12px; color: var(--tf-accent-deep); background: var(--tf-surface-strong); font-size: 11px; font-weight: 720; text-decoration: none; }
 .workspace-picker__help { grid-column: 1 / -1; margin: 0; border-top: 1px solid var(--tf-line); padding: 9px 8px 2px; color: var(--tf-muted); font-size: 10px; line-height: 1.45; }
 .work-page-hero { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 15px; border: 1px solid color-mix(in srgb, var(--tf-accent) 13%, var(--tf-line)); border-radius: 23px; padding: clamp(18px, 4vw, 26px); background: linear-gradient(135deg, color-mix(in srgb, var(--tf-accent-soft) 72%, var(--tf-surface)), var(--tf-surface)); box-shadow: 0 18px 42px rgba(44, 57, 89, .07); }
@@ -104,8 +108,10 @@
 }
 .work-intro h2,
 .work-card h2 {
-    font-size: 20px;
+    font-size: var(--text-section);
     font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -.025em;
 }
 .work-intro p,
 .work-card p,
@@ -199,7 +205,8 @@
 .work-month-label {
     display: grid;
     gap: 6px;
-    font-size: 14px;
+    font-size: var(--text-label);
+    font-weight: 710;
     width: 100%;
 }
 .work-form input,
@@ -208,18 +215,30 @@
 .work-month-label input {
     width: 100%;
     min-width: 0;
-    min-height: 44px;
+    min-height: 46px;
     color: var(--app-ink);
-    background-color: var(--tf-surface-strong);
-    border: 1px solid var(--tf-line);
-    border-radius: var(--radius-xs);
-    padding: 10px;
+    background-color: var(--tf-input-bg);
+    border: 1px solid var(--tf-input-line);
+    border-radius: 13px;
+    padding: 10px 12px;
+    font-size: var(--tf-control-font);
+    font-weight: 400;
 }
 .work-form select {
     padding-right: 36px;
 }
 .work-form textarea {
     min-height: 100px;
+}
+.work-form input[type='file']::file-selector-button {
+    margin-right: 10px;
+    border: 0;
+    border-radius: 8px;
+    padding: 7px 10px;
+    color: var(--tf-accent-deep);
+    background: var(--tf-accent-soft);
+    font: inherit;
+    cursor: pointer;
 }
 .work-form :focus-visible,
 .work-nav :focus-visible,
@@ -320,18 +339,23 @@
     padding-left: 20px;
 }
 .work-subscription-url {
+    font-size: var(--text-label);
+    font-weight: 710;
     display: grid;
     gap: 6px;
     width: 100%;
 }
 .work-subscription-url input {
     width: 100%;
-    min-height: 44px;
-    padding: 10px;
-    border: 1px solid var(--tf-line);
-    border-radius: var(--radius-xs);
+    min-width: 0;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid var(--tf-input-line);
+    border-radius: 13px;
     color: var(--app-ink);
-    background: var(--tf-surface-strong);
+    background: var(--tf-input-bg);
+    font-size: var(--tf-control-font);
+    font-weight: 400;
 }
 .work-new-task {
     border-top: 1px solid var(--tf-line);
@@ -482,6 +506,7 @@
 .analytics-summary span,
 .analytics-summary small {
     color: var(--app-muted);
+    font-size: var(--text-caption);
 }
 .analytics-summary strong {
     font-size: clamp(20px, 4vw, 30px);
@@ -733,6 +758,8 @@
 }
 
 @media (max-width: 360px) {
+    .analytics-toolbar .work-stages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .analytics-toolbar .work-stages a { white-space: nowrap; }
     .work-nav__label-full { display: none; }
     .work-nav__label-compact { display: block; }
 }
@@ -760,4 +787,27 @@
     .work-page-hero h2 { font-size: 20px; }
     .work-page-hero p { display: none; }
     .work-page-hero > div > span { margin-top: 5px; font-size: 11px; }
+}
+
+/* Participation cleanup stays out of the normal reading flow until requested. */
+.participation-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: var(--space-4); }
+.participation-list-note { margin: 0; color: var(--tf-muted); font-size: 13px; line-height: 1.5; }
+.participation-selection, .participation-feedback { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; border: 1px solid var(--tf-line); border-radius: var(--radius-md); padding: 12px; background: var(--tf-surface-strong); font-size: 12px; }
+.participation-selection { position: sticky; top: 12px; z-index: 15; box-shadow: var(--shadow-sm); }
+.participation-selection > .button { grid-column: 1 / -1; }
+.participation-selection label, .participation-select { display: flex; min-height: 44px; align-items: center; gap: 10px; cursor: pointer; }
+.participation-select { font-size: 12px; font-weight: 650; }
+.participation-select input, .participation-selection input { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; accent-color: var(--tf-accent-deep); }
+.participation-feedback p { margin: 0; }
+.participation-removal { display: grid; gap: 16px; padding-top: 16px; }
+.participation-removal p { margin: 0; color: var(--tf-muted); font-size: 14px; line-height: 1.5; }
+@media (min-width: 640px) {
+    .participation-selection { grid-template-columns: minmax(0, 1fr) auto auto; }
+    .participation-selection > .button { grid-column: auto; }
+}
+.participation-expired-link { grid-column: 1 / -1; justify-self: start; color: var(--tf-accent-deep); font-size: 12px; font-weight: 650; }
+.participation-stage-select { display: none; }
+@media (max-width: 520px) {
+    .participation-stage-select { display: grid; grid-column: 1 / -1; }
+    .participation-page > .work-stages { display: none; }
 }

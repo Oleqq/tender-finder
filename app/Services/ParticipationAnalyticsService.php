@@ -20,7 +20,8 @@ final class ParticipationAnalyticsService
         $rows = $this->base($user, $team, $from)->with('tender')->get();
         $completed = $rows->filter(fn (TenderParticipation $row): bool => in_array($row->stage, [ParticipationStage::Won, ParticipationStage::Lost], true));
         $won = $rows->where('stage', ParticipationStage::Won);
-        $active = $rows->filter(fn (TenderParticipation $row): bool => ! in_array($row->stage, [ParticipationStage::Won, ParticipationStage::Lost], true));
+        $active = $rows->filter(fn (TenderParticipation $row): bool => ! in_array($row->stage, [ParticipationStage::Won, ParticipationStage::Lost], true)
+            && ! $row->expiredBeforeSubmission());
         $events = DB::table('tender_participation_events')->whereIn('participation_id', $rows->pluck('id'))
             ->whereIn('to_stage', ['won', 'lost'])->orderBy('created_at')->get()->groupBy('participation_id');
         $durations = $completed->map(function (TenderParticipation $row) use ($events): ?int {

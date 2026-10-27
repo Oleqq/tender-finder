@@ -41,7 +41,7 @@ final class TenderWorkService
 
     public function authorize(User $user, Tender $tender, ?Team $team = null): void
     {
-        if ($team && $this->participations($user, $team)->where('tender_id', $tender->id)->exists()) {
+        if ($team && $this->participations($user, $team)->withTrashed()->where('tender_id', $tender->id)->exists()) {
             return;
         }
         abort_unless($this->accessible($user)->whereKey($tender->id)->exists(), 404);
@@ -55,6 +55,7 @@ final class TenderWorkService
         }
 
         return [
+            'id' => $participation->id,
             'stage' => $participation->stage->value,
             'assignee_id' => $participation->assignee_id,
             'loss_reason' => $participation->loss_reason,

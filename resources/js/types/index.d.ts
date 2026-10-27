@@ -2,6 +2,7 @@ export interface User {
     id: number;
     name: string | null;
     role: 'subscriber' | 'super_admin';
+    is_browser_guest: boolean;
 }
 
 export interface Access {
@@ -9,7 +10,12 @@ export interface Access {
     plan_code: string | null;
     active_query_limit: number | null;
     ends_at: string | null;
-    mode: 'developer' | 'owner' | null;
+    mode:
+        | 'developer'
+        | 'owner'
+        | 'temporary_full_access'
+        | 'temporary_full_access_pending'
+        | null;
 }
 
 // Only the external sales channel may eventually receive a populated catalog.

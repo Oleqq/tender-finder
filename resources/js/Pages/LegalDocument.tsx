@@ -91,7 +91,7 @@ export default function LegalDocument({ document }: LegalDocumentProps) {
                 backHref="/"
                 backToPrevious
                 navigationVisible={false}
-                title={document.title}
+                title={document.type === 'offer' ? 'Оферта' : 'Политика данных'}
                 eyebrow={draft.eyebrow}
             >
                 <InlineAlert
@@ -103,6 +103,10 @@ export default function LegalDocument({ document }: LegalDocumentProps) {
                     заполните реквизиты оператора и получите проверку юриста.
                 </InlineAlert>
                 <article className="legal-document page-enter">
+                    <header className="legal-document__heading">
+                        <h2>{document.title}</h2>
+                        <p>Версия {document.version ?? 'не указана'}</p>
+                    </header>
                     {draft.sections.map((section) => (
                         <section key={section.title}>
                             <h2>{section.title}</h2>

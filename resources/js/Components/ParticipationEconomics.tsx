@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { Badge, Button, GlassCard } from './ui';
 import type { TeamScope } from './WorkspacePicker';
 import type { ApprovalState, Economics } from '../lib/participation';
+import { summaryMoney } from '../lib/tenderSummary';
 
 const fields = [
     ['planned_revenue', 'Цена предложения'],
@@ -15,10 +16,7 @@ const fields = [
     ['actual_cost', 'Фактические расходы'],
 ] as const;
 
-const money = (value: number): string =>
-    new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(
-        value,
-    );
+const money = (value: number): string => summaryMoney(String(value), 'RUB');
 
 export function ParticipationEconomics({
     initial,

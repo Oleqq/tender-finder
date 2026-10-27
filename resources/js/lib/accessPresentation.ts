@@ -21,6 +21,26 @@ export function presentAccess(
     const remainingMs = validEnd ? endTime - now.getTime() : null;
     const period = validEnd ? `до ${formatDate(end!)}` : 'без даты окончания';
 
+    if (access?.mode === 'temporary_full_access_pending') {
+        return {
+            badge: 'Доступ на время проверки',
+            title: 'Подтвердите условия доступа',
+            description:
+                'Примите оферту и политику, чтобы открыть рабочие функции без лимита мониторингов.',
+            detail: period,
+            tone: 'accent',
+            phase: 'preview',
+        };
+    }
+
+    if (
+        access?.mode === 'temporary_full_access' &&
+        remainingMs !== null &&
+        remainingMs <= 0
+    ) {
+        return expired(period);
+    }
+
     if (access?.state === 'trialing') {
         if (remainingMs !== null && remainingMs <= 0) {
             return expired(period);
@@ -52,6 +72,17 @@ export function presentAccess(
 
     switch (access?.state) {
         case 'active':
+            if (access.mode === 'temporary_full_access') {
+                return {
+                    badge: 'Полный доступ на время проверки',
+                    title: 'Рабочее пространство открыто',
+                    description:
+                        'Поиск, аналитика и мониторинги доступны без лимита до указанного времени.',
+                    detail: period,
+                    tone: 'success',
+                    phase: 'active',
+                };
+            }
             return {
                 badge:
                     access.mode === 'owner'

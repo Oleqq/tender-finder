@@ -82,8 +82,9 @@ final class ParticipationApprovalService
     public function vote(User $actor, Team $team, ParticipationApprovalRequest $approval, string $decision, ?string $comment, int $version): ParticipationApprovalRequest
     {
         return DB::transaction(function () use ($actor, $team, $approval, $decision, $comment, $version): ParticipationApprovalRequest {
+            app(TeamWorkspaceService::class)->lock($actor, $team);
             $locked = ParticipationApprovalRequest::query()->with('participation')->whereKey($approval->id)->lockForUpdate()->firstOrFail();
-            abort_unless($locked->participation->team_id === $team->id, 404);
+            abort_unless($locked->participation?->team_id === $team->id, 404);
             abort_if($locked->status !== 'pending', 409, 'Согласование уже завершено.');
             abort_if($locked->economics_version !== $locked->participation->economics_version, 409, 'Экономика заявки изменилась. Создайте новое согласование.');
             abort_if($locked->version !== $version, 409, 'Согласование изменено другим участником. Обновите страницу.');
@@ -123,7 +124,7 @@ final class ParticipationApprovalService
     public function stillDue(NotificationDelivery $delivery): bool
     {
         $approval = ParticipationApprovalRequest::query()->with('participation')->find($delivery->payload['approval_id'] ?? 0);
-        if (! $approval || $approval->participation->economics_version !== $approval->economics_version) {
+        if (! $approval || ! $approval->participation || $approval->participation->economics_version !== $approval->economics_version || $approval->status === 'superseded') {
             return false;
         }
         $team = Team::query()->find($approval->participation->team_id);

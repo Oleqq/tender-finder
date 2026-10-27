@@ -148,126 +148,139 @@ export default function Profile() {
 
                 {developerMode ? <DeveloperPlanSwitcher mode={developerMode} /> : null}
 
-                <section className="profile-section page-enter page-enter--later">
-                    <div className="section-heading">
-                        <div>
-                            <p>Уведомления</p>
-                            <h2>Расписание уведомлений</h2>
+                {auth.user?.is_browser_guest ? (
+                    <InlineAlert title="Гостевой вход в браузере" tone="neutral">
+                        Поиск и мониторинги работают в браузере. Telegram-уведомления
+                        доступны только после входа через Telegram.
+                    </InlineAlert>
+                ) : (
+                    <section className="profile-section page-enter page-enter--later">
+                        <div className="section-heading">
+                            <div>
+                                <p>Уведомления</p>
+                                <h2>Расписание уведомлений</h2>
+                            </div>
                         </div>
-                    </div>
-                    <GlassCard className="notification-settings-card">
-                        <form
-                            className="notification-settings"
-                            onSubmit={savePreferences}
-                        >
-                            <label className="notification-settings__toggle">
-                                <span>
-                                    <strong>Мгновенные уведомления</strong>
-                                    <small>
-                                        По одному сообщению о новом совпадении
-                                    </small>
-                                </span>
-                                <input
-                                    checked={preferences.instant_enabled}
-                                    onChange={(event) =>
-                                        setPreferences((current) => ({
-                                            ...current,
-                                            instant_enabled: event.target.checked,
-                                        }))
-                                    }
-                                    type="checkbox"
-                                />
-                            </label>
-                            <label className="notification-settings__toggle">
-                                <span>
-                                    <strong>Ежедневный дайджест</strong>
-                                    <small>Сводка найденных за сутки карточек</small>
-                                </span>
-                                <input
-                                    checked={preferences.digest_enabled}
-                                    onChange={(event) =>
-                                        setPreferences((current) => ({
-                                            ...current,
-                                            digest_enabled: event.target.checked,
-                                        }))
-                                    }
-                                    type="checkbox"
-                                />
-                            </label>
-                            <div className="notification-settings__schedule">
-                                <label className="form-field">
-                                    <span>Время дайджеста</span>
+                        <GlassCard className="notification-settings-card">
+                            <form
+                                className="notification-settings"
+                                onSubmit={savePreferences}
+                            >
+                                <label className="notification-settings__toggle">
+                                    <span>
+                                        <strong>Мгновенные уведомления</strong>
+                                        <small>
+                                            По одному сообщению о новом совпадении
+                                        </small>
+                                    </span>
                                     <input
-                                        disabled={!preferences.digest_enabled}
+                                        checked={preferences.instant_enabled}
                                         onChange={(event) =>
                                             setPreferences((current) => ({
                                                 ...current,
-                                                digest_time: event.target.value,
+                                                instant_enabled: event.target.checked,
                                             }))
                                         }
-                                        type="time"
-                                        value={preferences.digest_time}
+                                        type="checkbox"
                                     />
                                 </label>
-                                <SelectField
-                                    label="Часовой пояс"
-                                    onChange={(event) =>
-                                        setPreferences((current) => ({
-                                            ...current,
-                                            timezone: event.target.value,
-                                        }))
-                                    }
-                                    options={[
-                                        {
-                                            value: 'Europe/Moscow',
-                                            label: 'Москва (UTC+3)',
-                                        },
-                                        {
-                                            value: 'Asia/Yekaterinburg',
-                                            label: 'Екатеринбург (UTC+5)',
-                                        },
-                                        {
-                                            value: 'Asia/Novosibirsk',
-                                            label: 'Новосибирск (UTC+7)',
-                                        },
-                                        {
-                                            value: 'Asia/Vladivostok',
-                                            label: 'Владивосток (UTC+10)',
-                                        },
-                                    ]}
-                                    value={preferences.timezone}
-                                />
-                            </div>
-                            <Button disabled={saving} type="submit">
-                                {saving ? 'Сохраняем…' : 'Сохранить настройки'}
-                            </Button>
-                            {message ? (
-                                <p className="notification-settings__message">
-                                    {message}
-                                </p>
-                            ) : null}
-                        </form>
-                    </GlassCard>
-                    <NotificationStatus preferences={preferences} />
-                </section>
+                                <label className="notification-settings__toggle">
+                                    <span>
+                                        <strong>Ежедневный дайджест</strong>
+                                        <small>
+                                            Сводка найденных за сутки карточек
+                                        </small>
+                                    </span>
+                                    <input
+                                        checked={preferences.digest_enabled}
+                                        onChange={(event) =>
+                                            setPreferences((current) => ({
+                                                ...current,
+                                                digest_enabled: event.target.checked,
+                                            }))
+                                        }
+                                        type="checkbox"
+                                    />
+                                </label>
+                                <div className="notification-settings__schedule">
+                                    <label className="form-field">
+                                        <span>Время дайджеста</span>
+                                        <input
+                                            disabled={!preferences.digest_enabled}
+                                            onChange={(event) =>
+                                                setPreferences((current) => ({
+                                                    ...current,
+                                                    digest_time: event.target.value,
+                                                }))
+                                            }
+                                            type="time"
+                                            value={preferences.digest_time}
+                                        />
+                                    </label>
+                                    <SelectField
+                                        label="Часовой пояс"
+                                        onChange={(event) =>
+                                            setPreferences((current) => ({
+                                                ...current,
+                                                timezone: event.target.value,
+                                            }))
+                                        }
+                                        options={[
+                                            {
+                                                value: 'Europe/Moscow',
+                                                label: 'Москва (UTC+3)',
+                                            },
+                                            {
+                                                value: 'Asia/Yekaterinburg',
+                                                label: 'Екатеринбург (UTC+5)',
+                                            },
+                                            {
+                                                value: 'Asia/Novosibirsk',
+                                                label: 'Новосибирск (UTC+7)',
+                                            },
+                                            {
+                                                value: 'Asia/Vladivostok',
+                                                label: 'Владивосток (UTC+10)',
+                                            },
+                                        ]}
+                                        value={preferences.timezone}
+                                    />
+                                </div>
+                                <Button disabled={saving} type="submit">
+                                    {saving ? 'Сохраняем…' : 'Сохранить настройки'}
+                                </Button>
+                                {message ? (
+                                    <p className="notification-settings__message">
+                                        {message}
+                                    </p>
+                                ) : null}
+                            </form>
+                        </GlassCard>
+                        <NotificationStatus preferences={preferences} />
+                    </section>
+                )}
 
-                <details className="profile-section delivery-details">
-                    <summary>
-                        История уведомлений · {notificationDeliveries.length}
-                    </summary>
-                    {notificationDeliveries.some(
-                        (delivery) => delivery.status === 'failed',
-                    ) ? (
-                        <InlineAlert
-                            title="Мониторинги продолжают работать"
-                            tone="neutral"
-                        >
-                            Недоставленное сообщение не отменяет новые проверки.
-                            Найденные закупки доступны в ленте приложения.
-                        </InlineAlert>
-                    ) : null}
-                    <NotificationDeliveryHistory deliveries={notificationDeliveries} />
-                </details>
+                {!auth.user?.is_browser_guest ? (
+                    <details className="profile-section delivery-details">
+                        <summary>
+                            История уведомлений · {notificationDeliveries.length}
+                        </summary>
+                        {notificationDeliveries.some(
+                            (delivery) => delivery.status === 'failed',
+                        ) ? (
+                            <InlineAlert
+                                title="Мониторинги продолжают работать"
+                                tone="neutral"
+                            >
+                                Недоставленное сообщение не отменяет новые проверки.
+                                Найденные закупки доступны в ленте приложения.
+                            </InlineAlert>
+                        ) : null}
+                        <NotificationDeliveryHistory
+                            deliveries={notificationDeliveries}
+                        />
+                    </details>
+                ) : null}
 
                 <GlassCard className="settings-list">
                     <Link className="profile-support-entry__link" href="/requisites">

@@ -13,6 +13,7 @@ class NotificationPreferenceController extends Controller
     {
         $user = $request->user();
         abort_if($user === null, 401);
+        abort_if($user->is_browser_guest, 403);
 
         $attributes = $request->validate([
             'instant_enabled' => ['required', 'boolean'],

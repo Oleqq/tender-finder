@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ParticipationStage;
 use App\Models\Team;
+use App\Models\TenderParticipation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,14 +74,15 @@ final class TeamWorkspaceService
 
         if ($team) {
             $activeStages = [ParticipationStage::Studying->value, ParticipationStage::Preparing->value, ParticipationStage::Submitted->value];
-            $applications = DB::table('tender_participations')->where('team_id', $team->id)->whereNotNull('assignee_id')
-                ->whereIn('stage', $activeStages)->groupBy('assignee_id')->selectRaw('assignee_id, COUNT(*) as total')->pluck('total', 'assignee_id');
+            $activeIds = TenderParticipation::query()->where('team_id', $team->id)->currentList()->whereIn('stage', $activeStages)->select('id');
+            $applications = DB::table('tender_participations')->where('team_id', $team->id)->whereNull('deleted_at')->whereNotNull('assignee_id')
+                ->whereIn('id', $activeIds)->whereIn('stage', $activeStages)->groupBy('assignee_id')->selectRaw('assignee_id, COUNT(*) as total')->pluck('total', 'assignee_id');
             $tasks = DB::table('tender_checklist_items')->join('tender_participations', 'tender_participations.id', '=', 'tender_checklist_items.participation_id')
-                ->where('tender_participations.team_id', $team->id)->whereNotNull('tender_checklist_items.assignee_id')
+                ->where('tender_participations.team_id', $team->id)->whereIn('tender_participations.id', $activeIds)->whereNotNull('tender_checklist_items.assignee_id')
                 ->whereNull('tender_checklist_items.completed_at')->groupBy('tender_checklist_items.assignee_id')
                 ->selectRaw('tender_checklist_items.assignee_id, COUNT(*) as total')->pluck('total', 'tender_checklist_items.assignee_id');
             $overdue = DB::table('tender_checklist_items')->join('tender_participations', 'tender_participations.id', '=', 'tender_checklist_items.participation_id')
-                ->where('tender_participations.team_id', $team->id)->whereNotNull('tender_checklist_items.assignee_id')
+                ->where('tender_participations.team_id', $team->id)->whereIn('tender_participations.id', $activeIds)->whereNotNull('tender_checklist_items.assignee_id')
                 ->whereNull('tender_checklist_items.completed_at')->whereDate('tender_checklist_items.due_on', '<', now(app(TenderCalendarService::class)->timezone($user))->toDateString())
                 ->groupBy('tender_checklist_items.assignee_id')->selectRaw('tender_checklist_items.assignee_id, COUNT(*) as total')
                 ->pluck('total', 'tender_checklist_items.assignee_id');

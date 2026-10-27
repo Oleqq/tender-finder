@@ -16,11 +16,14 @@
 .tender-analytics__notice { margin: 16px 0 0; padding: 12px; border-radius: 12px; color: var(--tf-warning); background: var(--tf-warning-soft); font-size: 12px; line-height: 1.5; }
 .tender-analytics-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 12px 0; }
 .tender-analytics-compact > span:last-child:not(.badge) { color: var(--app-muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
-.tender-analytics--ultra { border-color: var(--app-ink); }
+.tender-analytics--ultra { border-color: color-mix(in srgb, var(--tf-accent) 25%, var(--tf-line)); }
 .tender-analytics--ultra > .tender-analytics__heading h2 { display: inline-block; padding: 6px 12px; border-radius: 10px; background: #101218; color: #fff; }
+@media (max-width: 360px) {
+    .tender-analytics__metrics { grid-template-columns: minmax(0, 1fr); }
+}
 .tender-insights { margin-top: 24px; min-width: 0; }
 .tender-insights__section { padding: 24px 0; border-top: 1px solid var(--tf-line); min-width: 0; }
-.tender-insights h3 { margin: 0; color: var(--app-ink); font-size: 18px; line-height: 1.35; letter-spacing: -.025em; }
+.tender-insights h3 { margin: 0; color: var(--app-ink); font-size: var(--text-section); font-weight: 700; line-height: 1.35; letter-spacing: -.025em; }
 .tender-insights h4 { margin: 24px 0 12px; color: var(--app-ink); font-size: 14px; }
 .tender-insights__eyebrow { display: block; margin: 0 0 8px; color: var(--app-muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .tender-insights__section-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px; }
@@ -59,7 +62,7 @@
 .tender-insights__empty { padding: 18px; margin: 16px 0 0; border: 1px dashed var(--tf-line); border-radius: 14px; color: var(--app-muted); font-size: 13px; line-height: 1.7; }
 .tender-insights__footnote { margin: 14px 0 0; color: var(--app-muted); font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
 .tender-insights__calculator label { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; color: var(--app-ink); font-size: 13px; }
-.tender-insights__calculator input:not([type="range"]) { box-sizing: border-box; width: 100%; min-width: 0; padding: 13px 14px; border: 1px solid var(--tf-line); border-radius: 12px; color: var(--app-ink); background: var(--app-bg); font-size: 14px; }
+.tender-insights__calculator input:not([type="range"]) { box-sizing: border-box; width: 100%; min-width: 0; padding: 13px 14px; border: 1px solid var(--tf-line); border-radius: 12px; color: var(--app-ink); background: var(--tf-input-bg); font-size: var(--tf-control-font); }
 .tender-insights__calculator input:focus-visible { outline: 2px solid var(--tf-accent); outline-offset: 3px; }
 .tender-insights__calculator input[type="range"] { width: 100%; margin: 0; accent-color: var(--tf-accent); }
 .tender-insights__table-wrap { max-width: 100%; overflow: auto; margin-top: 20px; border: 1px solid var(--tf-line); border-radius: 12px; }

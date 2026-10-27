@@ -1,7 +1,7 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { type FormEvent } from 'react';
 import { AppShell } from '../Components/AppShell';
-import { Badge, Button, GlassCard, InlineAlert } from '../Components/ui';
+import { Badge, Button, FieldError, GlassCard, InlineAlert } from '../Components/ui';
 import { presentAccess } from '../lib/accessPresentation';
 import {
     categoryLabel,
@@ -116,6 +116,7 @@ export default function AdminSupportTicket() {
         <>
             <Head title={`Поддержка #${ticket.id}`} />
             <AppShell
+                className="support-page"
                 backHref="/support/admin"
                 eyebrow={`Пользователь #${ticket.user_id}`}
                 title={`Обращение #${ticket.id}`}
@@ -131,7 +132,7 @@ export default function AdminSupportTicket() {
                             {ticket.messages.map((message) => (
                                 <li key={message.id}>
                                     <GlassCard
-                                        className="p-4 sm:p-5"
+                                        className="support-card"
                                         tone={message.is_staff ? 'accent' : 'quiet'}
                                     >
                                         <strong>
@@ -147,7 +148,7 @@ export default function AdminSupportTicket() {
                                 </li>
                             ))}
                         </ol>
-                        <GlassCard className="p-4 sm:p-5">
+                        <GlassCard className="support-card">
                             <h2 className="text-lg font-semibold">
                                 Ответ пользователю
                             </h2>
@@ -173,7 +174,7 @@ export default function AdminSupportTicket() {
                         </GlassCard>
                     </div>
                     <div className="space-y-5">
-                        <GlassCard className="p-4 sm:p-5">
+                        <GlassCard className="support-card">
                             <h2 className="text-lg font-semibold">
                                 Работа с обращением
                             </h2>
@@ -240,9 +241,7 @@ export default function AdminSupportTicket() {
                                     />
                                 </label>
                                 {Object.values(workflow.errors).map((error) => (
-                                    <p className="text-sm text-red-300" key={error}>
-                                        {error}
-                                    </p>
+                                    <FieldError key={error}>{error}</FieldError>
                                 ))}
                                 <Button disabled={workflow.processing} type="submit">
                                     Сохранить с записью в журнал
@@ -253,7 +252,7 @@ export default function AdminSupportTicket() {
                             Здесь нет поисковых фраз, карточек тендеров, payload
                             уведомлений и технических секретов.
                         </InlineAlert>
-                        <GlassCard className="p-4 sm:p-5">
+                        <GlassCard className="support-card">
                             <div className="flex flex-wrap items-center justify-between gap-3">
                                 <h2 className="text-lg font-semibold">
                                     Доступ пользователя
@@ -341,13 +340,7 @@ export default function AdminSupportTicket() {
                                             </span>
                                         </label>
                                         {Object.values(revoke.errors).map((error) => (
-                                            <p
-                                                className="text-sm text-red-300"
-                                                key={error}
-                                                role="alert"
-                                            >
-                                                {error}
-                                            </p>
+                                            <FieldError key={error}>{error}</FieldError>
                                         ))}
                                         <Button
                                             disabled={
@@ -412,13 +405,7 @@ export default function AdminSupportTicket() {
                                             />
                                         </label>
                                         {Object.values(grant.errors).map((error) => (
-                                            <p
-                                                className="text-sm text-red-300"
-                                                key={error}
-                                                role="alert"
-                                            >
-                                                {error}
-                                            </p>
+                                            <FieldError key={error}>{error}</FieldError>
                                         ))}
                                         <Button
                                             disabled={grant.processing}
@@ -431,7 +418,7 @@ export default function AdminSupportTicket() {
                                 )}
                             </div>
                         </GlassCard>
-                        <GlassCard className="p-4 sm:p-5">
+                        <GlassCard className="support-card">
                             <h2 className="text-lg font-semibold">Источники</h2>
                             {diagnostics.monitorings.length === 0 ? (
                                 <p>Мониторингов нет.</p>
@@ -455,7 +442,7 @@ export default function AdminSupportTicket() {
                                 ))}
                             </ul>
                         </GlassCard>
-                        <GlassCard className="p-4 sm:p-5">
+                        <GlassCard className="support-card">
                             <h2 className="text-lg font-semibold">Доставка</h2>
                             {diagnostics.deliveries.length === 0 ? (
                                 <p>Уведомлений нет.</p>
@@ -468,7 +455,7 @@ export default function AdminSupportTicket() {
                                 ))}
                             </ul>
                         </GlassCard>
-                        <GlassCard className="p-4 sm:p-5">
+                        <GlassCard className="support-card">
                             <h2 className="text-lg font-semibold">Журнал изменений</h2>
                             <ol className="mt-3 divide-y divide-[var(--tf-line)]">
                                 {ticket.events?.map((event) => (

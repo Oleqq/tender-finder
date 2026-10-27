@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\ParticipationStage;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
@@ -21,7 +23,33 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class TenderParticipation extends Model
 {
+    use SoftDeletes;
+
     protected $guarded = ['id'];
+
+    /** @param Builder<TenderParticipation> $query
+     * @return Builder<TenderParticipation>
+     */
+    public function scopeExpiredBeforeSubmission(Builder $query): Builder
+    {
+        return $query->whereIn('stage', ['studying', 'preparing'])
+            ->whereHas('tender', fn (Builder $tender) => $tender->where('deadline_at', '<=', now()));
+    }
+
+    /** @param Builder<TenderParticipation> $query
+     * @return Builder<TenderParticipation>
+     */
+    public function scopeCurrentList(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q->whereNotIn('stage', ['studying', 'preparing'])
+            ->orWhereHas('tender', fn (Builder $tender) => $tender->whereNull('deadline_at')->orWhere('deadline_at', '>', now())));
+    }
+
+    public function expiredBeforeSubmission(): bool
+    {
+        return in_array($this->stage, [ParticipationStage::Studying, ParticipationStage::Preparing], true)
+            && $this->tender->deadline_at !== null && $this->tender->deadline_at->lte(now());
+    }
 
     protected function casts(): array
     {

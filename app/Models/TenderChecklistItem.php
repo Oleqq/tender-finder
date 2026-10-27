@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $due_on
  * @property Carbon|null $completed_at
  * @property int $version
- * @property TenderParticipation $participation
+ * @property TenderParticipation|null $participation
  */
 class TenderChecklistItem extends Model
 {

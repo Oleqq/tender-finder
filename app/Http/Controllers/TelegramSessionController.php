@@ -46,6 +46,9 @@ class TelegramSessionController extends Controller
         $sessionRefreshed = $request->user()?->id !== $user->id;
 
         if ($sessionRefreshed) {
+            if ($request->user()?->is_browser_guest) {
+                Auth::logout();
+            }
             Auth::login($user);
             $request->session()->regenerate();
         }

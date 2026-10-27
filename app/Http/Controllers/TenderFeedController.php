@@ -9,6 +9,7 @@ use App\Models\Team;
 use App\Models\TeamTenderRoutingRule;
 use App\Models\Tender;
 use App\Models\TenderFeedView;
+use App\Models\TenderParticipation;
 use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
 use App\Services\MonitoringStatusService;
@@ -68,6 +69,7 @@ class TenderFeedController extends Controller
         $sort = (string) ($filters['sort'] ?? 'matched_desc');
 
         $matches = TenderQueryMatch::query()
+            ->whereNotIn('tender_id', TenderParticipation::onlyTrashed()->whereNull('team_id')->where('user_id', $user->id)->select('tender_id'))
             ->whereHas('searchQuery', function (Builder $query) use ($user, $queryId): void {
                 $query->where('user_id', $user->id);
 
@@ -96,7 +98,10 @@ class TenderFeedController extends Controller
             }));
         }
 
-        if ($status !== 'all') {
+        if ($status === 'all') {
+            $matches->whereDoesntHave('tender.userStates', fn (Builder $query) => $query
+                ->where('user_id', $user->id)->whereIn('status', ['dismissed', 'archived']));
+        } else {
             $matches->where(function (Builder $matches) use ($status, $user): void {
                 if ($status === TenderUserStatus::New->value) {
                     $matches->whereDoesntHave('tender.userStates', fn (Builder $query) => $query
@@ -169,6 +174,7 @@ class TenderFeedController extends Controller
             app(MonitoringStatusService::class)->forQueries(collect([$monitoring]))[$monitoring->id];
 
         return Inertia::render('Tenders', [
+            ...$scope->props($user, null),
             'tenderMatches' => $paginator,
             'filters' => [
                 'q' => $search,
@@ -239,6 +245,7 @@ class TenderFeedController extends Controller
             ->when($queryId !== null, fn ($query) => $query->where('search_query_id', $queryId))
             ->select('search_query_id');
         $tenders = Tender::query()
+            ->whereNotIn('tenders.id', TenderParticipation::onlyTrashed()->where('team_id', $team->id)->select('tender_id'))
             ->whereHas('matches', fn (Builder $query) => $query->whereIn('search_query_id', clone $sharedQueryIds))
             ->with([
                 'matches' => fn ($query) => $query->whereIn('search_query_id', clone $sharedQueryIds)->with('searchQuery:id,name'),

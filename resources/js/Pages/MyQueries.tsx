@@ -17,8 +17,8 @@ import {
     GlassCard,
     InlineAlert,
 } from '../Components/ui';
-import { presentAccess } from '../lib/accessPresentation';
 import { tenderSourceOptions } from '../lib/tenderSources';
+import { useAccessPresentation } from '../lib/useAccessPresentation';
 import type { PageProps } from '../types';
 
 type QueryStatus = 'active' | 'paused' | 'frozen';
@@ -318,9 +318,12 @@ export default function MyQueries() {
             );
             replaceQuery(response.data.query);
             setEditingQuery(null);
-        } catch {
+        } catch (error) {
             setEditError(
-                'Не удалось сохранить изменения. Настройки не изменены — попробуйте ещё раз.',
+                requestErrorMessage(
+                    error,
+                    'Не удалось сохранить изменения. Настройки не изменены — попробуйте ещё раз.',
+                ),
             );
         } finally {
             setIsSavingEdit(false);
@@ -338,9 +341,12 @@ export default function MyQueries() {
                 `/queries/${query.id}/${action}`,
             );
             replaceQuery(response.data.query);
-        } catch {
+        } catch (error) {
             setActionError(
-                'Не удалось изменить состояние мониторинга. Ничего не потеряно — попробуйте ещё раз.',
+                requestErrorMessage(
+                    error,
+                    'Не удалось изменить состояние мониторинга. Ничего не потеряно — попробуйте ещё раз.',
+                ),
             );
         }
     };
@@ -423,16 +429,18 @@ export default function MyQueries() {
         }
     };
 
-    const access = presentAccess(auth.access);
-    const accessText =
-        auth.access?.mode === 'owner'
-            ? `${queries.filter((query) => query.status === 'active').length} активных · без лимита`
-            : auth.access?.active_query_limit
-              ? `${queries.filter((query) => query.status === 'active').length} из ${auth.access.active_query_limit} активных`
-              : 'Лимит появится после активации доступа';
+    const access = useAccessPresentation(auth.access);
+    const accessText = ['owner', 'temporary_full_access'].includes(
+        auth.access?.mode ?? '',
+    )
+        ? `${queries.filter((query) => query.status === 'active').length} активных · без лимита`
+        : auth.access?.active_query_limit
+          ? `${queries.filter((query) => query.status === 'active').length} из ${auth.access.active_query_limit} активных`
+          : 'Лимит появится после активации доступа';
     const canCreate =
-        ['trialing', 'active'].includes(auth.access?.state ?? '') &&
-        (auth.access?.mode === 'owner' || auth.access?.active_query_limit !== null);
+        ['trial', 'trial_ending', 'active'].includes(access.phase) &&
+        (['owner', 'temporary_full_access'].includes(auth.access?.mode ?? '') ||
+            auth.access?.active_query_limit !== null);
     const canRunManually = canCreate;
 
     return (
@@ -1091,7 +1099,7 @@ function QueryFields({
 }) {
     return (
         <>
-            <div hidden={step !== undefined && step !== 3}>
+            <div className="query-fields" hidden={step !== undefined && step !== 3}>
                 <p className="query-create__hint">
                     Выберите площадки для этого мониторинга. Можно отметить несколько.
                 </p>
@@ -1151,7 +1159,7 @@ function QueryFields({
                     </p>
                 )}
             </div>
-            <div hidden={step !== undefined && step !== 0}>
+            <div className="query-fields" hidden={step !== undefined && step !== 0}>
                 <p>
                     Опишите нишу ключевыми словами через запятую. Все указанные слова
                     должны встретиться в карточке.
@@ -1159,6 +1167,7 @@ function QueryFields({
                 <label className="form-field">
                     <span>Название мониторинга</span>
                     <input
+                        maxLength={120}
                         onChange={(event) => onChange('name', event.target.value)}
                         placeholder="например, Поддержка сайта"
                         value={form.name}
@@ -1197,7 +1206,7 @@ function QueryFields({
                     </label>
                 ) : null}
             </div>
-            <div hidden={step !== undefined && step !== 1}>
+            <div className="query-fields" hidden={step !== undefined && step !== 1}>
                 <p>Оставьте поле пустым, если готовы работать по всей России.</p>
                 <label className="form-field">
                     <span>Регион</span>
@@ -1208,7 +1217,7 @@ function QueryFields({
                     />
                 </label>
             </div>
-            <div hidden={step !== undefined && step !== 2}>
+            <div className="query-fields" hidden={step !== undefined && step !== 2}>
                 <div className="query-create__grid">
                     <label className="form-field">
                         <span>Бюджет от, ₽</span>

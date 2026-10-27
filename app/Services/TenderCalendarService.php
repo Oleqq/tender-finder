@@ -6,6 +6,7 @@ use App\Models\NotificationPreference;
 use App\Models\Team;
 use App\Models\Tender;
 use App\Models\TenderChecklistItem;
+use App\Models\TenderParticipation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -37,6 +38,7 @@ final class TenderCalendarService
         $participations = fn ($q) => $team ? $q->where('team_id', $team->id) : $q->whereNull('team_id')->where('user_id', $user->id);
         $base = $team ? Tender::query()->whereHas('participations', $participations) : app(TenderWorkService::class)->accessible($user);
         $tenders = $base
+            ->when(! $team, fn ($q) => $q->whereNotIn('tenders.id', TenderParticipation::onlyTrashed()->whereNull('team_id')->where('user_id', $user->id)->select('tender_id')))
             ->when(! $team, fn ($q) => $q->whereDoesntHave('userStates', fn (Builder $s) => $s->where('user_id', $user->id)->whereIn('status', ['dismissed', 'archived'])))
             ->where(function (Builder $q) use ($user, $first, $last, $from, $until, $due, $team, $participations): void {
                 $q->where(fn (Builder $d) => $d->where('deadline_at', '>=', $from)->where('deadline_at', '<', $until))

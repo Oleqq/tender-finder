@@ -12,6 +12,7 @@ export const formatWorkDeadline = (value: string): string =>
     new Intl.DateTimeFormat('ru-RU', {
         dateStyle: 'short',
         timeStyle: 'short',
+        timeZone: 'Europe/Moscow',
     }).format(new Date(value));
 export type ChecklistItem = {
     id: number;
@@ -23,6 +24,7 @@ export type ChecklistItem = {
     version: number;
 };
 export type Participation = {
+    id: number;
     assignee_id: number | null;
     stage: Stage;
     loss_reason: string | null;

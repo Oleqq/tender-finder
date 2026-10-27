@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $last_seen_at
  * @property Carbon|null $trial_used_at
  * @property string|null $developer_plan_code
+ * @property bool $is_browser_guest
  */
 class User extends Authenticatable
 {
@@ -67,6 +68,7 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'last_seen_at' => 'datetime',
             'trial_used_at' => 'datetime',
+            'is_browser_guest' => 'boolean',
         ];
     }
 

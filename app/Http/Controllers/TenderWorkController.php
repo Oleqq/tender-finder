@@ -29,10 +29,21 @@ final class TenderWorkController extends Controller
         $user = $this->user($request);
         $scope = app(TeamWorkspaceService::class);
         $team = $scope->context($request, ! $request->isMethod('get'));
-        $filters = $request->validate(['stage' => ['nullable', Rule::enum(ParticipationStage::class)]]);
+        $filters = $request->validate([
+            'stage' => ['nullable', Rule::enum(ParticipationStage::class)],
+            'view' => ['nullable', Rule::in(['current', 'expired', 'deleted'])],
+        ]);
         $stage = $filters['stage'] ?? null;
+        $view = $filters['view'] ?? 'current';
         $base = $work->participations($user, $team)
             ->when(! $team, fn ($q) => $q->whereIn('tender_id', $work->accessible($user)->select('tenders.id')));
+        $expiredCount = (clone $base)->expiredBeforeSubmission()->count();
+        $deletedCount = (clone $base)->onlyTrashed()->count();
+        $base = match ($view) {
+            'deleted' => $base->onlyTrashed(),
+            'expired' => $base->expiredBeforeSubmission(),
+            default => $base->currentList(),
+        };
         $counts = (clone $base)->selectRaw('stage, COUNT(*) as total')->groupBy('stage')->pluck('total', 'stage');
         $rows = (clone $base)->when($stage, fn ($q) => $q->where('stage', $stage))
             ->with('tender')->withCount(['items', 'items as completed_count' => fn ($q) => $q->whereNotNull('completed_at')])
@@ -40,6 +51,8 @@ final class TenderWorkController extends Controller
         $comments = app(ParticipationCommentService::class);
         $rows->through(fn (TenderParticipation $p): array => [
             'id' => $p->id, 'tender_id' => $p->tender_id, 'title' => $p->tender->title,
+            'version' => $p->version, 'deleted_at' => $p->deleted_at?->toAtomString(),
+            'expired_before_submission' => $p->expiredBeforeSubmission(),
             'assignee_id' => $p->assignee_id, 'stage' => $p->stage->value, 'loss_reason' => $p->loss_reason,
             'deadline_at' => $p->tender->deadline_at?->toAtomString(),
             'items_count' => (int) $p->getAttribute('items_count'), 'completed_count' => (int) $p->getAttribute('completed_count'),
@@ -47,7 +60,8 @@ final class TenderWorkController extends Controller
             'decision' => $p->participation_decision,
         ]);
 
-        return Inertia::render('Participation', [...$scope->props($user, $team), 'participations' => $rows, 'stage' => $stage, 'counts' => $counts]);
+        return Inertia::render('Participation', [...$scope->props($user, $team), 'participations' => $rows,
+            'stage' => $stage, 'counts' => $counts, 'view' => $view, 'expiredCount' => $expiredCount, 'deletedCount' => $deletedCount]);
     }
 
     public function show(Request $request, Tender $tender, TenderWorkService $work): Response
@@ -58,6 +72,7 @@ final class TenderWorkController extends Controller
         $work->authorize($user, $tender, $team);
 
         $participation = $work->participations($user, $team)->where('tender_id', $tender->id)->first();
+        $removed = $participation ? null : $work->participations($user, $team)->onlyTrashed()->where('tender_id', $tender->id)->first();
         $comments = $participation ? app(ParticipationCommentService::class)->present($participation, $user, $team) : [];
         if ($participation) {
             $lastCommentId = $comments === [] ? 0 : max(array_column($comments, 'id'));
@@ -72,6 +87,7 @@ final class TenderWorkController extends Controller
                 'analytics' => app(TenderAnalyticsService::class)->forTender($user, $tender, $team),
                 'deadline_at' => $tender->deadline_at?->toAtomString()],
             'participation' => $work->present($participation),
+            'removedParticipation' => $removed ? ['id' => $removed->id, 'version' => $removed->version] : null,
             'documents' => $participation ? app(ParticipationDocumentService::class)->present($participation, $team) : [],
             'comments' => $comments,
         ]);
@@ -92,7 +108,8 @@ final class TenderWorkController extends Controller
         $participation = DB::transaction(function () use ($user, $tender, $data, $work, $team, $scope): TenderParticipation {
             // Serializes creation as well as updates for this user's private workflow.
             $scope->lock($user, $team);
-            $p = $work->participations($user, $team)->where('tender_id', $tender->id)->lockForUpdate()->first();
+            $p = $work->participations($user, $team)->withTrashed()->where('tender_id', $tender->id)->lockForUpdate()->first();
+            abort_if($p?->trashed(), 409, 'Заявка удалена. Восстановите её в разделе «Участие → Удалённые».');
             $version = $p === null ? 0 : $p->version;
             abort_if((int) $data['version'] !== $version, 409, 'Данные изменились. Обновите страницу.');
             $old = $p?->stage->value;
@@ -185,7 +202,7 @@ final class TenderWorkController extends Controller
             }
         });
 
-        return response()->json(['participation' => $work->present($item->participation->refresh())]);
+        return response()->json(['participation' => $work->present($work->participations($user, $team)->whereKey($item->participation_id)->firstOrFail())]);
     }
 
     private function user(Request $request): User

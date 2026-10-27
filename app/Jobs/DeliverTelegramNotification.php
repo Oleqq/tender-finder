@@ -40,7 +40,16 @@ class DeliverTelegramNotification implements ShouldQueue
     {
         $delivery = NotificationDelivery::query()->with('user')->find($this->deliveryId);
 
-        if ($delivery === null || $delivery->user->telegram_id === null) {
+        if ($delivery === null) {
+            return;
+        }
+
+        if ($delivery->user->telegram_id === null) {
+            $delivery->forceFill([
+                'status' => NotificationStatus::Skipped,
+                'failure_code' => 'telegram_chat_unavailable',
+            ])->save();
+
             return;
         }
 

@@ -14,10 +14,35 @@ class AccessService
     public function __construct(
         private readonly LocalMvpOperatorService $localMvpOperator,
         private readonly LocalMvpFullAccessService $localMvpFullAccess,
+        private readonly TemporaryFullAccessService $temporaryFullAccess,
+        private readonly ConsentService $consents,
     ) {}
 
     public function snapshotFor(User $user): AccessSnapshot
     {
+        if ($user->is_browser_guest && ! $this->temporaryFullAccess->isActive()) {
+            return new AccessSnapshot(AccessState::Expired, null, null, $this->temporaryFullAccess->until()?->toAtomString());
+        }
+
+        $temporaryPending = false;
+        if ($user->role === UserRole::Subscriber && $this->temporaryFullAccess->isActive()) {
+            try {
+                if ($this->consents->hasCurrentRequiredConsents($user)) {
+                    return new AccessSnapshot(
+                        AccessState::Active,
+                        'ultra',
+                        null,
+                        $this->temporaryFullAccess->until()?->toAtomString(),
+                        'temporary_full_access',
+                    );
+                }
+            } catch (LegalDocumentsUnavailableException) {
+                // Unpublished documents cannot grant new review access.
+            }
+
+            $temporaryPending = true;
+        }
+
         $developer = app(DeveloperPlanService::class)->overrideFor($user);
         if ($developer !== null) {
             return $developer;
@@ -87,6 +112,16 @@ class AccessService
             ->where('ends_at', '<=', now())
             ->orderByDesc('ends_at')
             ->first() : null;
+
+        if ($temporaryPending) {
+            return new AccessSnapshot(
+                AccessState::Preview,
+                null,
+                null,
+                $this->temporaryFullAccess->until()?->toAtomString(),
+                'temporary_full_access_pending',
+            );
+        }
 
         return new AccessSnapshot(
             $hasExpiredAccess ? AccessState::Expired : AccessState::Preview,

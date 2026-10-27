@@ -1,5 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { AppShell } from '../Components/AppShell';
+import { Icon } from '../Components/Icon';
 import { Badge, Button, GlassCard } from '../Components/ui';
 import {
     categoryLabel,
@@ -27,6 +28,7 @@ export default function AdminSupport() {
         <>
             <Head title="Обращения" />
             <AppShell
+                className="support-page"
                 backHref="/profile"
                 eyebrow="Поддержка · администратор"
                 title="Обращения"
@@ -46,7 +48,7 @@ export default function AdminSupport() {
                                 aria-current={
                                     status === statusFilter ? 'page' : undefined
                                 }
-                                className="filter-chip"
+                                className={`filter-chip ${status === statusFilter ? 'is-active' : ''}`}
                                 href={
                                     status
                                         ? `/support/admin?status=${status}`
@@ -67,17 +69,17 @@ export default function AdminSupport() {
                         </Button>
                     </div>
                     {tickets.data.length === 0 ? (
-                        <GlassCard className="p-4 sm:p-5">
+                        <GlassCard className="support-card">
                             Обращений с таким статусом нет.
                         </GlassCard>
                     ) : null}
                     {tickets.data.map((ticket) => (
-                        <GlassCard className="p-4 sm:p-5" key={ticket.id}>
+                        <GlassCard className="support-card" key={ticket.id}>
                             <Link
                                 className="block space-y-2"
                                 href={`/support/admin/${ticket.id}`}
                             >
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
                                     <strong>
                                         #{ticket.id} · {categoryLabel[ticket.category]}
                                     </strong>
@@ -96,9 +98,14 @@ export default function AdminSupport() {
                             </Link>
                         </GlassCard>
                     ))}
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                         {tickets.prev_page_url ? (
-                            <Link href={tickets.prev_page_url}>← Назад</Link>
+                            <Link
+                                className="button button--secondary button--sm"
+                                href={tickets.prev_page_url}
+                            >
+                                <Icon name="arrow-left" size={17} /> Назад
+                            </Link>
                         ) : (
                             <span />
                         )}
@@ -106,7 +113,12 @@ export default function AdminSupport() {
                             {tickets.current_page} / {tickets.last_page}
                         </small>
                         {tickets.next_page_url ? (
-                            <Link href={tickets.next_page_url}>Далее →</Link>
+                            <Link
+                                className="button button--secondary button--sm"
+                                href={tickets.next_page_url}
+                            >
+                                Далее <Icon name="arrow-right" size={17} />
+                            </Link>
                         ) : (
                             <span />
                         )}
