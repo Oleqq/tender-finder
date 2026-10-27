@@ -34,6 +34,8 @@ const activityLabel = (activity: TeamActivity): string => {
         template_deleted: 'удалил шаблон',
         template_applied: 'применил шаблон к заявке',
         participation_updated: 'изменил этап заявки',
+        participation_removed: 'удалил заявку из работы',
+        participation_restored: 'восстановил заявку',
         comment_created: 'добавил комментарий к заявке',
         comment_deleted: 'удалил комментарий из заявки',
         economics_updated: 'обновил экономику заявки',

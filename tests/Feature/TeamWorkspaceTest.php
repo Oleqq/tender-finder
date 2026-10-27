@@ -10,6 +10,11 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     Http::preventStrayRequests();
+    $this->travelTo(now()->setDate(2026, 9, 14)->setTime(12, 0));
+});
+
+afterEach(function () {
+    $this->travelBack();
 });
 
 require_once __DIR__.'/../Fixtures/team-workspace.php';

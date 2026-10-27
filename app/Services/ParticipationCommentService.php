@@ -96,7 +96,8 @@ final class ParticipationCommentService
             ->join('team_members', function ($join) use ($delivery): void {
                 $join->on('team_members.team_id', '=', 'teams.id')->where('team_members.user_id', $delivery->user_id);
             })->where('participation_comment_mentions.comment_id', $commentId)->where('participation_comment_mentions.user_id', $delivery->user_id)
-            ->whereNull('participation_comment_mentions.read_at')->whereNull('participation_comments.deleted_at')->whereNull('teams.archived_at')->exists();
+            ->whereNull('participation_comment_mentions.read_at')->whereNull('participation_comments.deleted_at')
+            ->whereNull('tender_participations.deleted_at')->whereNull('teams.archived_at')->exists();
     }
 
     private function queueMention(ParticipationComment $comment, User $actor, int $userId): void

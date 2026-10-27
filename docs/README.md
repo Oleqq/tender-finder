@@ -34,6 +34,7 @@
 | [ETP-GPB-SOURCE](ETP-GPB-SOURCE.md) | Официальный RSS ЭТП ГПБ, настройки и проверка перед включением. |
 | [RSS-MVP-SOURCE](RSS-MVP-SOURCE.md) | Архив выведенной из эксплуатации интеграции ЕИС. |
 | [PARTICIPATION-AND-CALENDAR](PARTICIPATION-AND-CALENDAR.md) | Участие, чек-листы, календарь, экспорт и проверка. |
+| [PARTICIPATION-LIFECYCLE](PARTICIPATION-LIFECYCLE.md) | Удаление и восстановление заявок, просроченные записи, статистика и остановка уведомлений. |
 | [TEAM-WORKSPACES](TEAM-WORKSPACES.md) | Команды, роли, ответственные, шаблоны и напоминания по задачам. |
 | [DATABASE](DATABASE.md) | Схема данных и правила хранения. |
 | [DEPLOYMENT](DEPLOYMENT.md) | Исторический чек-лист VPS cutover; текущий порядок — в VPS-DEPLOYMENT. |

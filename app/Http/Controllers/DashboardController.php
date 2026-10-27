@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\QueryStatus;
 use App\Models\SearchQuery;
+use App\Models\TenderParticipation;
 use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
 use Illuminate\Http\Request;
@@ -20,8 +21,10 @@ class DashboardController extends Controller
             abort(401);
         }
 
-        $states = TenderUserState::query()
-            ->where('user_id', $user->id)
+        $actionable = TenderUserState::query()->where('user_id', $user->id)
+            ->whereNotIn('status', ['dismissed', 'archived'])
+            ->whereNotIn('tender_id', TenderParticipation::onlyTrashed()->whereNull('team_id')->where('user_id', $user->id)->select('tender_id'));
+        $states = (clone $actionable)
             ->whereNotNull('next_action_on')
             ->with('tender')
             ->orderBy('next_action_on')
@@ -44,12 +47,10 @@ class DashboardController extends Controller
                     ->exists(),
             ],
             'nextActions' => [
-                'overdue_count' => TenderUserState::query()
-                    ->where('user_id', $user->id)
+                'overdue_count' => (clone $actionable)
                     ->whereDate('next_action_on', '<', $today)
                     ->count(),
-                'today_count' => TenderUserState::query()
-                    ->where('user_id', $user->id)
+                'today_count' => (clone $actionable)
                     ->whereDate('next_action_on', $today)
                     ->count(),
                 'items' => $states->map(fn (TenderUserState $state): array => [

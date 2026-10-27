@@ -174,7 +174,7 @@ type TendersPageProps = PageProps<
 >;
 
 const statusOptions = [
-    { value: 'all', label: 'Все' },
+    { value: 'all', label: 'В ленте' },
     { value: 'new', label: 'Новые' },
     { value: 'favorite', label: 'Избранные' },
     { value: 'potential', label: 'Потенциальные' },

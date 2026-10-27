@@ -24,6 +24,7 @@ use App\Http\Controllers\ParticipationApprovalController;
 use App\Http\Controllers\ParticipationCommentController;
 use App\Http\Controllers\ParticipationDocumentController;
 use App\Http\Controllers\ParticipationEconomicsController;
+use App\Http\Controllers\ParticipationLifecycleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
 use App\Http\Controllers\SavedSearchRunController;
@@ -144,6 +145,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');
     Route::get('/tenders/{tender}', TenderDetailController::class)->name('tenders.show');
     Route::get('/participation', [TenderWorkController::class, 'index'])->name('participation');
+    Route::post('/participation/remove', [ParticipationLifecycleController::class, 'remove'])->middleware('throttle:30,1');
+    Route::post('/participation/restore', [ParticipationLifecycleController::class, 'restore'])->middleware('throttle:30,1');
     Route::get('/participation/analytics', [ParticipationAnalyticsController::class, 'index'])->name('participation.analytics');
     Route::get('/participation/analytics/export', [ParticipationAnalyticsController::class, 'export'])->name('participation.analytics.export');
     Route::get('/calendar', [TenderCalendarController::class, 'index'])->name('calendar');

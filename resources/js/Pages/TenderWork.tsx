@@ -6,6 +6,12 @@ import { AppShell } from '../Components/AppShell';
 import { TenderAnalytics } from '../Components/TenderAnalytics';
 import type { TenderSummary } from '../lib/tenderSummary';
 import type { TenderInsights } from '../lib/tenderAnalytics';
+import { ParticipationRemovalDialog } from '../Components/ParticipationRemovalDialog';
+import {
+    changeParticipations,
+    participationError,
+    type ParticipationTarget,
+} from '../lib/participationLifecycle';
 import { TenderWorkNav } from '../Components/TenderWorkNav';
 import { Badge, Button, GlassCard } from '../Components/ui';
 import {
@@ -40,6 +46,7 @@ export default function TenderWork() {
     const {
         tender,
         participation: initial,
+        removedParticipation,
         team,
         members,
         can_edit,
@@ -59,11 +66,13 @@ export default function TenderWork() {
                     deadline_at: string | null;
                 };
                 participation: Participation | null;
+                removedParticipation: ParticipationTarget | null;
                 comments: ParticipationComment[];
                 documents: ParticipationDocument[];
             }
         >
     >().props;
+    const [removing, setRemoving] = useState(false);
     const [participation, setParticipation] = useState(initial);
     const [stage, setStage] = useState<Stage>(initial?.stage ?? 'studying');
     const [assignee, setAssignee] = useState<number | null>(
@@ -151,6 +160,67 @@ export default function TenderWork() {
     };
     const completed = participation?.items.filter((item) => item.completed).length ?? 0;
 
+    if (removedParticipation) {
+        return (
+            <>
+                <Head title="Удалённая заявка" />
+                <AppShell
+                    title="Заявка"
+                    activeNav="/tenders"
+                    backHref={scopedUrl('/participation', team)}
+                    className="work-page"
+                >
+                    <GlassCard className="work-card">
+                        <Badge tone="neutral">Удалена из заявок</Badge>
+                        <h2>{tender.title}</h2>
+                        {tender.deadline_at &&
+                        new Date(tender.deadline_at).getTime() <= Date.now() ? (
+                            <Badge tone="warning">Срок подачи истёк</Badge>
+                        ) : null}
+                        <p>
+                            Заявка не учитывается в статистике и календаре. Задачи и
+                            документы сохранены. После восстановления напоминания
+                            останутся выключены.
+                        </p>
+                        {error ? (
+                            <p role="alert" className="work-error">
+                                {error}
+                            </p>
+                        ) : null}
+                        {can_edit ? (
+                            <Button
+                                disabled={busy}
+                                onClick={() => {
+                                    setBusy(true);
+                                    setError('');
+                                    void changeParticipations(
+                                        'restore',
+                                        [removedParticipation],
+                                        team,
+                                    )
+                                        .then(() =>
+                                            router.get(scopedUrl(`${root}/work`, team)),
+                                        )
+                                        .catch((failure) => {
+                                            setError(participationError(failure));
+                                            setBusy(false);
+                                        });
+                                }}
+                            >
+                                {busy ? 'Восстанавливаем…' : 'Восстановить заявку'}
+                            </Button>
+                        ) : null}
+                        <Link
+                            className="button button--secondary"
+                            href={scopedUrl('/participation', team)}
+                        >
+                            К списку заявок
+                        </Link>
+                    </GlassCard>
+                </AppShell>
+            </>
+        );
+    }
     return (
         <>
             <Head title="Работа над заявкой" />
@@ -170,6 +240,10 @@ export default function TenderWork() {
                             : 'Ещё не в работе'}
                     </Badge>
                     <h2>{tender.title}</h2>
+                    {tender.deadline_at &&
+                    new Date(tender.deadline_at).getTime() <= Date.now() ? (
+                        <Badge tone="warning">Срок подачи истёк</Badge>
+                    ) : null}
                     <p>
                         {tender.deadline_at
                             ? `Срок подачи: ${formatWorkDeadline(tender.deadline_at)}`
@@ -183,6 +257,15 @@ export default function TenderWork() {
                     >
                         Проверить первоисточник
                     </a>
+                    {participation && can_edit ? (
+                        <Button
+                            variant="ghost"
+                            disabled={busy}
+                            onClick={() => setRemoving(true)}
+                        >
+                            Удалить из заявок
+                        </Button>
+                    ) : null}
                 </GlassCard>
                 <TenderAnalytics
                     key={tender.id}
@@ -468,6 +551,23 @@ export default function TenderWork() {
                     />
                 ) : null}
             </AppShell>
+            <ParticipationRemovalDialog
+                key={String(removing)}
+                items={
+                    removing && participation
+                        ? [
+                              {
+                                  id: participation.id,
+                                  version: stageVersion,
+                                  title: tender.title,
+                              },
+                          ]
+                        : []
+                }
+                team={team}
+                onClose={() => setRemoving(false)}
+                onRemoved={() => router.get(scopedUrl('/participation', team))}
+            />
         </>
     );
 }

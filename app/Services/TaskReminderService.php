@@ -14,7 +14,7 @@ final class TaskReminderService
     public function recipient(TenderChecklistItem $item): ?User
     {
         $p = $item->participation;
-        if (! $item->reminder_enabled || $item->completed_at || ! $item->due_on || in_array($p->stage->value, ['won', 'lost'], true)) {
+        if (! $p || ! $item->reminder_enabled || $item->completed_at || ! $item->due_on || $p->expiredBeforeSubmission() || in_array($p->stage->value, ['won', 'lost'], true)) {
             return null;
         }
         $user = User::query()->find($p->team_id ? $item->assignee_id : $p->user_id);
@@ -58,13 +58,16 @@ final class TaskReminderService
     public function queueDue(): void
     {
         TenderChecklistItem::query()->where('reminder_enabled', true)->whereNull('completed_at')->whereNotNull('due_on')
-            ->with('participation.tender')->lazyById()->each(function (TenderChecklistItem $item): void {
+            ->whereHas('participation')->with('participation.tender')->lazyById()->each(function (TenderChecklistItem $item): void {
                 $user = $this->recipient($item);
                 if (! $user || ! ($phase = $this->phase($item, $user))) {
                     return;
                 }
                 $due = $item->due_on->format('Y-m-d');
                 $p = $item->participation;
+                if (! $p) {
+                    return;
+                }
                 $delivery = NotificationDelivery::query()->firstOrCreate(
                     ['idempotency_key' => 'task:'.$item->id.':'.$user->id.':'.$due.':'.$phase],
                     ['user_id' => $user->id, 'tender_id' => $p->tender_id, 'type' => 'task_reminder', 'status' => NotificationStatus::Queued,

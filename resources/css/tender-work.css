@@ -788,3 +788,26 @@
     .work-page-hero p { display: none; }
     .work-page-hero > div > span { margin-top: 5px; font-size: 11px; }
 }
+
+/* Participation cleanup stays out of the normal reading flow until requested. */
+.participation-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: var(--space-4); }
+.participation-list-note { margin: 0; color: var(--tf-muted); font-size: 13px; line-height: 1.5; }
+.participation-selection, .participation-feedback { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; border: 1px solid var(--tf-line); border-radius: var(--radius-md); padding: 12px; background: var(--tf-surface-strong); font-size: 12px; }
+.participation-selection { position: sticky; top: 12px; z-index: 15; box-shadow: var(--shadow-sm); }
+.participation-selection > .button { grid-column: 1 / -1; }
+.participation-selection label, .participation-select { display: flex; min-height: 44px; align-items: center; gap: 10px; cursor: pointer; }
+.participation-select { font-size: 12px; font-weight: 650; }
+.participation-select input, .participation-selection input { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; accent-color: var(--tf-accent-deep); }
+.participation-feedback p { margin: 0; }
+.participation-removal { display: grid; gap: 16px; padding-top: 16px; }
+.participation-removal p { margin: 0; color: var(--tf-muted); font-size: 14px; line-height: 1.5; }
+@media (min-width: 640px) {
+    .participation-selection { grid-template-columns: minmax(0, 1fr) auto auto; }
+    .participation-selection > .button { grid-column: auto; }
+}
+.participation-expired-link { grid-column: 1 / -1; justify-self: start; color: var(--tf-accent-deep); font-size: 12px; font-weight: 650; }
+.participation-stage-select { display: none; }
+@media (max-width: 520px) {
+    .participation-stage-select { display: grid; grid-column: 1 / -1; }
+    .participation-page > .work-stages { display: none; }
+}

@@ -107,10 +107,11 @@ final class TeamTenderFeedController extends Controller
         $participation = DB::transaction(function () use ($request, $team, $tender, $data): TenderParticipation {
             Team::query()->whereKey($team->id)->lockForUpdate()->firstOrFail();
             $assignee = app(TeamWorkspaceService::class)->assignee($request->user(), $team, $data['assignee_id'] ?? null);
-            $participation = TenderParticipation::query()->firstOrCreate(
+            $participation = TenderParticipation::query()->withTrashed()->firstOrCreate(
                 ['team_id' => $team->id, 'tender_id' => $tender->id],
                 ['user_id' => $request->user()->id, 'assignee_id' => $assignee, 'stage' => 'studying', 'version' => 1],
             );
+            abort_if($participation->trashed(), 409, 'Заявка удалена. Восстановите её в разделе «Участие → Удалённые».');
             if ($participation->wasRecentlyCreated) {
                 DB::table('tender_participation_events')->insert([
                     'participation_id' => $participation->id, 'from_stage' => null, 'to_stage' => 'studying',
