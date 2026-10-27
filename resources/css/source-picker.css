@@ -3,8 +3,8 @@
 .source-picker button[aria-pressed='true'] { border-color: var(--tf-accent); color: var(--tf-accent-deep); background: var(--tf-accent-soft); }
 .source-picker button:disabled { opacity: .5; }
 .source-picker__all { justify-self: start; }
-.source-picker__options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.source-picker__options button > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.source-picker__options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+.source-picker__options button > span:last-child { min-width: 0; overflow-wrap: normal; }
 .source-picker__options small { display: block; margin-top: 3px; color: var(--app-muted); font-size: 10px; }
 .source-picker__check { display: grid; flex: 0 0 18px; width: 18px; height: 18px; place-items: center; border: 1px solid var(--tf-line); border-radius: 5px; }
 .source-picker [aria-pressed='true'] .source-picker__check { border-color: var(--tf-accent); }

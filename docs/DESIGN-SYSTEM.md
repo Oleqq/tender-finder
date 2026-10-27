@@ -106,7 +106,7 @@ Mini App. Эта проверка влияет только на оформле�
 | Inputs | input/search, chips, segmented control, switch, select/combobox, multi-select, date range, money range, validation | slider, stepper, saved-filter persistence |
 | Feedback | skeleton, data-shape skeletons, empty state, error, offline and retry states | optimistic-state, contextual helper |
 | Tender UI | мониторинги RosTender, объяснимые совпадения, рабочая лента, сравнение, personal states, участие, задачи, документы, календарь и приватная ICS-подписка; прежние карточки ЕИС показаны только как архив | закрытая beta-приёмка реальной Telegram-доставки |
-| Access | server-calculated access status, access explanation and entry points to the available workspace | Stars invoice state and subscription management after the commercial flow is approved |
+| Access | server-calculated access status, access explanation and entry points to the available workspace | отдельная внешняя покупка и управление подпиской после утверждения коммерческой модели; Stars выведены из эксплуатации |
 | Admin | role-aware shell variant, server-guarded read-only агрегаты, period switcher, funnel, growth chart и access distribution; центр поддержки с очередью, ответами, безопасной диагностикой и журналом ручного доступа | user drawer, campaigns и технический Live Ops остаются вне MVP |
 
 «Готово» означает работающий переиспользуемый React-компонент; строка

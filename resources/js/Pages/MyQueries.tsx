@@ -1099,7 +1099,7 @@ function QueryFields({
 }) {
     return (
         <>
-            <div hidden={step !== undefined && step !== 3}>
+            <div className="query-fields" hidden={step !== undefined && step !== 3}>
                 <p className="query-create__hint">
                     Выберите площадки для этого мониторинга. Можно отметить несколько.
                 </p>
@@ -1159,7 +1159,7 @@ function QueryFields({
                     </p>
                 )}
             </div>
-            <div hidden={step !== undefined && step !== 0}>
+            <div className="query-fields" hidden={step !== undefined && step !== 0}>
                 <p>
                     Опишите нишу ключевыми словами через запятую. Все указанные слова
                     должны встретиться в карточке.
@@ -1206,7 +1206,7 @@ function QueryFields({
                     </label>
                 ) : null}
             </div>
-            <div hidden={step !== undefined && step !== 1}>
+            <div className="query-fields" hidden={step !== undefined && step !== 1}>
                 <p>Оставьте поле пустым, если готовы работать по всей России.</p>
                 <label className="form-field">
                     <span>Регион</span>
@@ -1217,7 +1217,7 @@ function QueryFields({
                     />
                 </label>
             </div>
-            <div hidden={step !== undefined && step !== 2}>
+            <div className="query-fields" hidden={step !== undefined && step !== 2}>
                 <div className="query-create__grid">
                     <label className="form-field">
                         <span>Бюджет от, ₽</span>

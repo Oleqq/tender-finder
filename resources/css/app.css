@@ -978,7 +978,9 @@ textarea:focus-visible {
 .query-create { padding: var(--space-5); }
 .query-create .section-heading { margin-bottom: var(--space-4); }
 .query-create form { display: grid; gap: 12px; }
-.query-create__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.query-fields:not([hidden]) { display: grid; gap: var(--space-4); }
+.query-fields > p { margin: 0; }
+.query-create__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
 .query-create__hint { margin-top: -3px; }
 .query-create form > .button { width: 100%; }
 .query-edit-form { display: grid; gap: 12px; padding-top: var(--space-4); }
@@ -1009,15 +1011,20 @@ textarea:focus-visible {
 .source-status--pending { color: var(--tf-accent); }
 .source-status__heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .source-status__heading strong { color: var(--app-ink); font-size: 12px; }
-.source-status__times { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 0; }
+.source-status__times { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 96px), 1fr)); gap: 7px; margin: 0; overflow-wrap: normal; }
 .source-status__times div { min-width: 0; border-radius: 10px; padding: 8px; background: var(--tf-surface-strong); }
 .source-status__times dt { color: var(--tf-muted); font-size: 9px; font-weight: 650; }
-.source-status__times dd { margin: 4px 0 0; overflow-wrap: anywhere; color: var(--app-ink); font-size: 10px; line-height: 1.35; }
-.query-card__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.query-card__actions .button { width: 100%; min-width: 0; padding-inline: 10px; }
+.source-status__times dd { margin: 4px 0 0; color: var(--app-ink); font-size: 10px; line-height: 1.35; }
+.query-card__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 8px; }
+.query-card__actions .button { width: 100%; min-width: 0; padding: 8px 10px; overflow-wrap: normal; word-break: normal; }
 .query-card__health { border-top: 1px solid var(--tf-line); border-bottom: 1px solid var(--tf-line); padding: 12px 0; }
+.query-card__health > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; overflow-wrap: normal; }
+.query-card__health > summary > .badge { grid-row: 2; justify-self: start; margin-left: 0; }
+.query-card__health > summary::after { grid-column: 2; grid-row: 1; }
 .query-card__health-content { display: grid; gap: 10px; padding-top: 12px; }
-.query-card__manage { align-self: center; }
+.query-card__manage { min-width: 0; align-self: start; }
+.query-card__manage[open] { grid-column: 1 / -1; }
+.query-card__actions:has(> .query-card__manage[open]) > .button { grid-column: 1 / -1; }
 .query-card__manage > summary { border: 1px solid var(--tf-line); border-radius: var(--radius-md); padding: 0 10px; color: var(--tf-accent-deep); }
 .query-card__manage > summary::after { margin-left: 6px; }
 .query-card__manage > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 8px; }
@@ -1366,7 +1373,6 @@ textarea:focus-visible {
     .mvp-workspace__saved-row > .saved-run-history { grid-column: 1 / -1; }
     .mvp-tender-detail__layout { grid-template-columns: minmax(0, 1fr) 272px; align-items: start; }
     .mvp-tender-detail__aside { position: sticky; top: var(--space-4); }
-    .query-card__actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (min-width: 860px) {
@@ -1448,6 +1454,7 @@ textarea:focus-visible {
 .monitoring-wizard__fields { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
 .monitoring-wizard__fields legend { font-weight: 600; margin-bottom: 12px; }
 .monitoring-wizard__fields p { margin: 12px 0; }
+.monitoring-wizard__fields .query-fields > p { margin: 0; }
 .monitoring-wizard__preview { margin: 16px 0; padding: 16px; border: 1px solid #b7cec8; border-radius: 16px; overflow-wrap: anywhere; }
 .monitoring-wizard__preview ul { padding-left: 20px; list-style: disc; }
 .monitoring-wizard__preview li { margin: 10px 0; }
