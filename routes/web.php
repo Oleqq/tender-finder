@@ -25,6 +25,7 @@ use App\Http\Controllers\ParticipationApprovalController;
 use App\Http\Controllers\ParticipationCommentController;
 use App\Http\Controllers\ParticipationDocumentController;
 use App\Http\Controllers\ParticipationEconomicsController;
+use App\Http\Controllers\ParticipationExecutionController;
 use App\Http\Controllers\ParticipationLifecycleController;
 use App\Http\Controllers\PriceCatalogController;
 use App\Http\Controllers\PricingPageController;
@@ -195,6 +196,9 @@ Route::middleware(['auth', EnforceWorkspaceAccess::class])->group(function () {
     Route::get('/tenders/{tender}/work', [TenderWorkController::class, 'show'])->name('tenders.work');
     Route::put('/tenders/{tender}/participation', [TenderWorkController::class, 'update'])->name('tenders.participation');
     Route::patch('/tenders/{tender}/economics', [ParticipationEconomicsController::class, 'update'])->name('tenders.economics');
+    Route::get('/tenders/{tender}/execution', [ParticipationExecutionController::class, 'show'])->name('tenders.execution');
+    Route::post('/tenders/{tender}/execution', [ParticipationExecutionController::class, 'save'])->middleware('throttle:30,1,execution');
+    Route::patch('/tenders/{tender}/execution', [ParticipationExecutionController::class, 'save'])->middleware('throttle:30,1,execution');
     Route::post('/tenders/{tender}/approval-requests', [ParticipationApprovalController::class, 'store'])->name('tenders.approvals.store');
     Route::patch('/tenders/{tender}/approval-requests/{approval}/vote', [ParticipationApprovalController::class, 'vote'])->name('tenders.approvals.vote');
     Route::post('/tenders/{tender}/comments', [ParticipationCommentController::class, 'store'])->name('tenders.comments.store');

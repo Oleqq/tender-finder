@@ -9,8 +9,8 @@ final class SubscriptionCatalog
 {
     public const OFFERS = [
         'basic' => ['name' => 'Basic', 'limit' => 3, 'prices' => [1 => 34900, 3 => 98900, 12 => 376900], 'description' => 'Поиск и краткая аналитика тендера'],
-        'pro' => ['name' => 'Pro', 'limit' => 10, 'prices' => [1 => 59900, 3 => 169900, 12 => 646900], 'description' => 'Мой прайс, окно подачи, полнота карточки и план проверки'],
-        'ultra' => ['name' => 'Ultra', 'limit' => 30, 'prices' => [1 => 89900, 3 => 255900, 12 => 970900], 'description' => 'Всё из Pro, сравнение бюджетов, сценарии цены и готовность заявки'],
+        'pro' => ['name' => 'Pro', 'limit' => 10, 'prices' => [1 => 59900, 3 => 169900, 12 => 646900], 'description' => 'Мой прайс, предложения из блоков и подробная аналитика'],
+        'ultra' => ['name' => 'Ultra', 'limit' => 30, 'prices' => [1 => 89900, 3 => 255900, 12 => 970900], 'description' => 'Всё из Pro, сценарии цены и контроль прибыли при исполнении'],
     ];
 
     public function endAt(Carbon $start, int $months): Carbon

@@ -557,6 +557,18 @@ export default function TenderWork() {
                         canEdit={can_edit}
                     />
                 ) : null}
+                {participation?.stage === 'won' && tender.analytics.tier === 'ultra' ? (
+                    <GlassCard className="work-card">
+                        <h2>Контроль исполнения · Ultra</h2>
+                        <p>
+                            Исходный план, фактические расходы и прогноз прибыли по
+                            контракту.
+                        </p>
+                        <Link href={scopedUrl(`${root}/execution`, team)}>
+                            Открыть контроль исполнения →
+                        </Link>
+                    </GlassCard>
+                ) : null}
                 {participation ? (
                     <ParticipationComments
                         initial={comments}
@@ -623,7 +635,10 @@ function TaskEditor({
             setEditing(false);
     };
     return (
-        <div className={`work-task ${item.completed ? 'is-complete' : ''}`}>
+        <div
+            id={`task-${item.id}`}
+            className={`work-task ${item.completed ? 'is-complete' : ''}`}
+        >
             <label className="work-task-check">
                 <input
                     type="checkbox"
