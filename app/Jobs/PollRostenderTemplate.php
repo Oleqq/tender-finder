@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\SourceFeed;
 use App\Models\Tender;
+use App\Services\FeedAccessService;
 use App\Services\RostenderApiClient;
 use App\Services\RostenderQuotaGuard;
 use App\Services\TenderSourceImportService;
@@ -30,6 +31,10 @@ class PollRostenderTemplate implements ShouldQueue
         $feed = SourceFeed::query()->find($this->feedId);
 
         if ($feed === null || $feed->source !== 'rostender' || $feed->status !== 'active' || $feed->source_identifier === null) {
+            return;
+        }
+
+        if (! app(FeedAccessService::class)->mayPoll($feed)) {
             return;
         }
 

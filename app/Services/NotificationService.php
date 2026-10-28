@@ -28,7 +28,7 @@ class NotificationService
 
         $user = $query->user;
 
-        if (! $this->access->hasActiveAccess($user)) {
+        if ($user->is_demo_guest || ! $this->access->hasActiveAccess($user)) {
             return null;
         }
 

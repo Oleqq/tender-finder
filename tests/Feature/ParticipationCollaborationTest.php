@@ -53,7 +53,7 @@ it('supports team comments mentions unread state and immutable edit history', fu
 it('queues a valid mention only for team members and skips it after reading', function () {
     [$owner, $member, $viewer, $team, $tender] = teamFixture();
     $participation = TenderParticipation::query()->create(['team_id' => $team->id, 'user_id' => $owner->id, 'tender_id' => $tender->id]);
-    $outsider = User::factory()->create();
+    $outsider = User::factory()->withAccess()->create();
     $url = '/tenders/'.$tender->id.'/comments?team_id='.$team->id;
 
     $this->actingAs($owner)->postJson($url, ['body' => 'Проверка', 'mention_ids' => [$outsider->id]])->assertUnprocessable();
@@ -140,5 +140,5 @@ it('builds scoped participation analytics and exports the same summary', functio
         ->where('analytics.loss_reasons.0.reason', 'Цена конкурента')->where('analytics.members.0.name', $member->name));
     $this->get('/participation/analytics/export?period=90&team_id='.$team->id)->assertOk()
         ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')->assertSee('Процент побед')->assertSee('50');
-    $this->actingAs(User::factory()->create())->get($url)->assertNotFound();
+    $this->actingAs(User::factory()->withAccess()->create())->get($url)->assertNotFound();
 });

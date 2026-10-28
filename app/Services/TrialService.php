@@ -25,11 +25,11 @@ class TrialService
             /** @var User $lockedUser */
             $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
 
-            if ($lockedUser->is_browser_guest && ! $this->temporaryFullAccess->isActive()) {
+            if ($lockedUser->is_browser_guest && ! $lockedUser->is_demo_guest && ! $this->temporaryFullAccess->isActive()) {
                 throw new TrialAlreadyUsedException;
             }
 
-            if ($lockedUser->role === UserRole::Subscriber && $this->temporaryFullAccess->isActive()) {
+            if ($lockedUser->role === UserRole::Subscriber && ! $lockedUser->is_demo_guest && $this->temporaryFullAccess->isActive()) {
                 if (! $this->consents->hasCurrentRequiredConsents($lockedUser)) {
                     throw new TrialConsentRequiredException;
                 }

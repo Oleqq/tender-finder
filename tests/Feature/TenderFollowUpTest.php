@@ -115,7 +115,7 @@ it('keeps follow-up choices when changing status and denies foreign state update
     $this->actingAs($user)->patchJson('/tenders/'.$tender->id.'/state', ['status' => 'new'])
         ->assertOk()->assertJsonPath('state.watch_changes', true);
     expect($state->fresh())->not->toBeNull();
-    $this->actingAs(User::factory()->create())->patchJson('/tenders/'.$tender->id.'/state', ['status' => 'favorite'])
+    $this->actingAs(User::factory()->withAccess()->create())->patchJson('/tenders/'.$tender->id.'/state', ['status' => 'favorite'])
         ->assertNotFound();
 });
 
@@ -143,7 +143,7 @@ it('excludes the actual customer and preserves the exclusion when editing the mo
 
 it('rejects feedback and change history access for another users tender', function () {
     [$user, $query, $tender] = followUpFixture();
-    $this->actingAs(User::factory()->create())->postJson('/tenders/'.$tender->id.'/feedback', [
+    $this->actingAs(User::factory()->withAccess()->create())->postJson('/tenders/'.$tender->id.'/feedback', [
         'search_query_id' => $query->id, 'reason' => 'Тест', 'apply_filter' => false,
     ])->assertNotFound();
     $this->getJson('/tenders/'.$tender->id.'/changes')->assertNotFound();

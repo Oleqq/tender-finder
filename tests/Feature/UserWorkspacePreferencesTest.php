@@ -7,8 +7,8 @@ use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 it('saves applies and deletes a user scoped tender feed view', function () {
-    $user = User::factory()->create();
-    $other = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
+    $other = User::factory()->withAccess()->create();
     $query = SearchQuery::query()->create([
         'user_id' => $user->id,
         'name' => 'Сайты',
@@ -42,7 +42,7 @@ it('saves applies and deletes a user scoped tender feed view', function () {
 });
 
 it('persists notification preferences and renders the local preview inputs', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
 
     $this->actingAs($user)->putJson('/profile/notification-preferences', [
         'instant_enabled' => false,
@@ -68,9 +68,9 @@ it('persists notification preferences and renders the local preview inputs', fun
 });
 
 it('rejects another users monitoring in a saved feed view', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $foreignQuery = SearchQuery::query()->create([
-        'user_id' => User::factory()->create()->id,
+        'user_id' => User::factory()->withAccess()->create()->id,
         'name' => 'Чужой',
         'keywords' => ['чужой'],
         'status' => 'active',

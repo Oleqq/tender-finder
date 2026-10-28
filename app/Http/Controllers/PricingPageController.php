@@ -2,19 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use App\Services\PricingPageRenderer;
+use Symfony\Component\HttpFoundation\Response;
 
 final class PricingPageController extends Controller
 {
-    public function __invoke(string $theme = 'light'): BinaryFileResponse
+    public function __invoke(PricingPageRenderer $renderer, string $theme = 'light'): Response
     {
-        abort_unless(in_array($theme, ['light', 'dark'], true), 404);
-
-        $filename = $theme === 'dark'
-            ? 'subscription-offer-preview-dark.html'
-            : 'subscription-offer-preview.html';
-
-        return response()->file(base_path('docs/'.$filename), [
+        return response($renderer->render($theme), 200, [
             'Content-Type' => 'text/html; charset=UTF-8',
             'Cache-Control' => 'no-cache',
         ]);

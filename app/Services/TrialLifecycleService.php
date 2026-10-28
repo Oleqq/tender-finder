@@ -45,7 +45,7 @@ class TrialLifecycleService
                 $entitlement === null
                 || $entitlement->status !== SubscriptionStatus::Active
                 || $entitlement->ends_at === null
-                || ! in_array($entitlement->subscription?->source, [SubscriptionSource::Trial, SubscriptionSource::AdminGrant, SubscriptionSource::TelegramStars], true)
+                || ! in_array($entitlement->subscription?->source, [SubscriptionSource::Trial, SubscriptionSource::AdminGrant, SubscriptionSource::TelegramStars, SubscriptionSource::Demo], true)
             ) {
                 return;
             }
@@ -80,7 +80,7 @@ class TrialLifecycleService
 
     private function queueReminder(Entitlement $entitlement, int $hoursRemaining, Carbon $now): void
     {
-        if ($this->temporaryFullAccess->isActive()) {
+        if ($entitlement->user->is_demo_guest || $this->temporaryFullAccess->isActive()) {
             return;
         }
 

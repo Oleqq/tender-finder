@@ -32,6 +32,7 @@ return [
     ],
 
     'payments' => [
+        'demo_enabled' => (bool) env('DEMO_CHECKOUT_ENABLED', false),
         // Reserved integration boundary for a future external web checkout.
         // Do not enable inside Telegram for digital services: Telegram requires XTR there.
         'yookassa' => [

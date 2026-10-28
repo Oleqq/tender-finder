@@ -1,4 +1,6 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { useAccessPresentation } from '../lib/useAccessPresentation';
+import type { PageProps } from '../types';
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 
@@ -54,8 +56,15 @@ export function AppShell({
     className,
     wide = false,
 }: AppShellProps) {
+    const { auth } = usePage<PageProps>().props;
+    const access = useAccessPresentation(auth?.access ?? null);
     return (
         <main className="mini-app">
+            {auth?.user?.is_demo_guest ? (
+                <a className="demo-banner" href="/demo">
+                    Демонстрация · без списаний · Мой доступ
+                </a>
+            ) : null}
             <div className="ambient ambient--one" />
             <div className="ambient ambient--two" />
             <div className={`app-shell ${wide ? 'app-shell--wide' : ''}`}>
@@ -101,7 +110,19 @@ export function AppShell({
                     </div>
                     <div className="top-bar__side top-bar__side--end">{action}</div>
                 </header>
-                <div className={`page-content ${className ?? ''}`}>{children}</div>
+                <div className={`page-content ${className ?? ''}`}>
+                    {(access.phase === 'expired' || access.phase === 'cancelled') &&
+                    !auth?.user?.is_demo_guest ? (
+                        <div className="workspace-access-notice" role="status">
+                            Доступ завершён. Материалы доступны для просмотра, изменения
+                            и новые проверки остановлены.{' '}
+                            <Link href={auth?.user?.is_demo_guest ? '/demo' : '/plans'}>
+                                Мой доступ
+                            </Link>
+                        </div>
+                    ) : null}
+                    {children}
+                </div>
                 {navigationVisible ? (
                     <BottomNavigation activeNav={activeNav} wide={wide} />
                 ) : null}

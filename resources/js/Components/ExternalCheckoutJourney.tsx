@@ -38,7 +38,7 @@ export function ExternalCheckoutJourney({
                                     name={plan.name}
                                     description={plan.description}
                                     features={[
-                                        `Срок: ${plan.duration_days} дн.`,
+                                        `Срок: ${plan.duration_months} мес.`,
                                         plan.active_query_limit === null
                                             ? 'Лимит мониторингов указан в условиях'
                                             : `До ${plan.active_query_limit} активных мониторингов`,

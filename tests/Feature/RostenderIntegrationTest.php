@@ -314,8 +314,8 @@ it('imports new detail cards once and scopes matching to monitorings linked to t
         'status' => 'active',
         'poll_interval_seconds' => 86400,
     ]);
-    $linkedUser = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $linkedUser = User::factory()->withAccess()->create();
+    $otherUser = User::factory()->withAccess()->create();
     $linkedQuery = rostenderQuery($linkedUser, 'Поставка');
     $otherQuery = rostenderQuery($otherUser, 'Поставка');
     RostenderFeedSearchQuery::query()->create([

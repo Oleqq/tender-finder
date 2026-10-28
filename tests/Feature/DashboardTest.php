@@ -11,8 +11,8 @@ use Inertia\Testing\AssertableInertia as Assert;
 it('shows only the signed-in users nearest actions and summary', function () {
     Carbon::setTestNow('2026-09-03 12:00:00');
 
-    $owner = User::factory()->create(['telegram_id' => '9301']);
-    $other = User::factory()->create(['telegram_id' => '9302']);
+    $owner = User::factory()->withAccess()->create(['telegram_id' => '9301']);
+    $other = User::factory()->withAccess()->create(['telegram_id' => '9302']);
     $overdue = dashboardTender('dashboard-overdue', 'Просроченная закупка');
     $today = dashboardTender('dashboard-today', 'Закупка на сегодня');
     $later = dashboardTender('dashboard-later', 'Следующая закупка');
@@ -47,8 +47,8 @@ it('shows only the signed-in users nearest actions and summary', function () {
 });
 
 it('points the signed-in user to the next useful step without leaking other users work', function () {
-    $owner = User::factory()->create(['telegram_id' => '9311']);
-    $other = User::factory()->create(['telegram_id' => '9312']);
+    $owner = User::factory()->withAccess()->create(['telegram_id' => '9311']);
+    $other = User::factory()->withAccess()->create(['telegram_id' => '9312']);
     $foreignQuery = SearchQuery::query()->create([
         'user_id' => $other->id,
         'name' => 'Чужой поиск',

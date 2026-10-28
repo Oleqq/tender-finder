@@ -47,7 +47,7 @@ function monitoredFeed(): SourceFeed
 }
 
 it('shows a recovered source separately from its last failure', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $query = monitoredQuery($user);
     $feed = monitoredFeed();
     RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
@@ -64,7 +64,7 @@ it('shows a recovered source separately from its last failure', function () {
 });
 
 it('keeps a queued source distinct from an unavailable source and stops schedule when paused', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $query = monitoredQuery($user);
     $feed = monitoredFeed();
     RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
@@ -80,7 +80,7 @@ it('keeps a queued source distinct from an unavailable source and stops schedule
 });
 
 it('does not describe an old shared snapshot or a stalled queue as a fresh answer', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $feed = monitoredFeed();
     app(TenderSourceImportService::class)->import($feed, new SourceFetchResult([], 0), 'rostender', false);
     $this->travel(5)->minutes();
@@ -101,7 +101,7 @@ it('does not describe an old shared snapshot or a stalled queue as a fresh answe
 });
 
 it('marks a quota cooldown as unavailable for manual retry in monitoring status', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $query = monitoredQuery($user);
     $feed = monitoredFeed();
     RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
@@ -114,7 +114,7 @@ it('marks a quota cooldown as unavailable for manual retry in monitoring status'
 });
 
 it('shows a failure after a partial import in the same second', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $query = monitoredQuery($user);
     $feed = monitoredFeed();
     RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
@@ -127,8 +127,8 @@ it('shows a failure after a partial import in the same second', function () {
 });
 
 it('shows only the current users delivery statuses without payloads or foreign archived-team data', function () {
-    $user = User::factory()->create();
-    $other = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
+    $other = User::factory()->withAccess()->create();
     NotificationDelivery::query()->create([
         'user_id' => $user->id,
         'type' => 'tender_card',

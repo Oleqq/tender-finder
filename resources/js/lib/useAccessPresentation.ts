@@ -8,11 +8,13 @@ export function useAccessPresentation(access: Access | null) {
     const reloadedExpired = useRef(false);
 
     useEffect(() => {
+        reloadedExpired.current = false;
         const update = () => {
             const current = Date.now();
             setNow(current);
             if (
                 (access?.state === 'trialing' ||
+                    access?.state === 'active' ||
                     access?.mode === 'temporary_full_access') &&
                 access.ends_at &&
                 current >= new Date(access.ends_at).getTime() &&

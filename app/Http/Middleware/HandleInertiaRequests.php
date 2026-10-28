@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
                         'name' => $user->name,
                         'role' => $user->role->value,
                         'is_browser_guest' => $user->is_browser_guest,
+                        'is_demo_guest' => $user->is_demo_guest,
                     ],
                     'access' => app(AccessService::class)->snapshotFor($user)->toArray(),
                 ];

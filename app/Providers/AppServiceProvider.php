@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\CheckoutProvider;
+use App\Services\DemoPaymentProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Vite as ViteManager;
 use Illuminate\Http\Request;
@@ -17,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(CheckoutProvider::class, DemoPaymentProvider::class);
     }
 
     /**

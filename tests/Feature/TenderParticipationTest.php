@@ -21,7 +21,7 @@ beforeEach(function () {
 
 function participationFixture(): array
 {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $query = SearchQuery::query()->create(['user_id' => $user->id, 'name' => 'Серверы', 'keywords' => ['сервер'], 'status' => 'active']);
     $tender = Tender::query()->create(['source' => 'rostender', 'external_id' => 'work-101',
         'canonical_url' => 'https://rostender.info/tender/101', 'canonical_url_hash' => hash('sha256', 'work-101'),
@@ -74,7 +74,7 @@ it('keeps workflows private even when users see the same tender', function () {
     $url = '/tenders/'.$tender->id;
     $this->actingAs($user)->putJson($url.'/participation', ['stage' => 'lost', 'loss_reason' => 'Личная причина', 'version' => 0])->assertOk();
     $id = $this->postJson($url.'/checklist', ['title' => 'Секретная задача'])->json('participation.items.0.id');
-    $other = User::factory()->create();
+    $other = User::factory()->withAccess()->create();
     $this->actingAs($other)->get($url.'/work')->assertNotFound();
     $this->putJson($url.'/participation', ['stage' => 'won', 'version' => 0])->assertNotFound();
     $otherQuery = SearchQuery::query()->create(['user_id' => $other->id, 'name' => 'Другой мониторинг', 'keywords' => ['сервер'], 'status' => 'active']);
@@ -115,7 +115,7 @@ it('excludes hidden tenders and foreign actions tasks and exports', function () 
     [$user, $query, $tender] = participationFixture();
     $p = TenderParticipation::query()->create(['user_id' => $user->id, 'tender_id' => $tender->id, 'stage' => 'studying']);
     $p->items()->create(['title' => 'Личная задача', 'due_on' => '2026-09-17']);
-    $other = User::factory()->create();
+    $other = User::factory()->withAccess()->create();
     $calendar = app(TenderCalendarService::class);
     expect($calendar->events($other, '2026-09'))->toBe([]);
     $this->actingAs($other)->get('/calendar/export?month=2026-09')->assertOk()->assertDontSee('BEGIN:VEVENT', false);
@@ -142,11 +142,11 @@ it('escapes and folds ICS text safely and keeps event UIDs stable after deadline
 it('allows only the operators own local snapshot tenders', function () {
     [$user, $query, $tender] = participationFixture();
     $tender->update(['source' => 'tenderguru_preview']);
-    $operator = User::factory()->create(['role' => UserRole::SuperAdmin]);
+    $operator = User::factory()->withAccess()->create(['role' => UserRole::SuperAdmin]);
     LocalMvpSearchSnapshot::query()->create(['user_id' => $operator->id, 'source' => 'tenderguru_preview', 'query' => 'Серверы', 'tender_ids' => [$tender->id]]);
     $this->actingAs($operator)->get('/tenders/'.$tender->id.'/work')->assertOk();
     $this->putJson('/tenders/'.$tender->id.'/participation', ['stage' => 'studying', 'version' => 0])->assertOk();
-    $this->actingAs(User::factory()->create(['role' => UserRole::SuperAdmin]))->get('/tenders/'.$tender->id.'/work')->assertNotFound();
+    $this->actingAs(User::factory()->withAccess()->create(['role' => UserRole::SuperAdmin]))->get('/tenders/'.$tender->id.'/work')->assertNotFound();
 });
 
 it('caps checklist size and allows adding again after deletion', function () {

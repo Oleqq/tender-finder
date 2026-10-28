@@ -2,15 +2,16 @@
 
 use App\Models\Payment;
 use App\Models\User;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use App\Services\PricingPageRenderer;
 
 it('serves standalone pricing to visitors without creating an account or payment', function (string $path, string $filename) {
     $response = $this->get($path)->assertOk()
         ->assertHeader('Content-Type', 'text/html; charset=UTF-8');
 
-    expect($response->baseResponse)->toBeInstanceOf(BinaryFileResponse::class);
-    expect($response->baseResponse->getFile()->getRealPath())
-        ->toBe(realpath(base_path('docs/'.$filename)));
+    $theme = str_contains($filename, '-dark') ? 'dark' : 'light';
+    expect($response->getContent())->toBe(app(PricingPageRenderer::class)->render($theme))
+        ->toBe(file_get_contents(base_path('docs/'.$filename)))
+        ->not->toContain('{{', '/demo', 'checkout');
     expect(User::query()->count())->toBe(0)
         ->and(Payment::query()->count())->toBe(0);
 })->with([

@@ -42,7 +42,7 @@ it('requires active access and an approved source before creating a quick monito
     discoveryFeed();
     $guest = User::factory()->create();
     $this->actingAs($guest)->postJson('/queries/quick', ['phrase' => 'Разработка сайта'])
-        ->assertUnprocessable();
+        ->assertForbidden();
     config()->set('tender.rostender.public_distribution_approved', false);
     $this->actingAs(discoveryUser())->postJson('/queries/quick', ['phrase' => 'Разработка сайта'])
         ->assertUnprocessable();
@@ -405,11 +405,11 @@ it('upgrades a reused quick search and removes derived matches outside its phras
 
 it('does not distribute a B2B search result to a different keyword feed', function () {
     $first = SearchQuery::query()->create([
-        'user_id' => User::factory()->create()->id,
+        'user_id' => User::factory()->withAccess()->create()->id,
         'name' => 'Первый', 'keywords' => ['сайт'], 'status' => 'active',
     ]);
     $second = SearchQuery::query()->create([
-        'user_id' => User::factory()->create()->id,
+        'user_id' => User::factory()->withAccess()->create()->id,
         'name' => 'Второй', 'keywords' => ['сайт'], 'status' => 'active',
     ]);
     $feed = SourceFeed::query()->create([

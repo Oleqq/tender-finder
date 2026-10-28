@@ -8,8 +8,8 @@ use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 it('keeps each server-backed tender feed limited to the signed-in users matches', function () {
-    $owner = User::factory()->create(['telegram_id' => '9101']);
-    $otherUser = User::factory()->create(['telegram_id' => '9102']);
+    $owner = User::factory()->withAccess()->create(['telegram_id' => '9101']);
+    $otherUser = User::factory()->withAccess()->create(['telegram_id' => '9102']);
     $ownerQuery = SearchQuery::query()->create([
         'user_id' => $owner->id,
         'name' => 'Поддержка сайтов',
@@ -56,7 +56,7 @@ it('keeps each server-backed tender feed limited to the signed-in users matches'
 });
 
 it('filters sorts and paginates the signed-in users tender feed', function () {
-    $owner = User::factory()->create(['telegram_id' => '9201']);
+    $owner = User::factory()->withAccess()->create(['telegram_id' => '9201']);
     $query = SearchQuery::query()->create([
         'user_id' => $owner->id,
         'name' => 'Сайты',
@@ -116,7 +116,7 @@ it('filters sorts and paginates the signed-in users tender feed', function () {
 });
 
 it('opens the latest personal search instead of mixing older topics by default', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $older = SearchQuery::query()->create([
         'user_id' => $user->id, 'name' => 'Строительство',
         'keywords' => ['строительство'], 'status' => 'active',
@@ -142,7 +142,7 @@ it('opens the latest personal search instead of mixing older topics by default',
 });
 
 it('can scope the personal tender feed to RosTender matches', function () {
-    $user = User::factory()->create(['telegram_id' => '9301']);
+    $user = User::factory()->withAccess()->create(['telegram_id' => '9301']);
     $query = SearchQuery::query()->create([
         'user_id' => $user->id,
         'name' => 'Сайты',
@@ -176,8 +176,8 @@ it('keeps the tender feed behind the authenticated user journey', function () {
 });
 
 it('does not offer deleted or foreign monitorings as feed filters', function () {
-    $owner = User::factory()->create(['telegram_id' => '9351']);
-    $other = User::factory()->create(['telegram_id' => '9352']);
+    $owner = User::factory()->withAccess()->create(['telegram_id' => '9351']);
+    $other = User::factory()->withAccess()->create(['telegram_id' => '9352']);
     foreach ([
         [$owner, 'Сохранённый', 'active'],
         [$owner, 'Удалённый', 'deleted'],
@@ -197,8 +197,8 @@ it('does not offer deleted or foreign monitorings as feed filters', function () 
 });
 
 it('opens a detail only for the users matched tender even after the monitoring is paused', function () {
-    $owner = User::factory()->create(['telegram_id' => '9353']);
-    $other = User::factory()->create(['telegram_id' => '9354']);
+    $owner = User::factory()->withAccess()->create(['telegram_id' => '9353']);
+    $other = User::factory()->withAccess()->create(['telegram_id' => '9354']);
     $query = SearchQuery::query()->create([
         'user_id' => $owner->id,
         'name' => 'Сайты',
@@ -232,8 +232,8 @@ it('opens a detail only for the users matched tender even after the monitoring i
 });
 
 it('updates personal tender fields inline only for the matching user', function () {
-    $owner = User::factory()->create(['telegram_id' => '9401']);
-    $other = User::factory()->create(['telegram_id' => '9402']);
+    $owner = User::factory()->withAccess()->create(['telegram_id' => '9401']);
+    $other = User::factory()->withAccess()->create(['telegram_id' => '9402']);
     $query = SearchQuery::query()->create([
         'user_id' => $owner->id,
         'name' => 'Inline',

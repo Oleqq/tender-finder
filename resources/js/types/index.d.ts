@@ -3,6 +3,7 @@ export interface User {
     name: string | null;
     role: 'subscriber' | 'super_admin';
     is_browser_guest: boolean;
+    is_demo_guest?: boolean;
 }
 
 export interface Access {
@@ -11,6 +12,7 @@ export interface Access {
     active_query_limit: number | null;
     ends_at: string | null;
     mode:
+        | 'demo'
         | 'developer'
         | 'owner'
         | 'temporary_full_access'
@@ -38,7 +40,7 @@ export interface PurchasePlan {
     description: string;
     amount_minor: number;
     currency: 'RUB';
-    duration_days: number;
+    duration_months: number;
     active_query_limit: number | null;
     terms_url: string;
 }

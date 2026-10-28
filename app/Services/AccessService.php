@@ -20,12 +20,16 @@ class AccessService
 
     public function snapshotFor(User $user): AccessSnapshot
     {
-        if ($user->is_browser_guest && ! $this->temporaryFullAccess->isActive()) {
+        if ($user->is_browser_guest && ! $user->is_demo_guest && ! $this->temporaryFullAccess->isActive()) {
             return new AccessSnapshot(AccessState::Expired, null, null, $this->temporaryFullAccess->until()?->toAtomString());
         }
 
+        if ($user->is_demo_guest && ! config('tender.payments.demo_enabled')) {
+            return new AccessSnapshot(AccessState::Expired, null, null, null);
+        }
+
         $temporaryPending = false;
-        if ($user->role === UserRole::Subscriber && $this->temporaryFullAccess->isActive()) {
+        if ($user->role === UserRole::Subscriber && ! $user->is_demo_guest && $this->temporaryFullAccess->isActive()) {
             try {
                 if ($this->consents->hasCurrentRequiredConsents($user)) {
                     return new AccessSnapshot(
@@ -48,7 +52,7 @@ class AccessService
             return $developer;
         }
 
-        if ($this->localMvpFullAccess->isEnabled()) {
+        if (! $user->is_demo_guest && $this->localMvpFullAccess->isEnabled()) {
             return new AccessSnapshot(
                 AccessState::Active,
                 'local_mvp_full_access',
@@ -102,7 +106,7 @@ class AccessService
         $hasExpiredAccess = $user->trial_used_at !== null || Entitlement::query()
             ->where('user_id', $user->id)
             ->where('code', 'active_queries')
-            ->whereHas('subscription', fn ($subscription) => $subscription->where('source', SubscriptionSource::TelegramStars))
+            ->whereHas('subscription', fn ($subscription) => $subscription->whereIn('source', [SubscriptionSource::TelegramStars, SubscriptionSource::Demo]))
             ->exists();
 
         $lastEntitlement = $hasExpiredAccess ? Entitlement::query()

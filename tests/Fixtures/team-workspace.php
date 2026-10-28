@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 function teamFixture(): array
 {
-    $owner = User::factory()->create();
-    $member = User::factory()->create();
-    $viewer = User::factory()->create();
+    $owner = User::factory()->withAccess()->create();
+    $member = User::factory()->withAccess()->create();
+    $viewer = User::factory()->withAccess()->create();
     $team = Team::query()->create(['owner_id' => $owner->id, 'name' => 'Компания']);
     foreach ([$owner->id => 'owner', $member->id => 'member', $viewer->id => 'viewer'] as $id => $role) {
         DB::table('team_members')->insert(['team_id' => $team->id, 'user_id' => $id, 'role' => $role]);

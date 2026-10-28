@@ -1471,3 +1471,26 @@ textarea:focus-visible {
 .dashboard-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .dashboard-shortcuts a { display: grid; gap: 8px; border: 1px solid var(--tf-line); border-radius: 18px; background: var(--tf-surface); padding: 16px; color: var(--app-ink); font-size: 14px; font-weight: 700; }
 .dashboard-shortcuts small { color: var(--app-muted); font-size: 12px; font-weight: 400; line-height: 1.45; }
+
+/* Standalone, protected demo checkout; uses the existing application palette. */
+.demo-banner { display: block; position: relative; z-index: 2; text-align: center; padding: 10px 16px; background: var(--tf-bg-deep); color: var(--tf-ink); font-size: 12px; }
+.demo-card { display: grid; gap: 16px; margin-block: 20px; }
+.demo-card h2, .demo-card h3, .demo-card p { margin: 0; }
+.demo-card p { line-height: 1.6; }
+.demo-periods, .demo-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.demo-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.demo-plan { display: flex; flex-direction: column; gap: 12px; text-align: left; padding: 18px; border: 2px solid var(--tf-line); border-radius: 20px; background: transparent; color: inherit; cursor: pointer; }
+.demo-plan--selected { border-color: #8472fa; background: rgba(132, 114, 250, .1); }
+.demo-plan:focus-visible { outline: 3px solid #8472fa; outline-offset: 3px; }
+.demo-plan strong { font-size: 20px; }
+.demo-plan span { font-size: 14px; line-height: 1.5; }
+.demo-order-id { overflow-wrap: anywhere; font-size: 12px; opacity: .75; }
+@media (max-width: 639px) { .demo-plans { grid-template-columns: 1fr; } .demo-actions > .button { width: 100%; } }
+
+.workspace-access-notice { margin-bottom: 20px; padding: 16px; border: 1px solid var(--tf-line); border-radius: 16px; background: var(--tf-warning-soft); color: var(--tf-ink); line-height: 1.6; font-size: 13px; }
+.workspace-access-notice a { color: var(--tf-accent); text-decoration: underline; }
+.glass-card.demo-card { padding: 22px; }
+.demo-card h2 { font-size: 20px; font-weight: 650; line-height: 1.3; letter-spacing: -.35px; }
+.demo-card h3 { font-size: 17px; font-weight: 650; }
+.demo-card p { color: var(--tf-muted); font-size: 14px; }
+.demo-card .badge { justify-self: start; }

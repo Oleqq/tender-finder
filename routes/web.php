@@ -8,6 +8,7 @@ use App\Http\Controllers\CalendarSubscriptionController;
 use App\Http\Controllers\ChecklistTemplateController;
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemoCheckoutController;
 use App\Http\Controllers\DeveloperPlanController;
 use App\Http\Controllers\LegalDocumentController;
 use App\Http\Controllers\LocalMvpOperatorSessionController;
@@ -46,6 +47,7 @@ use App\Http\Controllers\TenderFeedViewController;
 use App\Http\Controllers\TenderPersonalStateController;
 use App\Http\Controllers\TenderWorkController;
 use App\Http\Controllers\TrialController;
+use App\Http\Middleware\EnforceWorkspaceAccess;
 use App\Services\AccessService;
 use App\Services\LocalMvpSubscriberService;
 use App\Services\TemporaryFullAccessService;
@@ -72,6 +74,17 @@ Route::get('/open', MiniAppOpenController::class)->name('mini-app.open');
 Route::get('/pricing/{theme?}', PricingPageController::class)
     ->where('theme', 'light|dark')->name('pricing');
 
+Route::get('/demo/reviewer', [DemoCheckoutController::class, 'reviewer'])
+    ->middleware(['signed', 'throttle:10,1'])->name('demo.reviewer');
+Route::get('/demo', [DemoCheckoutController::class, 'index'])->name('demo.index');
+Route::post('/demo/session', [DemoCheckoutController::class, 'session'])->middleware('throttle:10,1');
+Route::middleware(['auth', 'throttle:30,1'])->prefix('demo')->group(function () {
+    Route::post('/orders', [DemoCheckoutController::class, 'create']);
+    Route::get('/orders/{order}', [DemoCheckoutController::class, 'show'])->whereUuid('order');
+    Route::post('/orders/{order}/confirm', [DemoCheckoutController::class, 'confirm'])->whereUuid('order');
+    Route::post('/expire', [DemoCheckoutController::class, 'expire']);
+});
+
 Route::post('/guest/session', [BrowserGuestSessionController::class, 'store'])
     ->middleware('throttle:10,1')->name('guest.session.store');
 
@@ -85,7 +98,7 @@ Route::get('/local/mvp-subscriber', [LocalMvpSubscriberSessionController::class,
 
 Route::get('/onboarding', fn (LocalMvpSubscriberService $subscriber, TemporaryFullAccessService $temporary) => Inertia::render('Onboarding', [
     'localSubscriberEntryEnabled' => $subscriber->isEnabled(),
-    'temporaryFullAccessEnabled' => $temporary->isActive(),
+    'temporaryFullAccessEnabled' => ! request()->user()?->is_demo_guest && $temporary->isActive(),
 ]))->name('onboarding');
 Route::get('/offer', [LegalDocumentController::class, 'offer'])->name('legal.offer');
 Route::get('/privacy', [LegalDocumentController::class, 'privacy'])->name('legal.privacy');
@@ -101,7 +114,7 @@ Route::get('/team-invitations/{token}', [TeamController::class, 'invitation']);
 Route::get('/calendar/subscriptions/{token}.ics', [CalendarSubscriptionController::class, 'feed'])
     ->name('calendar.subscription.feed');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', EnforceWorkspaceAccess::class])->group(function () {
     Route::get('/catalog', [PriceCatalogController::class, 'index'])->name('catalog');
     Route::get('/catalog/template', [PriceCatalogController::class, 'template']);
     Route::post('/catalog/import', [PriceCatalogController::class, 'import'])->middleware('throttle:5,1,catalog-import');
@@ -156,7 +169,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/checklist-templates/{template}', [ChecklistTemplateController::class, 'destroy']);
     Route::post('/tenders/{tender}/templates/{template}', [ChecklistTemplateController::class, 'apply']);
     Route::get('/consents', fn (TemporaryFullAccessService $temporary) => Inertia::render('Consents', [
-        'temporaryFullAccessEnabled' => $temporary->isActive(),
+        'temporaryFullAccessEnabled' => ! request()->user()?->is_demo_guest && $temporary->isActive(),
     ]))->name('consents');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/tenders', [TenderFeedController::class, 'index'])->name('tenders');

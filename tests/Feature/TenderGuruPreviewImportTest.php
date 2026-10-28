@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Queue;
 
 it('imports a documented TenderGuru preview response locally without a key or notification delivery', function () {
     Queue::fake();
-    $user = User::factory()->create(['telegram_id' => '9005']);
+    $user = User::factory()->withAccess()->create(['telegram_id' => '9005']);
     SearchQuery::query()->create([
         'user_id' => $user->id,
         'name' => 'Локальный preview',

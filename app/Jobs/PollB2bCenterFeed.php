@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\SourceFeed;
 use App\Services\B2bCenterSource;
+use App\Services\FeedAccessService;
 use App\Services\TenderSourceImportService;
 use App\Tenders\B2bCenterException;
 use Illuminate\Bus\Queueable;
@@ -26,6 +27,10 @@ final class PollB2bCenterFeed implements ShouldQueue
         $feed = SourceFeed::query()->find($this->feedId);
 
         if ($feed === null || $feed->source !== 'b2b_center' || $feed->status !== 'active') {
+            return;
+        }
+
+        if (! app(FeedAccessService::class)->mayPoll($feed)) {
             return;
         }
 

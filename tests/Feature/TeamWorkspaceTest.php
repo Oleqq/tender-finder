@@ -20,7 +20,7 @@ afterEach(function () {
 require_once __DIR__.'/../Fixtures/team-workspace.php';
 
 it('creates a team with a server assigned owner role', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->withAccess()->create();
     $id = $this->actingAs($owner)->postJson('/teams', ['name' => 'Компания', 'owner_id' => 999])->assertCreated()->json('team_id');
     expect(Team::query()->findOrFail($id)->owner_id)->toBe($owner->id);
     $this->get('/teams?team_id='.$id)->assertOk()->assertInertia(fn (Assert $p) => $p->where('team.role', 'owner')->has('members', 1));
@@ -32,7 +32,7 @@ it('requires explicit invitation acceptance and stores only a hash with expiry a
     $token = basename($url);
     $invite = DB::table('team_invitations')->sole();
     expect($invite->token_hash)->toBe(hash('sha256', $token));
-    $new = User::factory()->create();
+    $new = User::factory()->withAccess()->create();
     $this->actingAs($new)->get($url)->assertOk();
     expect(DB::table('team_members')->where('user_id', $new->id)->exists())->toBeFalse();
     $this->postJson($url)->assertOk()->assertJsonPath('team_id', $team->id);
@@ -83,10 +83,10 @@ it('enforces viewer permissions and validates assignees against the selected tea
     $this->postJson($root.'/checklist'.$scope, ['title' => 'Правка'])->assertForbidden();
     $this->deleteJson($root.'/checklist/'.$id.$scope, ['version' => 1])->assertForbidden();
     $this->actingAs($member)->putJson($root.'/participation'.$scope, ['stage' => 'studying', 'version' => 1, 'assignee_id' => $viewer->id])->assertUnprocessable();
-    $this->putJson($root.'/participation'.$scope, ['stage' => 'preparing', 'version' => 1, 'assignee_id' => User::factory()->create()->id])->assertUnprocessable();
+    $this->putJson($root.'/participation'.$scope, ['stage' => 'preparing', 'version' => 1, 'assignee_id' => User::factory()->withAccess()->create()->id])->assertUnprocessable();
     $this->putJson($root.'/participation'.$scope, ['stage' => 'preparing', 'version' => 1, 'assignee_id' => $member->id])->assertOk();
     $this->actingAs($owner)->putJson($root.'/participation'.$scope, ['stage' => 'won', 'version' => 1])->assertConflict();
-    $this->actingAs(User::factory()->create())->get('/calendar/export?month=2026-09&team_id='.$team->id)->assertNotFound();
+    $this->actingAs(User::factory()->withAccess()->create())->get('/calendar/export?month=2026-09&team_id='.$team->id)->assertNotFound();
 });
 
 it('removes access and assignments when a member leaves or becomes a viewer', function () {
@@ -204,5 +204,5 @@ it('shows workload and recent activity only to team members', function () {
     $this->actingAs($member)->get('/teams?team_id='.$team->id)->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('members.1.active_applications', 1)->where('members.1.open_tasks', 2)->where('members.1.overdue_tasks', 1)
         ->where('activities.0.action', 'task_created'));
-    $this->actingAs(User::factory()->create())->get('/teams?team_id='.$team->id)->assertNotFound();
+    $this->actingAs(User::factory()->withAccess()->create())->get('/teams?team_id='.$team->id)->assertNotFound();
 });

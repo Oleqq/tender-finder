@@ -84,7 +84,7 @@ HTML;
 
 it('fetches bounded public pages, imports platform tenders, and suppresses initial notifications', function () {
     Queue::fake();
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $query = SearchQuery::query()->create([
         'user_id' => $user->id,
         'name' => 'Оборудование',

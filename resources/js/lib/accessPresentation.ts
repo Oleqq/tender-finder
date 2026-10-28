@@ -34,7 +34,7 @@ export function presentAccess(
     }
 
     if (
-        access?.mode === 'temporary_full_access' &&
+        (access?.mode === 'temporary_full_access' || access?.state === 'active') &&
         remainingMs !== null &&
         remainingMs <= 0
     ) {
@@ -89,7 +89,9 @@ export function presentAccess(
                         ? 'Доступ владельца'
                         : access.mode === 'developer'
                           ? `${planName(access.plan_code) ?? 'Доступ'} (Developer Mode)`
-                          : (planName(access.plan_code) ?? 'Доступ активен'),
+                          : access.mode === 'demo'
+                            ? `${planName(access.plan_code) ?? 'Доступ'} · демо`
+                            : (planName(access.plan_code) ?? 'Доступ активен'),
                 title: 'Рабочее пространство открыто',
                 description: 'Поиск, мониторинги и работа с закупками доступны.',
                 detail: period,

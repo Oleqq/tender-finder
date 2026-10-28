@@ -19,7 +19,7 @@ beforeEach(function (): void {
 
 it('matches deterministic filters with explainable reasons and minus words', function () {
     Queue::fake();
-    $user = User::factory()->create(['telegram_id' => '9001']);
+    $user = User::factory()->withAccess()->create(['telegram_id' => '9001']);
     $query = SearchQuery::query()->create([
         'user_id' => $user->id,
         'name' => 'Поддержка сайтов',
@@ -170,7 +170,7 @@ it('lets an owner update or delete a saved query without exposing it to another 
         'tender.rostender.api_key' => 'test',
     ]);
     Cache::put('rostender:search-templates:v1', [new RostenderSearchTemplate(42, 'Серверы')], 60);
-    $owner = User::factory()->create(['telegram_id' => '9003']);
+    $owner = User::factory()->withAccess()->create(['telegram_id' => '9003']);
     $query = SearchQuery::query()->create([
         'user_id' => $owner->id,
         'name' => 'Старый мониторинг',
@@ -200,7 +200,7 @@ it('lets an owner update or delete a saved query without exposing it to another 
         ->and($updated->minus_keywords)->toBe(['строительство'])
         ->and($updated->budget_min)->toBe('100000.00');
 
-    $otherUser = User::factory()->create(['telegram_id' => '9004']);
+    $otherUser = User::factory()->withAccess()->create(['telegram_id' => '9004']);
     $this->actingAs($otherUser)
         ->patchJson("/queries/{$query->id}", ['keywords' => ['чужой']])
         ->assertNotFound();

@@ -58,6 +58,7 @@ final class CalendarSubscriptionService
     {
         $subscription = CalendarSubscription::query()->with(['user', 'team'])
             ->where('token_hash', hash('sha256', $token))->whereNull('revoked_at')->firstOrFail();
+        abort_unless(app(AccessService::class)->hasActiveAccess($subscription->user), 403);
         if ($subscription->team !== null) {
             app(TeamWorkspaceService::class)->authorize($subscription->user, $subscription->team);
             abort_if($subscription->team->archived_at !== null, 404);

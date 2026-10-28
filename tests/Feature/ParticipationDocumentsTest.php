@@ -13,7 +13,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 function documentFixture(): array
 {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $query = SearchQuery::query()->create(['user_id' => $user->id, 'name' => 'Документы', 'keywords' => ['сервер'], 'status' => 'active']);
     $tender = Tender::query()->create([
         'source' => 'rostender', 'external_id' => 'documents-101',
@@ -53,14 +53,14 @@ it('stores private files and keeps immutable replacement history', function () {
         'version' => $created->json('documents.0.versions.0.id'),
     ], false);
     $this->get($download)->assertOk()->assertDownload('proposal.pdf');
-    $this->actingAs(User::factory()->create())->get($download)->assertNotFound();
+    $this->actingAs(User::factory()->withAccess()->create())->get($download)->assertNotFound();
 });
 
 it('validates ownership assignments limits and archive deletion', function () {
     Storage::fake('local');
     [$user, $tender, $participation] = documentFixture();
     $otherParticipation = TenderParticipation::query()->create([
-        'user_id' => User::factory()->create()->id, 'tender_id' => $tender->id, 'stage' => 'studying',
+        'user_id' => User::factory()->withAccess()->create()->id, 'tender_id' => $tender->id, 'stage' => 'studying',
     ]);
     $foreignTask = $otherParticipation->items()->create(['title' => 'Чужая задача']);
     $root = '/tenders/'.$tender->id.'/documents';
@@ -83,7 +83,7 @@ it('validates ownership assignments limits and archive deletion', function () {
 
 it('keeps team documents readable to viewers but writable only to editors', function () {
     [$owner, $tender] = documentFixture();
-    $viewer = User::factory()->create();
+    $viewer = User::factory()->withAccess()->create();
     $team = Team::query()->create(['name' => 'Отдел закупок', 'owner_id' => $owner->id]);
     DB::table('team_members')->insert([
         ['team_id' => $team->id, 'user_id' => $owner->id, 'role' => 'owner', 'created_at' => now()],

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 function calendarSubscriptionFixture(): array
 {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $query = SearchQuery::query()->create(['user_id' => $user->id, 'name' => 'Календарь', 'keywords' => ['сервер'], 'status' => 'active']);
     $tender = Tender::query()->create([
         'source' => 'rostender', 'external_id' => 'calendar-subscription-101',
@@ -46,7 +46,7 @@ it('creates rotates and revokes a private updating calendar link', function () {
 
 it('stops a team feed when its owner is no longer a team member', function () {
     [$owner, $tender] = calendarSubscriptionFixture();
-    $member = User::factory()->create();
+    $member = User::factory()->withAccess()->create();
     $team = Team::query()->create(['name' => 'Тендерный отдел', 'owner_id' => $owner->id]);
     DB::table('team_members')->insert([
         ['team_id' => $team->id, 'user_id' => $owner->id, 'role' => 'owner', 'created_at' => now()],

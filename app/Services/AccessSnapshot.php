@@ -34,7 +34,7 @@ final readonly class AccessSnapshot
             planCode: $entitlement->plan?->code,
             activeQueryLimit: $entitlement->code === 'active_queries' ? $entitlement->value : null,
             endsAt: $entitlement->ends_at?->toAtomString(),
-            mode: ($entitlement->metadata['developer_mode'] ?? false) === true ? 'developer' : null,
+            mode: ($entitlement->metadata['developer_mode'] ?? false) === true ? 'developer' : (($entitlement->metadata['is_demo'] ?? false) ? 'demo' : null),
         );
     }
 }

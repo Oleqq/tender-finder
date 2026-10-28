@@ -42,7 +42,7 @@ class ConsentController extends Controller
         try {
             $consents->acceptCurrent($request->user(), $documents, $request->ip());
 
-            if ($temporaryFullAccess->isActive()) {
+            if (! $request->user()->is_demo_guest && $temporaryFullAccess->isActive()) {
                 return response()->json([
                     'status' => 'access_granted',
                     'access' => $accessService->snapshotFor($request->user())->toArray(),

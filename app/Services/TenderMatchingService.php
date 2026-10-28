@@ -146,6 +146,12 @@ class TenderMatchingService
 
     private function matchTenderForQuery(Tender $tender, SearchQuery $query, bool $queueNotifications): int
     {
+        if (! app(AccessService::class)->hasActiveAccess($query->user)) {
+            app(AccessFreezeService::class)->freezeIfInactive($query->user, now());
+
+            return 0;
+        }
+
         $result = $this->evaluate($query, $tender);
 
         if (! $result->matches) {

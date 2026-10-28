@@ -30,7 +30,7 @@ beforeEach(function () {
 
 function lifecycleFixture(): array
 {
-    $user = User::factory()->create();
+    $user = User::factory()->withAccess()->create();
     $query = SearchQuery::query()->create(['user_id' => $user->id, 'name' => 'Поиск', 'keywords' => ['сайт'], 'status' => 'active']);
     $tender = Tender::query()->create(['source' => 'workspace_ru', 'external_id' => 'lifecycle-1', 'title' => 'Разработка сайта',
         'canonical_url' => 'https://example.test/lifecycle', 'canonical_url_hash' => hash('sha256', 'lifecycle'),
@@ -87,7 +87,7 @@ it('removes private work from lists analytics calendar dashboard and restores th
 
 it('validates whole batches atomically without touching foreign or stale work', function () {
     [$user, $tender, $p] = lifecycleFixture();
-    $other = TenderParticipation::query()->create(['user_id' => User::factory()->create()->id, 'tender_id' => $tender->id]);
+    $other = TenderParticipation::query()->create(['user_id' => User::factory()->withAccess()->create()->id, 'tender_id' => $tender->id]);
     $this->actingAs($user)->postJson('/participation/remove', lifecycleItems($p, $other))->assertNotFound();
     expect($p->fresh()->trashed())->toBeFalse();
     $this->postJson('/participation/remove', ['items' => [['id' => $p->id, 'version' => 2]]])->assertConflict();
@@ -130,7 +130,7 @@ it('protects team and personal scopes and read-only or archived teams', function
     $task = $p->items()->create(['title' => 'Задача', 'assignee_id' => $member->id, 'due_on' => now()->subDay()]);
     $url = '/participation/remove?team_id='.$team->id;
     $this->actingAs($viewer)->postJson($url, lifecycleItems($p))->assertForbidden();
-    $this->actingAs(User::factory()->create())->postJson($url, lifecycleItems($p))->assertNotFound();
+    $this->actingAs(User::factory()->withAccess()->create())->postJson($url, lifecycleItems($p))->assertNotFound();
     $this->actingAs($owner)->postJson('/participation/remove', lifecycleItems($p))->assertNotFound();
     $this->postJson($url, lifecycleItems($personal))->assertNotFound();
     $this->actingAs($member)->postJson($url, lifecycleItems($p))->assertOk();
@@ -211,7 +211,7 @@ it('never recreates a removed team row through promotion and offers restoration 
 
 it('keeps hidden feed marks reversible without hiding a second users matching tender', function () {
     [$user, $tender] = lifecycleFixture();
-    $other = User::factory()->create();
+    $other = User::factory()->withAccess()->create();
     $query = SearchQuery::query()->create(['user_id' => $other->id, 'name' => 'Поиск', 'keywords' => ['сайт'], 'status' => 'active']);
     TenderQueryMatch::query()->create(['tender_id' => $tender->id, 'search_query_id' => $query->id, 'matched_at' => now(), 'match_reasons' => []]);
     $this->actingAs($user)->patchJson('/tenders/'.$tender->id.'/state', ['status' => 'dismissed'])->assertOk();

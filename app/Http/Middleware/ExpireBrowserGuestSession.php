@@ -17,7 +17,7 @@ final class ExpireBrowserGuestSession
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        if ($user instanceof User && $user->is_browser_guest && ! $this->temporary->isActive()) {
+        if ($user instanceof User && $user->is_browser_guest && ! $user->is_demo_guest && ! $this->temporary->isActive()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
