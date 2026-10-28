@@ -13,6 +13,7 @@
 | [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
 | [PAYMENTS-NEXT-STAGE](PAYMENTS-NEXT-STAGE.md) | Текущий выбор платёжного канала, граница Telegram и план возможной внешней ЮKassa. |
 | [SUBSCRIPTION-TARIFFS](SUBSCRIPTION-TARIFFS.md) | Цены Basic / Pro / Ultra на 1, 3 и 12 месяцев, скидки, состав тарифов и HTML-страницы предложения. |
+| [PRO-ULTRA-FEATURE-ROADMAP](PRO-ULTRA-FEATURE-ROADMAP.md) | Восемь планируемых функций Pro / Ultra: сценарии заработка, зависимости, критерии готовности и очередь реализации. |
 | [COMPANY-REQUISITES](COMPANY-REQUISITES.md) | Публичная страница реквизитов ИП, исходный PDF и порядок обновления данных. |
 | [TENDER-ANALYTICS-AND-SOURCES](TENDER-ANALYTICS-AND-SOURCES.md) | Краткая аналитика в карточке, выбор площадок мониторинга и множественный фильтр ленты. |
 | [TENDER-ANALYTICS-TIERS](TENDER-ANALYTICS-TIERS.md) | Разделение аналитики Basic / Pro / Ultra, методика расчётов и серверный контроль доступа. |
