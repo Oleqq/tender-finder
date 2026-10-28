@@ -283,6 +283,14 @@ export default function TenderWork() {
                         Собрать предложение
                     </Link>
                 ) : null}
+                {tender.analytics.tier !== 'basic' ? (
+                    <Link
+                        className="button button--secondary button--md"
+                        href={scopedUrl(`/tenders/${tender.id}/cost-check`, team)}
+                    >
+                        Проверить неучтённые расходы
+                    </Link>
+                ) : null}
                 <TenderAnalytics
                     key={tender.id}
                     summary={tender.summary}

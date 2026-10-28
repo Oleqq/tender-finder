@@ -358,9 +358,11 @@ export default function ProcurementComparison() {
                                 </summary>
                                 <OfferFields
                                     label={`Отдельно: ${need.contract}`}
-                                    offer={offers.find(
-                                        (offer) => offer.need_id === need.id,
-                                    )!}
+                                    offer={
+                                        offers.find(
+                                            (offer) => offer.need_id === need.id,
+                                        )!
+                                    }
                                     disabled={disabled}
                                     onChange={(next) => {
                                         setOffers(

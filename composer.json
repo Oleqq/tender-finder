@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "openspout/openspout": "^4.32",
+        "smalot/pdfparser": "^2.13.1",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {

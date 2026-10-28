@@ -7,6 +7,7 @@ use App\Http\Controllers\BrowserGuestSessionController;
 use App\Http\Controllers\CalendarSubscriptionController;
 use App\Http\Controllers\ChecklistTemplateController;
 use App\Http\Controllers\ConsentController;
+use App\Http\Controllers\CostGapController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoCheckoutController;
 use App\Http\Controllers\DeveloperPlanController;
@@ -131,6 +132,10 @@ Route::middleware(['auth', EnforceWorkspaceAccess::class])->group(function () {
     Route::patch('/proposals/blocks/{block}', [ProposalController::class, 'saveBlock'])->whereNumber('block')->middleware('throttle:30,1,proposal-block');
     Route::delete('/proposals/blocks/{block}', [ProposalController::class, 'deleteBlock'])->whereNumber('block');
     Route::get('/tenders/{tender}/proposal', [ProposalController::class, 'show'])->name('tenders.proposal');
+    Route::get('/tenders/{tender}/cost-check', [CostGapController::class, 'show'])->name('tenders.cost-check');
+    Route::post('/tenders/{tender}/cost-check/analyze', [CostGapController::class, 'analyze'])->middleware('throttle:5,1,cost-check-analyze');
+    Route::patch('/tenders/{tender}/cost-check/review', [CostGapController::class, 'review'])->middleware('throttle:60,1,cost-check-review');
+    Route::post('/tenders/{tender}/cost-check/transfer', [CostGapController::class, 'transfer'])->middleware('throttle:30,1,cost-check-transfer');
     Route::post('/tenders/{tender}/proposal/compose', [ProposalController::class, 'compose'])->middleware('throttle:20,1,proposal-compose');
     Route::patch('/tenders/{tender}/proposal', [ProposalController::class, 'save']);
     Route::get('/tenders/{tender}/proposal/export', [ProposalController::class, 'export'])->name('proposal.export');
