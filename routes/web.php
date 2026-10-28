@@ -29,6 +29,7 @@ use App\Http\Controllers\ParticipationExecutionController;
 use App\Http\Controllers\ParticipationLifecycleController;
 use App\Http\Controllers\PriceCatalogController;
 use App\Http\Controllers\PricingPageController;
+use App\Http\Controllers\ProcurementController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
@@ -117,6 +118,14 @@ Route::get('/calendar/subscriptions/{token}.ics', [CalendarSubscriptionControlle
     ->name('calendar.subscription.feed');
 
 Route::middleware(['auth', EnforceWorkspaceAccess::class])->group(function () {
+    Route::get('/procurement', [ProcurementController::class, 'index'])->name('procurement');
+    Route::post('/procurement/needs', [ProcurementController::class, 'saveNeed'])->middleware('throttle:30,1,procurement');
+    Route::patch('/procurement/needs/{need}', [ProcurementController::class, 'saveNeed'])->whereNumber('need')->middleware('throttle:30,1,procurement');
+    Route::delete('/procurement/needs/{need}', [ProcurementController::class, 'deleteNeed'])->whereNumber('need');
+    Route::post('/procurement/comparisons', [ProcurementController::class, 'createComparison'])->middleware('throttle:20,1,procurement-compare');
+    Route::get('/procurement/comparisons/{comparison}', [ProcurementController::class, 'show'])->whereNumber('comparison');
+    Route::patch('/procurement/comparisons/{comparison}', [ProcurementController::class, 'saveComparison'])->whereNumber('comparison')->middleware('throttle:30,1,procurement-quote');
+    Route::post('/procurement/comparisons/{comparison}/{decision}', [ProcurementController::class, 'decision'])->whereNumber('comparison')->whereIn('decision', ['confirm', 'cancel'])->middleware('throttle:20,1,procurement-decision');
     Route::get('/proposals', [ProposalController::class, 'index'])->name('proposals');
     Route::post('/proposals/blocks', [ProposalController::class, 'saveBlock'])->middleware('throttle:30,1,proposal-block');
     Route::patch('/proposals/blocks/{block}', [ProposalController::class, 'saveBlock'])->whereNumber('block')->middleware('throttle:30,1,proposal-block');

@@ -567,6 +567,9 @@ export default function TenderWork() {
                         <Link href={scopedUrl(`${root}/execution`, team)}>
                             Открыть контроль исполнения →
                         </Link>
+                        <Link href={scopedUrl('/procurement', team)}>
+                            Сравнить общую закупку для контрактов →
+                        </Link>
                     </GlassCard>
                 ) : null}
                 {participation ? (
