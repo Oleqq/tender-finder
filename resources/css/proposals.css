@@ -1,0 +1,21 @@
+.proposal-intro { display: grid; gap: 12px; margin-bottom: 24px; }
+.proposal-intro h2, .proposal-card h2 { margin: 0; color: var(--tf-ink); font-size: 19px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+.proposal-intro p, .proposal-card p, .proposal-form p { margin: 0; color: var(--tf-muted); font-size: 14px; line-height: 1.65; }
+.proposal-intro a { color: var(--tf-accent); font-size: 14px; text-decoration: underline; }
+.proposal-card { display: grid; gap: 16px; padding: 22px; margin-block: 20px; }
+.proposal-library { display: grid; }
+.proposal-caption { color: var(--tf-muted); font-size: 12px; }
+.proposal-text { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow-y: auto; }
+.proposal-form { display: grid; gap: 18px; }
+.proposal-form label { display: grid; gap: 8px; font-size: 13px; font-weight: 550; color: var(--tf-ink); }
+.proposal-form input:not([type='checkbox']), .proposal-form textarea, .proposal-form select { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--tf-input-line); border-radius: 12px; background: var(--tf-input-bg); color: var(--tf-ink); font-size: 14px; font-weight: 400; }
+.proposal-form textarea { line-height: 1.6; resize: vertical; }
+.proposal-form .proposal-check { display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; padding-block: 6px; cursor: pointer; }
+.proposal-check input { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 1px; accent-color: var(--tf-accent-fill); }
+.proposal-check small { display: block; margin-top: 4px; color: var(--tf-muted); font-weight: 400; }
+.proposal-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.proposal-card .badge { justify-self: start; }
+.proposal-draft { min-height: 420px; }
+@media(max-width: 480px) { .proposal-card { padding: 18px; } .proposal-actions > .button { width: 100%; } }
+
+.proposal-check { display: flex; align-items: flex-start; gap: 12px; line-height: 1.6; font-size: 13px; color: var(--tf-ink); cursor: pointer; }

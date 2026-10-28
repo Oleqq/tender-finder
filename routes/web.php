@@ -29,6 +29,7 @@ use App\Http\Controllers\ParticipationLifecycleController;
 use App\Http\Controllers\PriceCatalogController;
 use App\Http\Controllers\PricingPageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
 use App\Http\Controllers\SavedSearchRunController;
 use App\Http\Controllers\SavedSearchRunHistoryController;
@@ -115,6 +116,14 @@ Route::get('/calendar/subscriptions/{token}.ics', [CalendarSubscriptionControlle
     ->name('calendar.subscription.feed');
 
 Route::middleware(['auth', EnforceWorkspaceAccess::class])->group(function () {
+    Route::get('/proposals', [ProposalController::class, 'index'])->name('proposals');
+    Route::post('/proposals/blocks', [ProposalController::class, 'saveBlock'])->middleware('throttle:30,1,proposal-block');
+    Route::patch('/proposals/blocks/{block}', [ProposalController::class, 'saveBlock'])->whereNumber('block')->middleware('throttle:30,1,proposal-block');
+    Route::delete('/proposals/blocks/{block}', [ProposalController::class, 'deleteBlock'])->whereNumber('block');
+    Route::get('/tenders/{tender}/proposal', [ProposalController::class, 'show'])->name('tenders.proposal');
+    Route::post('/tenders/{tender}/proposal/compose', [ProposalController::class, 'compose'])->middleware('throttle:20,1,proposal-compose');
+    Route::patch('/tenders/{tender}/proposal', [ProposalController::class, 'save']);
+    Route::get('/tenders/{tender}/proposal/export', [ProposalController::class, 'export'])->name('proposal.export');
     Route::get('/catalog', [PriceCatalogController::class, 'index'])->name('catalog');
     Route::get('/catalog/template', [PriceCatalogController::class, 'template']);
     Route::post('/catalog/import', [PriceCatalogController::class, 'import'])->middleware('throttle:5,1,catalog-import');

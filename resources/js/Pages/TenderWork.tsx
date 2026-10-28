@@ -275,6 +275,14 @@ export default function TenderWork() {
                         Сопоставить с моим прайсом
                     </Link>
                 ) : null}
+                {tender.analytics.tier !== 'basic' ? (
+                    <Link
+                        className="button button--secondary button--md"
+                        href={scopedUrl(`/tenders/${tender.id}/proposal`, team)}
+                    >
+                        Собрать предложение
+                    </Link>
+                ) : null}
                 <TenderAnalytics
                     key={tender.id}
                     summary={tender.summary}
