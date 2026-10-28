@@ -91,6 +91,9 @@ export default function Profile() {
                 </section>
 
                 <GlassCard className="profile-shortcuts">
+                    <Link href="/catalog">
+                        Мой прайс <Icon name="chevron-right" size={17} />
+                    </Link>
                     <Link href="/queries">
                         Мониторинги <Icon name="chevron-right" size={17} />
                     </Link>

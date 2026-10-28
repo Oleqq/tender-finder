@@ -38,6 +38,8 @@ RUN composer install --no-interaction --no-progress --prefer-dist --no-scripts \
 
 FROM php:8.3.36-cli-alpine AS app-base
 
+COPY deploy/php-uploads.ini /usr/local/etc/php/conf.d/zz-tender-uploads.ini
+
 # PHP 8.3.36 fixes CVE-2026-109618 and CVE-2026-109619. Fail closed if a
 # registry mirror serves a stale image under this tag.
 RUN php -r 'if (PHP_VERSION_ID < 80336 || PHP_VERSION_ID >= 80400) { fwrite(STDERR, "PHP 8.3.36 or newer 8.3 patch release is required\n"); exit(1); }' \

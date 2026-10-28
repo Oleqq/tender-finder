@@ -8,6 +8,7 @@ x-dev-build: &dev-build
 x-dev-volumes: &dev-volumes
   - .:/var/www/html
   - tender_finder_local_dev_vendor:/var/www/html/vendor
+  - ./deploy/php-uploads.ini:/usr/local/etc/php/conf.d/zz-tender-uploads.ini:ro
 
 x-dev-application: &dev-application
   <<: *dev-build

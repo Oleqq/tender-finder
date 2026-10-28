@@ -59,6 +59,14 @@ export default function TenderDetail() {
                     </Link>
                 </GlassCard>
 
+                {tender.analytics.tier !== 'basic' ? (
+                    <Link
+                        className="button button--secondary button--md"
+                        href={`/catalog/tenders/${tender.id}`}
+                    >
+                        Сопоставить с моим прайсом
+                    </Link>
+                ) : null}
                 <TenderAnalytics
                     key={tender.id}
                     summary={tender.summary}

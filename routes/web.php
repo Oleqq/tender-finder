@@ -25,6 +25,7 @@ use App\Http\Controllers\ParticipationCommentController;
 use App\Http\Controllers\ParticipationDocumentController;
 use App\Http\Controllers\ParticipationEconomicsController;
 use App\Http\Controllers\ParticipationLifecycleController;
+use App\Http\Controllers\PriceCatalogController;
 use App\Http\Controllers\PricingPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
@@ -101,6 +102,18 @@ Route::get('/calendar/subscriptions/{token}.ics', [CalendarSubscriptionControlle
     ->name('calendar.subscription.feed');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/catalog', [PriceCatalogController::class, 'index'])->name('catalog');
+    Route::get('/catalog/template', [PriceCatalogController::class, 'template']);
+    Route::post('/catalog/import', [PriceCatalogController::class, 'import'])->middleware('throttle:5,1,catalog-import');
+    Route::post('/catalog/items', [PriceCatalogController::class, 'saveItem'])->middleware('throttle:30,1,catalog-item');
+    Route::patch('/catalog/items/{item}', [PriceCatalogController::class, 'saveItem'])->whereNumber('item')->middleware('throttle:30,1,catalog-item');
+    Route::delete('/catalog/items/{item}', [PriceCatalogController::class, 'deleteItem'])->whereNumber('item')->middleware('throttle:30,1,catalog-item');
+    Route::delete('/catalog', [PriceCatalogController::class, 'clear'])->middleware('throttle:10,1,catalog-clear');
+    Route::get('/catalog/recommendations', [PriceCatalogController::class, 'recommendations'])->middleware('throttle:10,1,catalog-search');
+    Route::get('/catalog/tenders/{tender}', [PriceCatalogController::class, 'show'])->middleware('throttle:30,1,catalog-comparison');
+    Route::post('/catalog/tenders/{tender}/specification', [PriceCatalogController::class, 'specification'])->middleware('throttle:5,1,catalog-specification');
+    Route::delete('/catalog/tenders/{tender}/specification', [PriceCatalogController::class, 'clearSpecification'])->middleware('throttle:10,1,catalog-specification');
+    Route::post('/catalog/tenders/{tender}/reviews', [PriceCatalogController::class, 'review'])->middleware('throttle:60,1,catalog-review');
     Route::get('/support/admin', [AdminSupportController::class, 'index'])
         ->middleware('super_admin')->name('support.admin.index');
     Route::get('/support/admin/{ticket}', [AdminSupportController::class, 'show'])

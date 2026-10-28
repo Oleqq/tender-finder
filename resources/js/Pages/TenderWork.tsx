@@ -267,6 +267,14 @@ export default function TenderWork() {
                         </Button>
                     ) : null}
                 </GlassCard>
+                {tender.analytics.tier !== 'basic' ? (
+                    <Link
+                        className="button button--secondary button--md"
+                        href={scopedUrl(`/catalog/tenders/${tender.id}`, team)}
+                    >
+                        Сопоставить с моим прайсом
+                    </Link>
+                ) : null}
                 <TenderAnalytics
                     key={tender.id}
                     summary={tender.summary}
