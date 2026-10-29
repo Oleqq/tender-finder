@@ -162,10 +162,11 @@ export default function WinnerOpportunity() {
         <>
             <Head title="Предложение победителю" />
             <AppShell
-                className="winner-page"
+                className="feature-page winner-page"
                 title="Предложение победителю"
                 eyebrow="Личное · Ultra"
                 backHref="/winner-opportunities"
+                activeNav="/profile"
             >
                 <section className="proposal-intro">
                     <Badge>
@@ -240,6 +241,7 @@ export default function WinnerOpportunity() {
                                                 {candidate.terms.join(', ')}
                                             </small>
                                             <Button
+                                                aria-label={`${selected.includes(candidate.item.id) ? 'Позиция выбрана' : 'Выбрать позицию'}: ${candidate.item.name}`}
                                                 variant="ghost"
                                                 disabled={
                                                     action.busy ||
@@ -255,7 +257,9 @@ export default function WinnerOpportunity() {
                                                     ])
                                                 }
                                             >
-                                                Выбрать позицию {candidate.item.id}
+                                                {selected.includes(candidate.item.id)
+                                                    ? 'Позиция выбрана'
+                                                    : 'Выбрать позицию'}
                                             </Button>
                                         </div>
                                     ))}

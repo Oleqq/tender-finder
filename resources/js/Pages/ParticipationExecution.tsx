@@ -49,7 +49,7 @@ type Props = {
 };
 const money = (value: string | number | boolean | null | undefined) =>
     typeof value === 'string' || typeof value === 'number'
-        ? `${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`
+        ? `${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00a0₽`
         : 'Не указано';
 const editableRow = (row: Expense): Expense => ({
     id: row.id,
@@ -145,6 +145,8 @@ export default function ParticipationExecution() {
                 title="Контроль исполнения"
                 eyebrow="Ultra · прибыль по контракту"
                 backHref={work}
+                className="feature-page"
+                activeNav="/tenders"
             >
                 <section className="proposal-intro">
                     <Badge tone="accent">

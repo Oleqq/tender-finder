@@ -83,6 +83,7 @@ export function RepeatTenderLookup({
                             {row.customer || 'Заказчик неизвестен'}
                         </small>
                         <Button
+                            aria-label={`Выбрать закупку: ${row.title}`}
                             variant="ghost"
                             disabled={busy || disabled}
                             onClick={() => {
@@ -90,7 +91,7 @@ export function RepeatTenderLookup({
                                 setRows(null);
                             }}
                         >
-                            Выбрать закупку {row.id}
+                            Выбрать закупку
                         </Button>
                     </div>
                 ))}

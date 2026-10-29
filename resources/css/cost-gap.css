@@ -3,14 +3,14 @@
 .cost-gap h2 { font-size: 20px; line-height: 1.4; font-weight: 650; }
 .cost-gap h3 { font-size: 17px; line-height: 1.4; font-weight: 650; }
 .cost-gap h4 { font-size: 13px; font-weight: 650; }
-.cost-gap p, .cost-gap small, .cost-gap cite { color: var(--tf-muted); font-size: 13px; line-height: 1.65; }
+.cost-gap p, .cost-gap small, .cost-gap cite { color: var(--tf-muted); font-size: 14px; line-height: 1.65; }
 .cost-gap a { color: var(--tf-accent); text-decoration: underline; font-size: 14px; }
 .cost-gap__intro, .cost-gap__results { display: grid; gap: 16px; }
 .cost-gap__intro > .badge { justify-self: start; }
 .cost-gap__card { display: grid; gap: 18px; padding: 24px; min-width: 0; }
 .cost-gap__form { display: grid; gap: 16px; min-width: 0; border: 0; padding: 0; margin: 0; }
 .cost-gap__form label { display: grid; gap: 8px; font-size: 13px; line-height: 1.6; }
-.cost-gap__form input:not([type='checkbox']), .cost-gap__form textarea, .cost-gap__form select { width: 100%; min-width: 0; max-width: 100%; padding: 12px; border: 1px solid var(--tf-input-line); border-radius: 12px; background: var(--tf-input-bg); color: var(--tf-ink); font: inherit; font-size: 14px; }
+.cost-gap__form input:not([type='checkbox']), .cost-gap__form textarea, .cost-gap__form select { width: 100%; min-width: 0; max-width: 100%; padding: 12px; border: 1px solid var(--tf-input-line); border-radius: 12px; background: var(--tf-input-bg); color: var(--tf-ink); font: inherit; font-size: 16px; }
 .cost-gap__form textarea { resize: vertical; line-height: 1.6; }
 .cost-gap__form .cost-gap__check { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
 .cost-gap__check input { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 2px; accent-color: var(--tf-accent-fill); }
@@ -19,7 +19,7 @@
 .cost-gap__evidence > div { min-width: 0; display: grid; align-content: start; gap: 12px; }
 .cost-gap__evidence blockquote { margin: 0; padding: 12px 14px; border-left: 3px solid var(--tf-accent); border-radius: 0 10px 10px 0; background: var(--tf-input-bg); overflow-wrap: anywhere; }
 .cost-gap__evidence blockquote p { white-space: pre-wrap; color: var(--tf-ink); }
-.cost-gap__evidence cite { display: block; font-style: normal; margin-top: 6px; font-size: 11px; }
+.cost-gap__evidence cite { display: block; font-style: normal; margin-top: 6px; font-size: 12px; }
 .cost-gap__row-title, .cost-gap__actions, .cost-gap__filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .cost-gap__row-title { justify-content: space-between; }
 .cost-gap__filters button { border: 1px solid var(--tf-input-line); background: var(--tf-input-bg); color: var(--tf-ink); padding: 9px 12px; border-radius: 12px; font-size: 12px; line-height: 1.5; }

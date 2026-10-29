@@ -95,7 +95,7 @@ export default function PriceCatalogPage() {
                 backHref="/profile"
                 title="Мой прайс"
                 eyebrow="Товары и компетенции"
-                className="catalog-page"
+                className="feature-page catalog-page"
             >
                 <GlassCard className="catalog-section" tone="accent">
                     <Badge tone="accent">Pro · Ultra</Badge>
@@ -195,12 +195,14 @@ export default function PriceCatalogPage() {
                                             <p>
                                                 {catalogMoney(item.price)} ·{' '}
                                                 {item.quantity === null
-                                                    ? 'Количество неизвестно'
+                                                    ? 'Количество не указано'
                                                     : Number(
                                                           item.quantity,
                                                       ).toLocaleString('ru-RU')}{' '}
-                                                {item.unit ?? ''} ·{' '}
-                                                {item.region ?? 'Регион не указан'}
+                                                {item.unit
+                                                    ? `${item.quantity === null ? '· Единица: ' : ''}${item.unit}`
+                                                    : ''}{' '}
+                                                · {item.region ?? 'Регион не указан'}
                                             </p>
                                         </div>
                                         <div className="catalog-actions">

@@ -154,8 +154,10 @@ export default function CostGapCheckPage() {
             <Head title="Что забыли включить в стоимость" />
             <AppShell
                 title="Проверка расходов"
-                eyebrow="Pro / Ultra · PRO-02"
+                eyebrow="Pro / Ultra · подготовка заявки"
                 backHref={workUrl}
+                className="feature-page"
+                activeNav="/tenders"
             >
                 <div className="cost-gap">
                     <header className="cost-gap__intro">

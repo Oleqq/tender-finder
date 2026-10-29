@@ -75,7 +75,7 @@ export default function CatalogComparisonPage() {
                 eyebrow="Pro · Ultra"
                 backHref="/catalog"
                 activeNav="/profile"
-                className="catalog-page"
+                className="feature-page catalog-page"
             >
                 <GlassCard className="catalog-section" tone="accent">
                     <h2>{tender.title}</h2>
@@ -314,9 +314,12 @@ function Requirement({
             <p>
                 Нужно:{' '}
                 {requirement.quantity === null
-                    ? 'количество неизвестно'
+                    ? 'количество не указано'
                     : Number(requirement.quantity).toLocaleString('ru-RU')}{' '}
-                {requirement.unit ?? ''} · {requirement.region ?? 'Регион не передан'}
+                {requirement.unit
+                    ? `${requirement.quantity === null ? '· Единица: ' : ''}${requirement.unit}`
+                    : ''}{' '}
+                · {requirement.region ?? 'Регион не передан'}
             </p>
             <details className="catalog-candidates" open>
                 <summary>Варианты из прайса · {row.candidates.length}</summary>
@@ -333,14 +336,16 @@ function Requirement({
                                 'Характеристики не указаны'}
                         </p>
                         <p>
-                            {catalogMoney(candidate.item.price)} · доступно{' '}
+                            {catalogMoney(candidate.item.price)} ·{' '}
                             {candidate.item.quantity === null
-                                ? 'неизвестно'
+                                ? 'Количество не указано'
                                 : Number(candidate.item.quantity).toLocaleString(
                                       'ru-RU',
                                   )}{' '}
-                            {candidate.item.unit ?? ''} ·{' '}
-                            {candidate.item.region ?? 'Регион неизвестен'}
+                            {candidate.item.unit
+                                ? `${candidate.item.quantity === null ? '· Единица: ' : ''}${candidate.item.unit}`
+                                : ''}{' '}
+                            · {candidate.item.region ?? 'Регион неизвестен'}
                         </p>
                         <p>Совпали слова: {candidate.terms.join(', ')}</p>
                         <CheckList checks={candidate.checks} />

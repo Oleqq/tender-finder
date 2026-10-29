@@ -134,10 +134,11 @@ export default function Procurement() {
         <>
             <Head title="Объединение закупок" />
             <AppShell
-                className="procurement-page"
+                className="feature-page procurement-page"
                 title="Объединение закупок"
-                eyebrow="Ultra · закупайте для нескольких контрактов"
+                eyebrow="Ultra · закупки по контрактам"
                 backHref="/profile"
+                activeNav="/profile"
             >
                 <WorkspacePicker path="/procurement" />
                 <section className="proposal-intro">

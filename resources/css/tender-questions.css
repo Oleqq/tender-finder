@@ -3,7 +3,7 @@
 .tender-questions h2 { font-size: 20px; font-weight: 650; line-height: 1.45; }
 .tender-questions h3 { font-size: 18px; font-weight: 650; line-height: 1.45; }
 .tender-questions h4 { font-size: 14px; font-weight: 650; }
-.tender-questions p, .tender-questions cite { font-size: 13px; line-height: 1.7; color: var(--tf-muted); }
+.tender-questions p, .tender-questions cite { font-size: 14px; line-height: 1.7; color: var(--tf-muted); }
 .tender-questions a { color: var(--tf-accent); font-size: 13px; overflow-wrap: anywhere; }
 .tender-questions a:not(.button) { text-decoration: underline; }
 .tq-card { display: grid; gap: 18px; padding: 24px; min-width: 0; }

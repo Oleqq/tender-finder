@@ -110,6 +110,8 @@ export default function DemoCheckout() {
         <>
             <Head title="Демонстрация подписки" />
             <AppShell
+                className="feature-page demo-page"
+                activeNav="/profile"
                 title="Подписка · демо"
                 eyebrow="Внешний веб-сценарий"
                 navigationVisible={!!auth.user}

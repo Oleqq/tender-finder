@@ -1,0 +1,114 @@
+/* Shared rhythm for the Pro / Ultra workspaces; dialogs use the same form scale. */
+.feature-page {
+    gap: 20px;
+    align-content: start;
+}
+.feature-page > * {
+    min-width: 0;
+}
+.feature-page .proposal-intro,
+.feature-page .proposal-card {
+    margin: 0;
+}
+.feature-page .proposal-card,
+.feature-page .catalog-section {
+    padding: 24px;
+}
+.feature-page .proposal-intro > .badge {
+    justify-self: start;
+    max-width: 100%;
+    white-space: normal;
+}
+.feature-page .proposal-library {
+    gap: 20px;
+}
+.feature-page > .inline-alert {
+    margin-top: 0;
+}
+.feature-page .winner-hint {
+    margin: 0;
+    font-size: 14px;
+}
+.feature-page .proposal-actions {
+    align-items: center;
+}
+.feature-page .proposal-actions:empty {
+    display: none;
+}
+.feature-page .button,
+.bottom-sheet:has(.proposal-form, .catalog-editor, .cost-gap, .tender-questions)
+    .button {
+    line-height: 1.4;
+    padding-block: 12px;
+}
+.feature-page .inline-alert p,
+.bottom-sheet:has(.proposal-form, .catalog-editor, .cost-gap, .tender-questions)
+    .inline-alert
+    p {
+    font-size: 13px;
+    line-height: 1.55;
+}
+.feature-page .text-draft-notice__content {
+    font-size: 13px;
+}
+.feature-page .catalog-section .form-field input,
+.feature-page .catalog-section .form-field select,
+.feature-page .catalog-section .form-field textarea,
+.catalog-editor .form-field input {
+    font-size: 16px;
+}
+.feature-page .cost-gap__filters button,
+.feature-page .tq-filters button {
+    min-height: 44px;
+}
+.feature-page .catalog-counts span,
+.feature-page .repeat-result small,
+.feature-page .repeat-columns small,
+.feature-page .winner-item small {
+    font-size: 12px;
+    line-height: 1.5;
+}
+@media (max-width: 640px) {
+    .feature-page .proposal-card,
+    .feature-page .catalog-section {
+        padding: 18px;
+    }
+}
+@media (max-width: 480px) {
+    .feature-page .proposal-actions {
+        align-items: stretch;
+    }
+}
+.feature-page :is(.proposal-actions, .catalog-actions, .tq-actions) > a:not(.button) {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    padding-inline: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.feature-page .demo-card {
+    margin: 0;
+}
+.feature-page .glass-card.demo-card {
+    padding: 24px;
+}
+.feature-page :is(.execution-metrics, .procurement-metrics) strong {
+    font-variant-numeric: tabular-nums;
+}
+@media (max-width: 640px) {
+    .feature-page .glass-card.demo-card {
+        padding: 18px;
+    }
+}
+.page-content.feature-page .workspace-picker {
+    margin: 0;
+}
+.feature-page .procurement-intro {
+    margin-top: 0;
+}
+.feature-page .workspace-picker select {
+    font-size: 16px;
+}

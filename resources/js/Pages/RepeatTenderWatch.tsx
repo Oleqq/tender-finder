@@ -209,7 +209,8 @@ export default function RepeatTenderWatch() {
                 title="Повторная закупка"
                 eyebrow="Личное · Ultra"
                 backHref="/repeat-tenders"
-                className="repeat-page"
+                className="feature-page repeat-page"
+                activeNav="/profile"
             >
                 <section className="proposal-intro">
                     <Badge>
@@ -490,9 +491,10 @@ export default function RepeatTenderWatch() {
                                             !c.latest ||
                                             reason !== watch.reason
                                         }
+                                        aria-label={`Подтвердить связь: ${c.snapshot.title}`}
                                         onClick={() => open('confirm', c)}
                                     >
-                                        Подтвердить связь {c.id}
+                                        Подтвердить связь
                                     </Button>
                                 ) : null}
                                 {c.status !== 'dismissed' ? (
@@ -503,12 +505,12 @@ export default function RepeatTenderWatch() {
                                             !editable ||
                                             reason !== watch.reason
                                         }
+                                        aria-label={`${c.evidence ? 'Отметить ошибку связи' : 'Отклонить совпадение'}: ${c.snapshot.title}`}
                                         onClick={() => open('dismiss', c)}
                                     >
                                         {c.evidence
                                             ? 'Отметить ошибку связи'
-                                            : 'Отклонить совпадение'}{' '}
-                                        {c.id}
+                                            : 'Отклонить совпадение'}
                                     </Button>
                                 ) : null}
                                 {c.unread && c.status !== 'dismissed' ? (
@@ -519,9 +521,10 @@ export default function RepeatTenderWatch() {
                                             !editable ||
                                             reason !== watch.reason
                                         }
+                                        aria-label={`Отметить прочитанным: ${c.snapshot.title}`}
                                         onClick={() => void read(c)}
                                     >
-                                        Прочитано {c.id}
+                                        Отметить прочитанным
                                     </Button>
                                 ) : null}
                                 {c.latest ? (

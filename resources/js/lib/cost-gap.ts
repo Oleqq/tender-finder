@@ -51,7 +51,7 @@ export const gapStatuses: Record<GapStatus, string> = {
 export function gapMoney(value: string | null | undefined): string {
     if (value == null || value === '') return 'Неизвестно';
     const [whole, fraction = '00'] = value.replace(',', '.').split('.');
-    return `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')},${fraction.padEnd(2, '0')} ₽`;
+    return `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')},${fraction.padEnd(2, '0')}\u00a0₽`;
 }
 export function gapSum(
     base: string | null,
@@ -94,8 +94,7 @@ export function useGapAction() {
         } catch (reason) {
             if (axios.isAxiosError(reason)) {
                 const errors = reason.response?.data?.errors as
-                    | Record<string, string[]>
-                    | undefined;
+                    Record<string, string[]> | undefined;
                 setError(
                     errors
                         ? Object.values(errors).flat().join(' ')

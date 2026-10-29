@@ -205,8 +205,10 @@ export default function TenderQuestionsPage() {
             <Head title="Вопросы заказчику" />
             <AppShell
                 title="Вопросы заказчику"
-                eyebrow="Pro / Ultra · PRO-03"
+                eyebrow="Pro / Ultra · подготовка вопроса"
                 backHref={work}
+                className="feature-page"
+                activeNav="/tenders"
             >
                 <div className="tender-questions">
                     <header className="tq-intro">
@@ -217,7 +219,7 @@ export default function TenderQuestionsPage() {
                         </p>
                         <div className="tq-actions">
                             <Link href={work}>Экономика и участие</Link>
-                            <Link href={check}>Неучтённые расходы PRO-02</Link>
+                            <Link href={check}>Проверка расходов</Link>
                             {canEdit && !composer ? (
                                 <Button
                                     onClick={() => {
@@ -306,7 +308,7 @@ export default function TenderQuestionsPage() {
                                         ) : null}
                                         {sources.cost.length ? (
                                             <option value="costgap">
-                                                Требование из PRO-02
+                                                Из проверки расходов
                                             </option>
                                         ) : null}
                                     </select>
@@ -402,7 +404,7 @@ export default function TenderQuestionsPage() {
                                     ) : (
                                         <>
                                             <label htmlFor="question-cost-key">
-                                                Требование PRO-02
+                                                Требование из проверки расходов
                                             </label>
                                             <select
                                                 id="question-cost-key"
@@ -445,7 +447,7 @@ export default function TenderQuestionsPage() {
                                             </select>
                                             {sources.cost_stale.length ? (
                                                 <InlineAlert
-                                                    title="PRO-02 требует обновления"
+                                                    title="Проверка расходов устарела"
                                                     tone="warning"
                                                 >
                                                     {sources.cost_stale.join(' ')}{' '}
@@ -456,7 +458,7 @@ export default function TenderQuestionsPage() {
                                             <p>
                                                 В черновик войдёт цитата требования.
                                                 Содержание предложения поставщика
-                                                остаётся внутри проверки PRO-02.
+                                                остаётся внутри проверки расходов.
                                             </p>
                                         </>
                                     )}
@@ -468,7 +470,7 @@ export default function TenderQuestionsPage() {
                                                     ? preview.ref.startsWith(
                                                           'Ваш перечень',
                                                       )
-                                                        ? 'Ваш перечень PRO-02'
+                                                        ? 'Ваш перечень требований'
                                                         : cost?.source_title
                                                     : 'Карточка закупки'}{' '}
                                                 · {preview.ref}
@@ -894,7 +896,7 @@ function QuestionCard({
                         >
                             {q.source.kind === 'manual'
                                 ? 'Открыть указанную ссылку'
-                                : 'Открыть источник PRO-02'}
+                                : 'Открыть источник требования'}
                         </a>
                     )
                 ) : null}

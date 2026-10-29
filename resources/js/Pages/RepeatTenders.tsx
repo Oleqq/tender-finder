@@ -46,7 +46,8 @@ export default function RepeatTenders() {
                 title="Повторные закупки"
                 eyebrow="Личное · Ultra"
                 backHref="/profile"
-                className="repeat-page"
+                className="feature-page repeat-page"
+                activeNav="/profile"
             >
                 <section className="proposal-intro">
                     <h2>Вернитесь к закупке, когда условия изменятся</h2>

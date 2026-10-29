@@ -64,7 +64,7 @@ export const procurementStatus = {
 export const procurementMoney = (value: string | null) =>
     value === null
         ? 'Не указано'
-        : `${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
+        : `${Number(value).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00a0₽`;
 export const procurementQuantity = (value: string) =>
     Number(value).toLocaleString('ru-RU', { maximumFractionDigits: 3 });
 export const procurementDate = (value: string | null) =>

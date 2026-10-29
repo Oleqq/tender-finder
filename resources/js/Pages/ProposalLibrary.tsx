@@ -60,6 +60,8 @@ export default function ProposalLibrary() {
                 title="Предложения"
                 eyebrow="Моя библиотека · Pro / Ultra"
                 backHref="/profile"
+                className="feature-page"
+                activeNav="/profile"
             >
                 <section className="proposal-intro">
                     <h2>Ваши материалы для следующих заявок</h2>

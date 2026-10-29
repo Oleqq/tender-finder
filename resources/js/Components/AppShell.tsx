@@ -1,3 +1,4 @@
+import '../../css/feature-pages.css';
 import { Link, router, usePage } from '@inertiajs/react';
 import { useAccessPresentation } from '../lib/useAccessPresentation';
 import type { PageProps } from '../types';

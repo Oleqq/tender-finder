@@ -27,8 +27,10 @@ export default function WinnerOpportunities() {
             <Head title="Поставки победителю" />
             <AppShell
                 title="Поставки победителю"
-                eyebrow="Личное · Ultra · первая версия"
+                eyebrow="Личное · Ultra"
                 backHref="/profile"
+                className="feature-page winner-page"
+                activeNav="/profile"
             >
                 <section className="proposal-intro">
                     <h2>Предложите часть поставки исполнителю контракта</h2>

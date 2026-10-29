@@ -122,6 +122,8 @@ export default function TenderProposal() {
                 title="Предложение"
                 eyebrow="Pro / Ultra · личный черновик"
                 backHref={`/tenders/${tender.id}/work${suffix}`}
+                className="feature-page"
+                activeNav="/tenders"
             >
                 <section className="proposal-intro">
                     <h2>{tender.title}</h2>
