@@ -59,12 +59,16 @@ type SourceStatus = {
         | 'error'
         | 'queued'
         | 'stalled'
+        | 'stale'
         | 'cached'
         | 'paused'
         | 'pending';
     message: string;
     last_success_at: string | null;
     last_success_items_seen: number | null;
+    last_checked_at: string | null;
+    fresh_until: string | null;
+    freshness: 'fresh' | 'stale' | 'never';
     last_failure_at: string | null;
     next_attempt_at: string | null;
     manual_retry_blocked: boolean;
@@ -855,9 +859,15 @@ function MonitoringHealth({ query }: { query: QueryDto }) {
     const requiresAttention =
         statuses.length === 0 ||
         statuses.some((status) =>
-            ['error', 'stalled', 'queued', 'cached', 'paused', 'pending'].includes(
-                status.state,
-            ),
+            [
+                'error',
+                'stalled',
+                'stale',
+                'queued',
+                'cached',
+                'paused',
+                'pending',
+            ].includes(status.state),
         );
     const summary = monitoringHealthSummary(statuses);
 
@@ -886,6 +896,7 @@ function monitoringHealthSummary(statuses: SourceStatus[]): {
     const state =
         statuses.find((status) => status.state === 'error')?.state ??
         statuses.find((status) => status.state === 'stalled')?.state ??
+        statuses.find((status) => status.state === 'stale')?.state ??
         statuses.find((status) => status.state === 'queued')?.state ??
         statuses.find((status) => status.state === 'pending')?.state ??
         statuses.find((status) => status.state === 'cached')?.state ??
@@ -925,12 +936,20 @@ function SourceStatusCards({ statuses }: { statuses: SourceStatus[] }) {
                         </Badge>
                     </div>
                     <p>{status.message}</p>
+                    {status.freshness === 'stale' &&
+                    status.state !== 'stale' &&
+                    status.state !== 'paused' ? (
+                        <p className="source-status__warning">
+                            Данные давно не обновлялись. В ленте могут отсутствовать
+                            новые закупки.
+                        </p>
+                    ) : null}
                     <dl className="source-status__times">
                         <div>
-                            <dt>Последний успех</dt>
+                            <dt>Успешная проверка</dt>
                             <dd>
-                                {status.last_success_at
-                                    ? formatDateTime(status.last_success_at)
+                                {status.last_checked_at
+                                    ? formatDateTime(status.last_checked_at)
                                     : 'ещё не было'}
                             </dd>
                         </div>
@@ -980,6 +999,7 @@ function sourceStateLabel(state: SourceStatus['state']): string {
         empty: 'Новых записей нет',
         error: 'Источник недоступен',
         stalled: 'Проверка задерживается',
+        stale: 'Давно не обновлялся',
         queued: 'Ожидает очереди',
         cached: 'Прежний снимок',
         paused: 'Остановлен',
@@ -995,6 +1015,7 @@ function sourceTone(
         : state === 'error'
           ? 'danger'
           : state === 'stalled' ||
+              state === 'stale' ||
               state === 'queued' ||
               state === 'pending' ||
               state === 'cached'

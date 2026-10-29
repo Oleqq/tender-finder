@@ -64,6 +64,11 @@ final class MonitoringStatusService
         $queueStalled = $waitingForQueue && $feed->last_attempt_at->lte(now()->subMinutes(2));
         $olderSnapshot = $lastSuccessAt !== null && $query->monitoring_started_at !== null
             && $lastSuccessAt->lt($query->monitoring_started_at);
+        // Partial RosTender imports create successful runs before a later detail
+        // failure. Only the feed timestamp confirms a completed polling cycle.
+        $lastCheckedAt = $feed->last_success_at;
+        $freshUntil = $lastCheckedAt?->copy()->addSeconds(max(900, 2 * $feed->poll_interval_seconds));
+        $freshness = $freshUntil === null ? 'never' : (now()->gte($freshUntil) ? 'stale' : 'fresh');
 
         [$state, $message] = match (true) {
             $query->status !== QueryStatus::Active => ['paused', 'Мониторинг остановлен, поэтому новый опрос для него не планируется.'],
@@ -71,6 +76,8 @@ final class MonitoringStatusService
             $queueStalled => ['stalled', 'Опрос задерживается в очереди. Нового ответа источника пока нет.'],
             $waitingForQueue => ['queued', 'Опрос поставлен в очередь. Источник ещё не подтвердил ответ.'],
             $olderSnapshot => ['cached', 'Есть прежний снимок источника. После включения этого мониторинга нового ответа ещё не было.'],
+            $freshness === 'stale' => ['stale', 'Данные давно не обновлялись. В ленте могут отсутствовать новые закупки.'],
+            $success !== null && $freshness === 'never' => ['cached', 'Получена только часть ответа. Успешная проверка источника ещё не завершена.'],
             $success !== null && $success->items_seen === 0 => ['empty', 'Источник ответил: новых записей в последнем ответе нет.'],
             $success !== null => ['ok', 'Источник ответил. Совпадения показываются отдельно в результатах мониторинга.'],
             default => ['pending', 'Первый опрос ещё не завершён.'],
@@ -82,6 +89,9 @@ final class MonitoringStatusService
             'message' => $message,
             'last_success_at' => $lastSuccessAt?->toAtomString(),
             'last_success_items_seen' => $success?->items_seen,
+            'last_checked_at' => $lastCheckedAt?->toAtomString(),
+            'fresh_until' => $freshUntil?->toAtomString(),
+            'freshness' => $freshness,
             'last_failure_at' => $lastFailureAt?->toAtomString(),
             'next_attempt_at' => $query->status === QueryStatus::Active ? $feed->next_poll_at?->toAtomString() : null,
             'manual_retry_blocked' => $hasCurrentFailure
@@ -94,6 +104,10 @@ final class MonitoringStatusService
     {
         if ($code === 'quota_exhausted') {
             return 'Суточный лимит RosTender исчерпан.';
+        }
+
+        if ($source === 'rostender' && $code === 'remote_quota_or_access_denied') {
+            return 'RosTender ограничил доступ или число запросов. Следующая попытка запланирована.';
         }
 
         if ($code === 'tls_failed') {

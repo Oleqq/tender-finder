@@ -29,11 +29,15 @@ type SourceHealth = {
         | 'error'
         | 'queued'
         | 'stalled'
+        | 'stale'
         | 'cached'
         | 'paused'
         | 'pending';
     message: string;
     last_success_at: string | null;
+    last_checked_at: string | null;
+    fresh_until: string | null;
+    freshness: 'fresh' | 'stale' | 'never';
     next_attempt_at: string | null;
 } | null;
 
@@ -399,22 +403,22 @@ export default function Tenders() {
 
     const hasFilters = Boolean(
         filters.q ||
-            filters.status !== 'all' ||
-            filters.tag ||
-            filters.query_id ||
-            filters.assignee_id ||
-            filters.sources.length > 0 ||
-            filters.sort !== 'matched_desc' ||
-            filters.overdue,
+        filters.status !== 'all' ||
+        filters.tag ||
+        filters.query_id ||
+        filters.assignee_id ||
+        filters.sources.length > 0 ||
+        filters.sort !== 'matched_desc' ||
+        filters.overdue,
     );
     const hasExplicitFilters = Boolean(
         filters.q ||
-            filters.status !== 'all' ||
-            filters.tag ||
-            filters.assignee_id ||
-            filters.sources.length > 0 ||
-            filters.sort !== 'matched_desc' ||
-            filters.overdue,
+        filters.status !== 'all' ||
+        filters.tag ||
+        filters.assignee_id ||
+        filters.sources.length > 0 ||
+        filters.sort !== 'matched_desc' ||
+        filters.overdue,
     );
 
     const bulkUpdate = async (): Promise<void> => {
@@ -526,7 +530,9 @@ export default function Tenders() {
                                   )
                                     ? 'Ищем подходящие тендеры'
                                     : monitoringStatuses.some(
-                                            (item) => item?.state === 'stalled',
+                                            (item) =>
+                                                item?.state === 'stalled' ||
+                                                item?.state === 'stale',
                                         )
                                       ? 'Проверка источника задерживается'
                                       : monitoringStatuses.some(
@@ -2206,7 +2212,11 @@ function SourceHealthNotice({
     );
     if (sources.length === 0 && !started) return null;
     const delayed = sources.some(
-        (item) => item.state === 'error' || item.state === 'stalled',
+        (item) =>
+            item.state === 'error' ||
+            item.state === 'stalled' ||
+            item.state === 'stale' ||
+            (item.freshness === 'stale' && item.state !== 'paused'),
     );
     const waiting = sources.some(
         (item) => item.state === 'queued' || item.state === 'pending',
@@ -2214,12 +2224,14 @@ function SourceHealthNotice({
     const title =
         sources.length > 0 && sources.every((item) => item.state === 'paused')
             ? 'Мониторинг на паузе'
-            : waiting
-              ? 'Проверяем источники'
-              : delayed
-                ? sources.every((item) => item.state === 'error')
+            : delayed
+              ? sources.every((item) => item.freshness === 'stale')
+                  ? 'Данные источников давно не обновлялись'
+                  : sources.every((item) => item.state === 'error')
                     ? 'Источники пока не ответили'
-                    : 'Часть источников задерживает ответ'
+                    : 'Часть источников задерживает обновление'
+              : waiting
+                ? 'Проверяем источники'
                 : sources.some((item) => item.state === 'cached')
                   ? 'Есть снимок прошлой проверки'
                   : started || name
@@ -2233,14 +2245,23 @@ function SourceHealthNotice({
             <div className="search-source-status" aria-live="polite">
                 <strong>{title}</strong>
                 {name ? (
-                    <p>{name}. Новые совпадения будут появляться в вашей ленте.</p>
+                    <p>
+                        {name}.{' '}
+                        {delayed
+                            ? 'Состояние каждого источника указано ниже.'
+                            : sources.every((item) => item.state === 'paused')
+                              ? 'Новые совпадения появятся после возобновления мониторинга.'
+                              : 'Новые совпадения будут появляться в вашей ленте.'}
+                    </p>
                 ) : null}
                 <details className="search-source-status__details">
                     <summary>
-                        Источники: {sources.length} · ответили{' '}
+                        Источники: {sources.length} · свежих проверок{' '}
                         {
-                            sources.filter((item) =>
-                                ['ok', 'empty'].includes(item.state),
+                            sources.filter(
+                                (item) =>
+                                    ['ok', 'empty'].includes(item.state) &&
+                                    item.freshness === 'fresh',
                             ).length
                         }
                     </summary>
@@ -2255,12 +2276,22 @@ function SourceHealthNotice({
                                 )?.label ?? 'Источник'}
                             </strong>
                             <span>{item.message}</span>
-                            {item.last_success_at ? (
-                                <small>
-                                    Последний ответ:{' '}
-                                    {formatDateTime(item.last_success_at)}
-                                </small>
+                            {item.freshness === 'stale' &&
+                            item.state !== 'stale' &&
+                            item.state !== 'paused' ? (
+                                <span className="source-status__warning">
+                                    Данные давно не обновлялись. В ленте могут
+                                    отсутствовать новые закупки.
+                                </span>
                             ) : null}
+                            {item.last_checked_at ? (
+                                <small>
+                                    Успешная проверка:{' '}
+                                    {formatDateTime(item.last_checked_at)}
+                                </small>
+                            ) : (
+                                <small>Успешной проверки ещё не было.</small>
+                            )}
                             {item.next_attempt_at ? (
                                 <small>
                                     Следующая проверка:{' '}
@@ -2271,8 +2302,8 @@ function SourceHealthNotice({
                     ))}
                     {waiting ? (
                         <p>
-                            Результаты обновляются автоматически в течение минуты. Можно
-                            вернуться к ним позже.
+                            Состояние проверки и результаты подгружаются автоматически.
+                            Можно вернуться к ним позже.
                         </p>
                     ) : null}
                     <Link className="source-health-link" href="/queries">

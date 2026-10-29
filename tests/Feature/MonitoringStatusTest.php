@@ -12,8 +12,10 @@ use App\Models\SourceFeed;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\AccessService;
+use App\Services\MonitoringStatusService;
 use App\Services\TelegramBotClient;
 use App\Services\TenderSourceImportService;
+use App\Services\WorkspaceRuFeedService;
 use App\Telegram\TelegramDeliveryException;
 use App\Tenders\SourceFetchResult;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -124,6 +126,121 @@ it('shows a failure after a partial import in the same second', function () {
     $this->actingAs($user)->get('/queries')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->where('queries.0.source_statuses.0.state', 'error')
         ->where('queries.0.source_statuses.0.manual_retry_blocked', true));
+});
+
+it('expires an old successful or empty answer at two polling intervals even if the next attempt is later', function (int $items) {
+    $user = User::factory()->withAccess()->create();
+    $query = monitoredQuery($user);
+    $feed = monitoredFeed();
+    RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+    app(TenderSourceImportService::class)->import($feed, new SourceFetchResult([], $items), 'rostender', false);
+    $checkedAt = now()->toAtomString();
+    $freshUntil = now()->addMinutes(20)->toAtomString();
+    $feed->fresh()->update(['next_poll_at' => now()->addDay()]);
+
+    $this->travel(1199)->seconds();
+    $this->actingAs($user)->get('/queries')->assertInertia(fn (Assert $page) => $page
+        ->where('queries.0.source_statuses.0.freshness', 'fresh')
+        ->where('queries.0.source_statuses.0.state', $items === 0 ? 'empty' : 'ok')
+        ->where('queries.0.source_statuses.0.fresh_until', $freshUntil));
+
+    $this->travel(1)->second();
+    $this->get('/tenders?query_id='.$query->id)->assertInertia(fn (Assert $page) => $page
+        ->where('monitoringStatus.state', 'stale')
+        ->where('monitoringStatus.freshness', 'stale')
+        ->where('monitoringStatus.last_checked_at', $checkedAt)
+        ->where('monitoringStatus.last_success_items_seen', $items));
+})->with([0, 12]);
+
+it('allows a fifteen minute freshness window for a short polling interval and recovers after a new answer', function () {
+    $user = User::factory()->withAccess()->create();
+    $query = monitoredQuery($user);
+    $feed = monitoredFeed();
+    $feed->update(['poll_interval_seconds' => 60]);
+    RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+    $importer = app(TenderSourceImportService::class);
+    $importer->import($feed, new SourceFetchResult([], 0), 'rostender', false);
+    $this->travel(899)->seconds();
+    $statuses = app(MonitoringStatusService::class)->forQueries(collect([$query]));
+    expect($statuses[$query->id][0]['freshness'])->toBe('fresh');
+    $this->travel(1)->second();
+    $statuses = app(MonitoringStatusService::class)->forQueries(collect([$query]));
+    expect($statuses[$query->id][0]['state'])->toBe('stale');
+
+    $importer->import($feed->fresh(), new SourceFetchResult([], 0), 'rostender', false);
+    $statuses = app(MonitoringStatusService::class)->forQueries(collect([$query]));
+    expect($statuses[$query->id][0]['state'])->toBe('empty')
+        ->and($statuses[$query->id][0]['freshness'])->toBe('fresh')
+        ->and($statuses[$query->id][0]['last_checked_at'])->toBe(now()->toAtomString());
+});
+
+it('keeps stale data visible alongside a quota error or a deliberate monitoring pause', function () {
+    $user = User::factory()->withAccess()->create();
+    $query = monitoredQuery($user);
+    $feed = monitoredFeed();
+    RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+    $importer = app(TenderSourceImportService::class);
+    $importer->import($feed, new SourceFetchResult([], 12), 'rostender', false);
+    $this->travel(1)->day();
+    $importer->fail($feed->fresh(), 'remote_quota_or_access_denied', 'rostender', now()->addDay());
+    $statuses = app(MonitoringStatusService::class)->forQueries(collect([$query]));
+    expect($statuses[$query->id][0]['state'])->toBe('error')
+        ->and($statuses[$query->id][0]['freshness'])->toBe('stale')
+        ->and($statuses[$query->id][0]['manual_retry_blocked'])->toBeTrue()
+        ->and($statuses[$query->id][0]['message'])->toContain('доступ или число запросов');
+
+    $query->update(['status' => QueryStatus::Paused]);
+    $statuses = app(MonitoringStatusService::class)->forQueries(collect([$query]));
+    expect($statuses[$query->id][0]['state'])->toBe('paused')
+        ->and($statuses[$query->id][0]['next_attempt_at'])->toBeNull();
+});
+
+it('does not make a partial import a fresh check or expose another users source status', function () {
+    $user = User::factory()->withAccess()->create();
+    $query = monitoredQuery($user);
+    $feed = monitoredFeed();
+    RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+    $importer = app(TenderSourceImportService::class);
+    $importer->import($feed, new SourceFetchResult([], 3), 'rostender', false, false);
+    $statuses = app(MonitoringStatusService::class)->forQueries(collect([$query]));
+    expect($statuses[$query->id][0]['freshness'])->toBe('never')
+        ->and($statuses[$query->id][0]['last_checked_at'])->toBeNull()
+        ->and($statuses[$query->id][0]['state'])->toBe('cached');
+
+    $importer->import($feed->fresh(), new SourceFetchResult([], 12), 'rostender', false);
+    $checkedAt = now()->toAtomString();
+    $this->travel(1)->day();
+    $importer->import($feed->fresh(), new SourceFetchResult([], 3), 'rostender', false, false);
+    $statuses = app(MonitoringStatusService::class)->forQueries(collect([$query]));
+    expect($statuses[$query->id][0]['freshness'])->toBe('stale')
+        ->and($statuses[$query->id][0]['last_checked_at'])->toBe($checkedAt)
+        ->and($statuses[$query->id][0]['state'])->toBe('stale');
+
+    $other = User::factory()->withAccess()->create();
+    $otherQuery = monitoredQuery($other);
+    $this->actingAs($user)->get('/tenders?query_id='.$otherQuery->id)->assertInertia(fn (Assert $page) => $page
+        ->where('monitoringStatuses', []));
+});
+
+it('reports an old source and a fresh empty public source independently in the personal feed', function () {
+    config()->set('tender.workspace_ru.enabled', true);
+    $user = User::factory()->withAccess()->create();
+    $query = monitoredQuery($user);
+    $feed = monitoredFeed();
+    RostenderFeedSearchQuery::query()->create(['source_feed_id' => $feed->id, 'search_query_id' => $query->id]);
+    $importer = app(TenderSourceImportService::class);
+    $importer->import($feed, new SourceFetchResult([], 12), 'rostender', false);
+    $this->travel(3)->hours();
+    $public = app(WorkspaceRuFeedService::class)->configuredFeed();
+    $importer->import($public, new SourceFetchResult([], 0), 'workspace_ru', false);
+
+    $this->actingAs($user)->get('/tenders?query_id='.$query->id)->assertInertia(fn (Assert $page) => $page
+        ->has('monitoringStatuses', 2)
+        ->where('monitoringStatuses.0.source', 'rostender')
+        ->where('monitoringStatuses.0.state', 'stale')
+        ->where('monitoringStatuses.1.source', 'workspace_ru')
+        ->where('monitoringStatuses.1.freshness', 'fresh')
+        ->where('monitoringStatuses.1.state', 'empty'));
 });
 
 it('shows only the current users delivery statuses without payloads or foreign archived-team data', function () {
