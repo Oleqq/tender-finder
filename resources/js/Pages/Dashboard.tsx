@@ -15,6 +15,7 @@ type NextAction = {
 };
 
 type DashboardProps = {
+    repeatAlerts: number;
     workspace: {
         hasMonitoring: boolean;
         hasActiveMonitoring: boolean;
@@ -28,7 +29,8 @@ type DashboardProps = {
 };
 
 export default function Dashboard() {
-    const { auth, nextActions, workspace } = usePage<PageProps<DashboardProps>>().props;
+    const { auth, nextActions, workspace, repeatAlerts } =
+        usePage<PageProps<DashboardProps>>().props;
     const access = useAccessPresentation(auth.access);
     const canUseMonitoring = ['trial', 'trial_ending', 'active'].includes(access.phase);
     const canStartTrial = access.phase === 'preview';
@@ -109,6 +111,24 @@ export default function Dashboard() {
                         </Link>
                     </div>
                 </section>
+
+                {repeatAlerts > 0 ? (
+                    <Link
+                        className="dashboard-access-note"
+                        href="/repeat-tenders?unread=1"
+                    >
+                        <span>
+                            <strong>
+                                Есть новые сообщения о возможных повторных закупках:{' '}
+                                {repeatAlerts}
+                            </strong>
+                            <small>
+                                Проверьте основания связи и изменения условий.
+                            </small>
+                        </span>
+                        <Icon name="chevron-right" size={18} />
+                    </Link>
+                ) : null}
 
                 {access.phase === 'trial_ending' ? (
                     <Link className="dashboard-access-note" href="/plans">

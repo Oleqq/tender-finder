@@ -91,6 +91,9 @@ export default function Profile() {
                 </section>
 
                 <GlassCard className="profile-shortcuts">
+                    <Link href="/repeat-tenders">
+                        Повторные закупки <Icon name="chevron-right" size={17} />
+                    </Link>
                     <Link href="/winner-opportunities">
                         Поставки победителю <Icon name="chevron-right" size={17} />
                     </Link>

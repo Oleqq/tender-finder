@@ -91,6 +91,14 @@ export default function TenderDetail() {
                         Вопросы заказчику
                     </Link>
                 ) : null}
+                {tender.analytics.tier === 'ultra' ? (
+                    <Link
+                        className="button button--secondary button--md"
+                        href={`/repeat-tenders?from=${tender.id}`}
+                    >
+                        Следить за повторной закупкой
+                    </Link>
+                ) : null}
                 <TenderAnalytics
                     key={tender.id}
                     summary={tender.summary}

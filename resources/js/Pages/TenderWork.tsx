@@ -578,6 +578,14 @@ export default function TenderWork() {
                         canEdit={can_edit}
                     />
                 ) : null}
+                {!team && tender.analytics.tier === 'ultra' ? (
+                    <Link
+                        className="button button--secondary button--md"
+                        href={`/repeat-tenders?from=${tender.id}`}
+                    >
+                        Следить за повторной закупкой
+                    </Link>
+                ) : null}
                 {participation?.stage === 'won' && tender.analytics.tier === 'ultra' ? (
                     <GlassCard className="work-card">
                         <h2>Контроль исполнения · Ultra</h2>

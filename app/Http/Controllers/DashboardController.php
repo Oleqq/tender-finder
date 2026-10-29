@@ -7,6 +7,7 @@ use App\Models\SearchQuery;
 use App\Models\TenderParticipation;
 use App\Models\TenderQueryMatch;
 use App\Models\TenderUserState;
+use App\Services\RepeatTenderService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,6 +34,7 @@ class DashboardController extends Controller
         $today = today();
 
         return Inertia::render('Dashboard', [
+            'repeatAlerts' => app(RepeatTenderService::class)->unread($user),
             'workspace' => [
                 'hasMonitoring' => SearchQuery::query()
                     ->where('user_id', $user->id)

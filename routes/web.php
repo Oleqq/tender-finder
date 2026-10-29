@@ -34,6 +34,7 @@ use App\Http\Controllers\ProcurementController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\RemoteMvpOperatorSessionController;
+use App\Http\Controllers\RepeatTenderController;
 use App\Http\Controllers\SavedSearchRunController;
 use App\Http\Controllers\SavedSearchRunHistoryController;
 use App\Http\Controllers\SearchQueryController;
@@ -121,6 +122,15 @@ Route::get('/calendar/subscriptions/{token}.ics', [CalendarSubscriptionControlle
     ->name('calendar.subscription.feed');
 
 Route::middleware(['auth', EnforceWorkspaceAccess::class])->group(function () {
+    Route::get('/repeat-tenders', [RepeatTenderController::class, 'index'])->name('repeat-tenders');
+    Route::get('/repeat-tenders/lookup', [RepeatTenderController::class, 'lookup'])->middleware('throttle:30,1,repeat-lookup');
+    Route::post('/repeat-tenders', [RepeatTenderController::class, 'create'])->middleware('throttle:20,1,repeat-create');
+    Route::get('/repeat-tenders/{watch}', [RepeatTenderController::class, 'show'])->whereNumber('watch');
+    Route::patch('/repeat-tenders/{watch}', [RepeatTenderController::class, 'update'])->whereNumber('watch')->middleware('throttle:30,1,repeat-update');
+    Route::patch('/repeat-tenders/{watch}/archive', [RepeatTenderController::class, 'archive'])->whereNumber('watch');
+    Route::post('/repeat-tenders/{watch}/scan', [RepeatTenderController::class, 'scan'])->whereNumber('watch')->middleware('throttle:5,1,repeat-scan');
+    Route::post('/repeat-tenders/{watch}/candidates', [RepeatTenderController::class, 'addCandidate'])->whereNumber('watch')->middleware('throttle:20,1,repeat-add');
+    Route::post('/repeat-tenders/{watch}/candidates/{candidate}/{decision}', [RepeatTenderController::class, 'decision'])->whereNumber('watch')->whereNumber('candidate')->whereIn('decision', ['confirm', 'dismiss', 'read'])->middleware('throttle:30,1,repeat-decision');
     Route::get('/winner-opportunities', [WinnerOpportunityController::class, 'index'])->name('winner-opportunities');
     Route::post('/winner-opportunities', [WinnerOpportunityController::class, 'saveEvidence'])->middleware('throttle:20,1,winner-create');
     Route::get('/winner-opportunities/{opportunity}', [WinnerOpportunityController::class, 'show'])->whereNumber('opportunity');
