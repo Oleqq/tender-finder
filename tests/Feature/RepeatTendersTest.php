@@ -38,7 +38,7 @@ function repeatTenderCard(User $user, array $fields = []): Tender
     $id = (string) Str::uuid();
     $query = SearchQuery::query()->create(['user_id' => $user->id, 'name' => 'Мебель', 'keywords' => ['мебель'], 'status' => 'active']);
     $t = Tender::query()->create([...['source' => 'workspace_ru', 'external_id' => $id, 'title' => 'Поставка офисной мебели',
-        'canonical_url' => 'https://example.test/'.$id, 'canonical_url_hash' => hash('sha256', $id), 'reg_number' => $id,
+        'canonical_url' => 'https://example.test/'.$id, 'canonical_url_hash' => hash('sha256', $id), 'reg_number' => str_replace('-', '', $id),
         'metadata' => ['customer' => 'Учебный заказчик'], 'description' => 'Столы и стулья. Доставка за 10 дней.', 'budget_amount' => '100000', 'currency' => 'RUB',
         'published_at' => '2026-10-20 12:00:00', 'deadline_at' => '2026-11-02 12:00:00'], ...$fields]);
     TenderQueryMatch::query()->create(['search_query_id' => $query->id, 'tender_id' => $t->id, 'matched_at' => now(), 'match_reasons' => []]);
