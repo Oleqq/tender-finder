@@ -10,6 +10,8 @@ import {
     type ProposalDraft,
 } from '../lib/proposals';
 import type { PageProps } from '../types';
+import { useTextDraft } from '../lib/useTextDraft';
+import { TextDraftNotice } from '../Components/TextDraftNotice';
 
 type Props = {
     blocks: ProposalBlock[];
@@ -28,7 +30,13 @@ export default function TenderProposal() {
         canEdit,
     } = usePage<PageProps<Props>>().props;
     const [draft, setDraft] = useState(initial);
-    const [body, setBody] = useState(initial?.body ?? '');
+    const textDraft = useTextDraft(
+        `proposal:${teamId ?? 'personal'}:${tender.id}`,
+        { body: draft?.body ?? '' },
+        canEdit,
+        `${draft?.version ?? 0}:${tender.fingerprint}`,
+    );
+    const { body } = textDraft.fields;
     const [selected, setSelected] = useState<number[]>(initial?.block_ids ?? []);
     const [template, setTemplate] = useState(initial?.template_id ?? 0);
     const [fields, setFields] = useState({
@@ -47,8 +55,9 @@ export default function TenderProposal() {
     const missing = [
         ...new Set([...body.matchAll(/\{\{\s*([^{}]+?)\s*\}\}/gu)].map((m) => m[1])),
     ];
-    const dirty = body !== (draft?.body ?? '');
+    const dirty = textDraft.dirty;
     async function compose() {
+        const submitted = textDraft.fields;
         const chosen = blocks.find((b) => b.id === template);
         const result = await action.run<{ draft: ProposalDraft }>(
             'post',
@@ -69,7 +78,7 @@ export default function TenderProposal() {
         );
         if (result) {
             setDraft(result.draft);
-            setBody(result.draft.body);
+            textDraft.acceptSaved({ body: result.draft.body }, submitted);
             setConfirmed(false);
             setReplace(false);
             setReviewed(false);
@@ -77,6 +86,7 @@ export default function TenderProposal() {
         }
     }
     async function save() {
+        const submitted = textDraft.fields;
         const result = await action.run<{ draft: ProposalDraft }>(
             'patch',
             root + suffix,
@@ -90,6 +100,7 @@ export default function TenderProposal() {
         );
         if (result) {
             setDraft(result.draft);
+            textDraft.acceptSaved({ body: result.draft.body }, submitted);
             setReviewed(false);
             setCopied('');
         }
@@ -210,7 +221,12 @@ export default function TenderProposal() {
                             Я проверил выбранные материалы и введённые условия
                         </label>
                         <Button
-                            disabled={action.busy || !confirmed || !canEdit}
+                            disabled={
+                                action.busy ||
+                                !confirmed ||
+                                !canEdit ||
+                                !!textDraft.pending
+                            }
                             onClick={() => {
                                 if (draft) setReplace(true);
                                 else void compose();
@@ -249,15 +265,27 @@ export default function TenderProposal() {
                                 незаполненный документ не выгружается.
                             </InlineAlert>
                         ) : null}
+                        <TextDraftNotice
+                            draft={textDraft}
+                            disabled={action.busy}
+                            onResolve={() => {
+                                setReviewed(false);
+                                setCopied('');
+                            }}
+                        />
                         <label className="proposal-form">
                             Текст предложения
                             <textarea
+                                aria-label="Текст предложения"
+                                readOnly={
+                                    !canEdit || action.busy || !!textDraft.pending
+                                }
                                 className="proposal-draft"
                                 rows={18}
                                 value={body}
                                 maxLength={50000}
                                 onChange={(e) => {
-                                    setBody(e.target.value);
+                                    textDraft.change({ body: e.target.value });
                                     setCopied('');
                                     setReviewed(false);
                                 }}
@@ -267,13 +295,19 @@ export default function TenderProposal() {
                             <input
                                 type="checkbox"
                                 checked={reviewed}
+                                disabled={action.busy || !!textDraft.pending}
                                 onChange={(e) => setReviewed(e.target.checked)}
                             />
                             Проверил текст, цену и условия перед сохранением
                         </label>
                         <div className="proposal-actions">
                             <Button
-                                disabled={action.busy || !reviewed || !canEdit}
+                                disabled={
+                                    action.busy ||
+                                    !reviewed ||
+                                    !canEdit ||
+                                    !!textDraft.pending
+                                }
                                 onClick={() => void save()}
                             >
                                 Сохранить правки
@@ -283,6 +317,7 @@ export default function TenderProposal() {
                                 disabled={
                                     action.busy ||
                                     dirty ||
+                                    !!textDraft.pending ||
                                     missing.length > 0 ||
                                     draft.tender_changed
                                 }
@@ -290,7 +325,10 @@ export default function TenderProposal() {
                             >
                                 Скопировать текст
                             </Button>
-                            {!dirty && missing.length === 0 && !draft.tender_changed ? (
+                            {!dirty &&
+                            !textDraft.pending &&
+                            missing.length === 0 &&
+                            !draft.tender_changed ? (
                                 <a
                                     className="button button--secondary button--md"
                                     href={`${root}/export?version=${draft.version}${teamId ? `&team_id=${teamId}` : ''}`}

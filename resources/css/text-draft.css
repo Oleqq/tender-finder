@@ -1,0 +1,7 @@
+.text-draft-notice { margin: 12px 0; overflow-wrap: anywhere; }
+.text-draft-notice__content { margin-top: 5px; color: var(--app-muted); font-size: 12px; line-height: 1.5; }
+.text-draft-notice__content p { font-size: inherit; line-height: inherit; }
+.text-draft-notice__text { white-space: pre-wrap; max-height: 220px; overflow-y: auto; }
+.text-draft-notice__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.text-draft-notice summary { cursor: pointer; margin-top: 8px; }
+@media (max-width: 480px) { .text-draft-notice__actions > .button { width: 100%; white-space: normal; } }

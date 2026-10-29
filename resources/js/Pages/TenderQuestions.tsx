@@ -13,6 +13,8 @@ import {
     type TenderQuestion,
 } from '../lib/tenderQuestions';
 import type { PageProps } from '../types';
+import { useTextDraft } from '../lib/useTextDraft';
+import { TextDraftNotice } from '../Components/TextDraftNotice';
 
 type Props = {
     tender: { id: number; title: string; fingerprint: string };
@@ -766,23 +768,38 @@ function QuestionCard({
     onCopy: () => Promise<{ text: string } | null>;
     onHistory: () => Promise<{ events: QuestionEvent[] } | null>;
 }) {
-    const [title, setTitle] = useState(q.title);
-    const [body, setBody] = useState(q.body);
+    const textDraft = useTextDraft(
+        `${root}${suffix}:question:${q.id}`,
+        { title: q.title, body: q.body },
+        canEdit && !q.marked_sent_at && !q.archived_at,
+        String(q.source_revision),
+    );
+    const { title, body } = textDraft.fields;
     const [reviewed, setReviewed] = useState(false);
-    const [answer, setAnswer] = useState(q.answer ?? '');
-    const [answerSource, setAnswerSource] = useState(q.answer_source ?? '');
-    const [received, setReceived] = useState(q.answer_received_on ?? '');
+    const answerDraft = useTextDraft(
+        `${root}${suffix}:answer:${q.id}`,
+        {
+            answer: q.answer ?? '',
+            answerSource: q.answer_source ?? '',
+            received: q.answer_received_on ?? '',
+        },
+        canEdit && !!q.marked_sent_at && !q.archived_at,
+        String(q.source_revision),
+    );
+    const { answer, answerSource, received } = answerDraft.fields;
     const [answerConfirmed, setAnswerConfirmed] = useState(false);
     const [copied, setCopied] = useState('');
     const [history, setHistory] = useState<QuestionEvent[] | null>(null);
-    const dirty = body !== q.body || title !== q.title;
+    const dirty = textDraft.dirty;
     const editable = canEdit && !busy && !q.archived_at;
     const copyable =
         !busy &&
         !dirty &&
+        !textDraft.pending &&
         (!!q.marked_sent_at || (!q.archived_at && q.stale.length === 0));
     async function save(event: FormEvent) {
         event.preventDefault();
+        const submitted = textDraft.fields;
         const saved = await onSave({
             version: q.version,
             confirmed: reviewed,
@@ -790,8 +807,7 @@ function QuestionCard({
             body,
         });
         if (saved) {
-            setBody(saved.body);
-            setTitle(saved.title);
+            textDraft.acceptSaved({ body: saved.body, title: saved.title }, submitted);
             setReviewed(false);
             setCopied('');
             setHistory(null);
@@ -799,6 +815,7 @@ function QuestionCard({
     }
     async function saveAnswer(event: FormEvent) {
         event.preventDefault();
+        const submitted = answerDraft.fields;
         const saved = await onAnswer({
             version: q.version,
             confirmed: answerConfirmed,
@@ -807,9 +824,14 @@ function QuestionCard({
             answer_received_on: received || null,
         });
         if (saved) {
-            setAnswer(saved.answer ?? '');
-            setAnswerSource(saved.answer_source ?? '');
-            setReceived(saved.answer_received_on ?? '');
+            answerDraft.acceptSaved(
+                {
+                    answer: saved.answer ?? '',
+                    answerSource: saved.answer_source ?? '',
+                    received: saved.answer_received_on ?? '',
+                },
+                submitted,
+            );
             setAnswerConfirmed(false);
             setHistory(null);
         }
@@ -892,7 +914,18 @@ function QuestionCard({
                 </details>
             ) : (
                 <form className="tq-form" onSubmit={(e) => void save(e)}>
-                    <fieldset className="tq-form" disabled={!editable}>
+                    <TextDraftNotice
+                        draft={textDraft}
+                        disabled={busy}
+                        onResolve={() => {
+                            setReviewed(false);
+                            setCopied('');
+                        }}
+                    />
+                    <fieldset
+                        className="tq-form"
+                        disabled={!editable || !!textDraft.pending}
+                    >
                         <label htmlFor={`tq-title-${q.id}`}>Название</label>
                         <input
                             id={`tq-title-${q.id}`}
@@ -900,7 +933,7 @@ function QuestionCard({
                             maxLength={160}
                             required
                             onChange={(e) => {
-                                setTitle(e.target.value);
+                                textDraft.change({ title: e.target.value });
                                 setReviewed(false);
                             }}
                         />
@@ -912,7 +945,7 @@ function QuestionCard({
                             maxLength={12000}
                             required
                             onChange={(e) => {
-                                setBody(e.target.value);
+                                textDraft.change({ body: e.target.value });
                                 setReviewed(false);
                                 setCopied('');
                             }}
@@ -1005,7 +1038,16 @@ function QuestionCard({
                             : 'Добавить полученный ответ'}
                     </summary>
                     <form className="tq-form" onSubmit={(e) => void saveAnswer(e)}>
-                        <fieldset className="tq-form" disabled={busy}>
+                        <TextDraftNotice
+                            draft={answerDraft}
+                            disabled={busy}
+                            saveLabel="Сохранить ответ"
+                            onResolve={() => setAnswerConfirmed(false)}
+                        />
+                        <fieldset
+                            className="tq-form"
+                            disabled={busy || !!answerDraft.pending}
+                        >
                             <label htmlFor={`tq-answer-${q.id}`}>Ответ заказчика</label>
                             <textarea
                                 id={`tq-answer-${q.id}`}
@@ -1014,7 +1056,7 @@ function QuestionCard({
                                 maxLength={10000}
                                 value={answer}
                                 onChange={(e) => {
-                                    setAnswer(e.target.value);
+                                    answerDraft.change({ answer: e.target.value });
                                     setAnswerConfirmed(false);
                                 }}
                             />
@@ -1027,7 +1069,9 @@ function QuestionCard({
                                 maxLength={500}
                                 value={answerSource}
                                 onChange={(e) => {
-                                    setAnswerSource(e.target.value);
+                                    answerDraft.change({
+                                        answerSource: e.target.value,
+                                    });
                                     setAnswerConfirmed(false);
                                 }}
                                 placeholder="ЭТП, разъяснение №… от…"
@@ -1040,7 +1084,7 @@ function QuestionCard({
                                 type="date"
                                 value={received}
                                 onChange={(e) => {
-                                    setReceived(e.target.value);
+                                    answerDraft.change({ received: e.target.value });
                                     setAnswerConfirmed(false);
                                 }}
                             />

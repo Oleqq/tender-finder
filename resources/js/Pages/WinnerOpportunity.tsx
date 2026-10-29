@@ -14,6 +14,8 @@ import {
     type WinnerPage,
 } from '../lib/winnerOpportunities';
 import type { PageProps } from '../types';
+import { useTextDraft } from '../lib/useTextDraft';
+import { TextDraftNotice } from '../Components/TextDraftNotice';
 
 type Event = {
     id: number;
@@ -41,7 +43,13 @@ export default function WinnerOpportunity() {
         events,
     } = usePage<PageProps<Props>>().props;
     const [row, setRow] = useState(initial);
-    const [body, setBody] = useState(initial.body ?? '');
+    const textDraft = useTextDraft(
+        `winner:${initial.id}`,
+        { body: row.body ?? '' },
+        !row.archived,
+        String(row.version),
+    );
+    const { body } = textDraft.fields;
     const [selected, setSelected] = useState(
         initial.draft_source?.items.map((item) => item.id) ?? [],
     );
@@ -60,9 +68,16 @@ export default function WinnerOpportunity() {
     const [copyBusy, setCopyBusy] = useState(false);
     const action = useProposalAction();
     const root = `/winner-opportunities/${row.id}`;
-    const dirty = body !== (row.body ?? '');
-    const canExport = !!row.body && !row.stale && !dirty && !action.busy && !copyBusy;
+    const dirty = textDraft.dirty;
+    const canExport =
+        !!row.body &&
+        !row.stale &&
+        !dirty &&
+        !textDraft.pending &&
+        !action.busy &&
+        !copyBusy;
     async function compose() {
+        const submitted = textDraft.fields;
         const result = await action.run<{ opportunity: Opportunity }>(
             'post',
             root + '/compose',
@@ -79,7 +94,7 @@ export default function WinnerOpportunity() {
         );
         if (result) {
             setRow(result.opportunity);
-            setBody(result.opportunity.body ?? '');
+            textDraft.acceptSaved({ body: result.opportunity.body ?? '' }, submitted);
             setConfirmed(false);
             setReviewed(false);
             setReplace(false);
@@ -87,6 +102,7 @@ export default function WinnerOpportunity() {
         }
     }
     async function saveDraft() {
+        const submitted = textDraft.fields;
         const result = await action.run<{ opportunity: Opportunity }>(
             'patch',
             root + '/draft',
@@ -95,6 +111,7 @@ export default function WinnerOpportunity() {
         );
         if (result) {
             setRow(result.opportunity);
+            textDraft.acceptSaved({ body: result.opportunity.body ?? '' }, submitted);
             setReviewed(false);
             setCopyMessage('');
         }
@@ -402,6 +419,7 @@ export default function WinnerOpportunity() {
                                             action.busy ||
                                             !selected.length ||
                                             !confirmed ||
+                                            !!textDraft.pending ||
                                             (!!row.body && !replace)
                                         }
                                     >
@@ -435,6 +453,14 @@ export default function WinnerOpportunity() {
                             <p>Основание соответствия: {row.draft_source?.rationale}</p>
                         </details>
                         <div className="proposal-form">
+                            <TextDraftNotice
+                                draft={textDraft}
+                                disabled={action.busy}
+                                onResolve={() => {
+                                    setReviewed(false);
+                                    setCopyMessage('');
+                                }}
+                            />
                             <label>
                                 Текст обращения
                                 <textarea
@@ -442,9 +468,17 @@ export default function WinnerOpportunity() {
                                     className="proposal-draft"
                                     maxLength={20000}
                                     rows={14}
-                                    readOnly={row.archived}
+                                    readOnly={
+                                        row.archived ||
+                                        action.busy ||
+                                        !!textDraft.pending
+                                    }
                                     value={body}
-                                    onChange={(e) => setBody(e.target.value)}
+                                    onChange={(e) => {
+                                        textDraft.change({ body: e.target.value });
+                                        setReviewed(false);
+                                        setCopyMessage('');
+                                    }}
                                 />
                             </label>
                             {!row.archived ? (
@@ -453,6 +487,9 @@ export default function WinnerOpportunity() {
                                         <input
                                             type="checkbox"
                                             checked={reviewed}
+                                            disabled={
+                                                action.busy || !!textDraft.pending
+                                            }
                                             onChange={(e) =>
                                                 setReviewed(e.target.checked)
                                             }
@@ -468,7 +505,8 @@ export default function WinnerOpportunity() {
                                             row.stale ||
                                             !dirty ||
                                             !reviewed ||
-                                            !body.trim()
+                                            !body.trim() ||
+                                            !!textDraft.pending
                                         }
                                         onClick={() => void saveDraft()}
                                     >
