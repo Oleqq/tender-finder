@@ -1,5 +1,11 @@
 # Tender Finder: база данных и путь данных
 
+- [Поставки победителю — ULTRA-01](WINNER-OPPORTUNITIES.md): первая личная
+  ручная версия Ultra, источник итогов, прайс, обращение и история.
+  Миграция `2026_10_29_140000_create_winner_opportunities`: таблицы
+  `winner_opportunities` и `winner_opportunity_events`, каскад по пользователю.
+
+
 Дополнение 28 октября, PRO-01: миграция
 `2026_10_28_150000_create_price_catalogs` добавляет `price_catalogs`
 (уникальный `user_id`, версия), `price_catalog_items` (личные позиции)

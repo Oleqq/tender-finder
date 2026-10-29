@@ -52,6 +52,7 @@ use App\Http\Controllers\TenderPersonalStateController;
 use App\Http\Controllers\TenderQuestionController;
 use App\Http\Controllers\TenderWorkController;
 use App\Http\Controllers\TrialController;
+use App\Http\Controllers\WinnerOpportunityController;
 use App\Http\Middleware\EnforceWorkspaceAccess;
 use App\Services\AccessService;
 use App\Services\LocalMvpSubscriberService;
@@ -120,6 +121,15 @@ Route::get('/calendar/subscriptions/{token}.ics', [CalendarSubscriptionControlle
     ->name('calendar.subscription.feed');
 
 Route::middleware(['auth', EnforceWorkspaceAccess::class])->group(function () {
+    Route::get('/winner-opportunities', [WinnerOpportunityController::class, 'index'])->name('winner-opportunities');
+    Route::post('/winner-opportunities', [WinnerOpportunityController::class, 'saveEvidence'])->middleware('throttle:20,1,winner-create');
+    Route::get('/winner-opportunities/{opportunity}', [WinnerOpportunityController::class, 'show'])->whereNumber('opportunity');
+    Route::patch('/winner-opportunities/{opportunity}', [WinnerOpportunityController::class, 'saveEvidence'])->whereNumber('opportunity')->middleware('throttle:30,1,winner-evidence');
+    Route::post('/winner-opportunities/{opportunity}/compose', [WinnerOpportunityController::class, 'compose'])->whereNumber('opportunity')->middleware('throttle:20,1,winner-compose');
+    Route::patch('/winner-opportunities/{opportunity}/draft', [WinnerOpportunityController::class, 'saveDraft'])->whereNumber('opportunity')->middleware('throttle:30,1,winner-draft');
+    Route::post('/winner-opportunities/{opportunity}/outcome', [WinnerOpportunityController::class, 'outcome'])->whereNumber('opportunity')->middleware('throttle:20,1,winner-outcome');
+    Route::patch('/winner-opportunities/{opportunity}/archive', [WinnerOpportunityController::class, 'archive'])->whereNumber('opportunity');
+    Route::get('/winner-opportunities/{opportunity}/export', [WinnerOpportunityController::class, 'export'])->whereNumber('opportunity')->name('winner-opportunities.export');
     Route::get('/procurement', [ProcurementController::class, 'index'])->name('procurement');
     Route::post('/procurement/needs', [ProcurementController::class, 'saveNeed'])->middleware('throttle:30,1,procurement');
     Route::patch('/procurement/needs/{need}', [ProcurementController::class, 'saveNeed'])->whereNumber('need')->middleware('throttle:30,1,procurement');

@@ -91,6 +91,9 @@ export default function Profile() {
                 </section>
 
                 <GlassCard className="profile-shortcuts">
+                    <Link href="/winner-opportunities">
+                        Поставки победителю <Icon name="chevron-right" size={17} />
+                    </Link>
                     <Link href="/procurement">
                         Объединение закупок <Icon name="chevron-right" size={17} />
                     </Link>

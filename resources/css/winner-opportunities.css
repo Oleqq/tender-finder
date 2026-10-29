@@ -1,0 +1,11 @@
+.winner-hint { color: var(--tf-muted); font-size: 13px; line-height: 1.65; margin-block: 16px; }
+.winner-source { border-inline-start: 3px solid var(--tf-input-line); padding-inline-start: 14px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--tf-ink); font-size: 14px; line-height: 1.7; margin: 0; }
+.winner-item { border: 1px solid var(--tf-input-line); border-radius: 14px; padding: 14px; min-width: 0; }
+.winner-item strong, .winner-item small { overflow-wrap: anywhere; }
+.winner-list { display: grid; gap: 12px; min-width: 0; }
+.winner-item small { display: block; color: var(--tf-muted); font-weight: 400; line-height: 1.6; }
+.winner-page a { overflow-wrap: anywhere; color: var(--tf-accent); }
+.winner-page details { min-width: 0; }
+.winner-page summary { cursor: pointer; color: var(--tf-ink); line-height: 1.6; }
+.winner-page details > :not(summary) { margin-top: 14px; }
+.winner-page .proposal-intro .badge { justify-self: start; }
