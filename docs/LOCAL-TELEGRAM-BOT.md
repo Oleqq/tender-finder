@@ -17,7 +17,7 @@ Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликац
                                       → Redis queue → Bot API sendMessage
 ```
 
-- webhook принимает только `/start` и `/help`;
+- webhook обрабатывает `/start`, `/help`, `/paysupport` и отказ оплаты по `/subscribe`;
 - `TelegramBotClient` вызывает официальный Bot API через Laravel HTTP client;
 - `queue` отправляет ответ асинхронно;
 - каждое пользовательское уведомление приходит обычным текстом в личный чат
@@ -60,10 +60,10 @@ Telegram webhook → POST /telegram/webhook → PostgreSQL (дедупликац
 
    ```dotenv
    TELEGRAM_BOT_TOKEN=<токен тестового бота>
-TELEGRAM_WEBHOOK_SECRET=<случайная длинная строка>
-TELEGRAM_SUPERADMIN_IDS=<личный ID владельца,ID второго администратора>
-# необязательно: HTTPS URL для кнопки возврата; по умолчанию APP_URL
-TELEGRAM_MINI_APP_URL=https://<домен-mini-app>
+   TELEGRAM_WEBHOOK_SECRET=<случайная длинная строка>
+   TELEGRAM_SUPERADMIN_IDS=<личный ID владельца,ID второго администратора>
+   # необязательно: HTTPS URL для кнопки возврата; по умолчанию APP_URL
+   TELEGRAM_MINI_APP_URL=https://<домен-mini-app>
    ```
 
 3. Поднимите контур:
@@ -94,7 +94,7 @@ TELEGRAM_MINI_APP_URL=https://<домен-mini-app>
 администраторов вносятся личные Telegram **user ID**, а не ID группы или
 канала: Mini App подтверждает именно пользователя. При следующем входе
 удалённый из списка пользователь автоматически вернётся к роли `subscriber`.
-Для реальной закрытой beta используйте [DEPLOYMENT.md](DEPLOYMENT.md).
+Для реальной закрытой beta используйте [VPS-DEPLOYMENT](VPS-DEPLOYMENT.md).
 
 ## Проверка Mini App и trial
 
@@ -102,7 +102,7 @@ TELEGRAM_MINI_APP_URL=https://<домен-mini-app>
    `/local/mvp-operator` и `/local/mvp-subscriber`. Второй создаёт только
    local-dev пользователя и не подделывает Telegram ID. В текущем Docker
    `LOCAL_MVP_FULL_ACCESS_ENABLED=true`, поэтому он сразу получает роль
-   `super_admin` и активный доступ; это не меняет поведение Railway/VPS.
+   `super_admin` и активный доступ; это не меняет поведение VPS.
 2. В настоящем Telegram Mini App фронтенд отправляет подписанный `initData` в
    `POST /telegram/session`. Сервер создаёт или находит пользователя и
    обновляет страницу после смены session ID, чтобы получить актуальный CSRF
@@ -110,9 +110,10 @@ TELEGRAM_MINI_APP_URL=https://<домен-mini-app>
    тоже получает полный доступ; перед beta флаг нужно выключить.
 3. После consent вызываются `POST /consents` и `POST /trial/start`. Локальный
    compose включает только версионированные черновики документов, поэтому путь
-   можно проверить без обхода legal gate. Это не включает его на Railway/VPS:
-   там `LEGAL_DOCUMENTS_PUBLISHED` должен оставаться `false`, пока юрист не
-   утвердит финальные тексты и реквизиты оператора.
+   можно проверить без обхода legal gate. Это не включает его на VPS:
+   для нового окружения `LEGAL_DOCUMENTS_PUBLISHED=false` остаётся исходным
+   безопасным значением. На существующем VPS техническая публикация beta-текстов
+   не доказывает их юридическое утверждение: [задание юристу](LEGAL-PRODUCTION-HANDOFF.md).
 
 Если был открыт старый таб во время перезапуска `web`, приложение
 перезагружает страницу при ответе CSRF `419` и получает новый токен. Если
@@ -137,7 +138,9 @@ make test
 
 ## Границы текущей реализации
 
-Сейчас нет работающих Telegram Stars, публичной рассылки тендеров, live RSS
-monitoring и production webhook. Этот документ не является разрешением
-включать их. Следующий этап — закрытый VPS smoke-test после публикации
-юридических документов.
+Production webhook, мониторинги публичных источников и личные уведомления
+уже работают. Этот документ предназначен для отдельного тестового бота;
+не менять webhook живого бота и не рассылать сообщения реальным пользователям
+ради локальной проверки. Stars выведены из эксплуатации, настоящая ЮKassa
+выключена; внешний [demo checkout](DEMO-CHECKOUT.md) не принимает деньги.
+Текущие ограничения источников и приёмки — [CURRENT-STATE](CURRENT-STATE.md).

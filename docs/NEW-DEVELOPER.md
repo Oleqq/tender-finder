@@ -1,56 +1,64 @@
-# Tender Finder: вводная для нового разработчика
+# Вводная для разработчика
 
-## За минуту
+## Прочитать сначала
 
-Tender Finder — Laravel 12 + React/TypeScript Telegram Mini App. Мониторинги
-могут работать с публичными источниками без шаблона RosTender. Официальный API
-RosTender подключается дополнительно; на VPS его опрос ограничен квотой.
-Работают Workspace.ru, B2B-Center и частичные каталоги трёх площадок через
-B2B-Center. Прямой реестр Сбер АСТ остаётся выключенным. Интеграции с `zakupki.gov.ru` в
-runtime нет: RSS-поиск, HTML/XML-парсеры, фоновые jobs и enrichment для него
-удалены.
+[CURRENT-STATE](CURRENT-STATE.md) → [NEXT-FEATURES](NEXT-FEATURES.md) → документ
+своей задачи из [индекса](README.md). Архив и все описания функций заранее
+читать не нужно. Старые «ещё не выпущено» в архиве не являются текущим статусом.
 
-Стек: PHP 8.3, PostgreSQL 16, Redis, Inertia, Vite и Docker Compose.
+## Продукт и код
 
-## Где искать код
+Laravel 12, PHP 8.3, PostgreSQL 16, Redis, React/TypeScript, Inertia и Vite.
+Первые версии восьми функций Pro / Ultra работают вместе с мониторингами,
+участием, командами и поддержкой. Реальная оплата выключена; есть защищённое
+внешнее demo. RosTender отложен, прямой ЕИС выведен из эксплуатации.
 
-- `app/Tenders/Rostender*` и `app/Services/Rostender*` — источник и квоты.
-- `app/Services/SberAst*`, `WorkspaceRu*`, `B2bCenter*` и `PlatformCatalog*` — публичные источники без
-  пользовательской авторизации.
-- `SearchQueryController`, `SearchQueryService`, `MonitoringPreviewService` —
-  создание, изменение и предварительная проверка мониторинга.
-- `TenderMatchingService` и `TenderRuleScore` — детерминированный match и score.
-- `app/Telegram/`, `TelegramIdentityService`, `TelegramBotClient` — Mini App и
-  Bot API.
-- `resources/js/Pages/MyQueries.tsx` и `Tenders.tsx` — мониторинги и лента.
-- `app/Services/SupportTicketService.php` и `resources/js/Pages/Support.tsx` —
-  обращения; доступ администратора проверяется сервером.
-- `tests/Feature/` — основной контракт поведения.
+| Область | Где искать |
+|---|---|
+| Мониторинги и поиск | `SearchQueryController`, `SearchQueryService`, `MonitoringPreviewService`, `TenderMatchingService`, `TenderRuleScore`. |
+| Источники и свежесть | `app/Tenders/`, source-сервисы в `app/Services/`, `MonitoringStatusService`. |
+| Доступ и demo | `AccessService`, `SubscriptionCatalog`, `SubscriptionOrderService`, `DemoCheckoutController`. |
+| Восемь функций | Ссылки на сервисы, таблицы и тесты приведены в профильных документах из индекса. |
+| Telegram | `app/Telegram/`, `TelegramIdentityService`, `TelegramBotClient`. |
+| Поддержка | `SupportTicketService`, страницы `Support*` / `AdminSupport*`. |
+| Интерфейс | `resources/js/Pages/`, общие компоненты, `resources/css/`. |
+| Проверки | `tests/Feature/`, `tests/Unit/`, `tests/js/`, `.github/workflows/ci.yml`. |
 
-Таблицы прежнего источника не удаляются: они могут содержать исторические
-данные production. Миграция retirement ставит старые ленты и мониторинги без
-RosTender на паузу. Не добавляйте для них новые writers или сетевые вызовы.
+Таблицы выведенных интеграций и исторические платежные поля сохраняются для
+совместимости и истории. Не возобновлять старые writers/сетевые вызовы по
+архивному документу.
 
-## Первые команды
+## Запуск и проверки
 
-```powershell
-docker compose -f compose.local.yml -f compose.local.dev.yml build
-docker compose -f compose.local.yml -f compose.local.dev.yml --profile ops run --rm migrate
-docker compose -f compose.local.yml -f compose.local.dev.yml up -d web queue scheduler vite
-docker compose -f compose.local.yml -f compose.local.dev.yml run --rm --no-deps test
+Создать `deploy/local-runtime.env` из шаблона с отдельными локальными
+значениями. Затем:
+
+```sh
+make doctor
+make build
+make migrate
+make up
+make check
+npm run test:ui
 ```
 
-Локальный full-access вход: `http://127.0.0.1:8080/local/mvp-subscriber`.
+Локальный full-access вход — `http://127.0.0.1:8080/local/mvp-subscriber`.
+Он не проверяет платный доступ обычного пользователя: для этого нужны
+отдельные fixtures или demo с выключенными full-access overrides.
+Подробности — [LOCAL-RUNTIME](LOCAL-RUNTIME.md), [TESTING](TESTING.md).
 
-## Неподвижные правила
+## Правила
 
-- Не коммитить env-файлы, API-ключи, webhook secrets, raw `initData` и данные
-  живых закупок.
-- Не добавлять обход CAPTCHA, закрытых страниц, cookies или proxy rotation.
-- Не отправлять пользовательские данные внешнему LLM без отдельного
-  privacy/cost approval.
-- Не применять `docker compose down -v` без явного решения удалить локальную БД.
-- `LOCAL_MVP_FULL_ACCESS_ENABLED` допустим только в local/testing.
+- Не коммитить env, ключи, webhook secrets, raw `initData`, QA-базы и реальные
+  пользовательские документы. В тестах — обезличенные fixtures.
+- Не обходить CAPTCHA, авторизацию, ограничения источников и TLS.
+- Не отправлять материалы внешнему LLM без согласованной схемы обработки и бюджета.
+- Тесты не запускать на постоянной локальной или production-БД.
+- `docker compose down -v` удаляет локальные данные; для обычной остановки он не нужен.
+- `LOCAL_MVP_FULL_ACCESS_ENABLED` допустим только в local/testing;
+  истёкший production-доступ попутно не продлевать.
+- Для runtime-выпуска сверить оба main и CI точного SHA, backup и smoke:
+  [VPS-DEPLOYMENT](VPS-DEPLOYMENT.md).
 
-Полезные документы: [CURRENT-STATE](CURRENT-STATE.md),
-[LOCAL-RUNTIME](LOCAL-RUNTIME.md), [ROSTENDER-INTEGRATION](ROSTENDER-INTEGRATION.md).
+Текущий статус обновлять в одной сводке, детали — в документе функции;
+не добавлять один и тот же дневник изменений в несколько файлов.

@@ -1,8 +1,8 @@
 # Локальный Docker-контур
 
-Контур предназначен для разработки Mini App, мониторингов RosTender,
-публичных источников СБЕР АСТ, Workspace.ru и B2B-Center, Telegram-доставки и рабочих
-процессов участия.
+Контур предназначен для разработки Mini App, источников, Telegram-доставки,
+участия и функций Pro / Ultra. Текущий набор возможностей и отложенные
+направления — в [CURRENT-STATE](CURRENT-STATE.md).
 
 ## Запуск
 
@@ -19,6 +19,9 @@ docker compose -f compose.local.yml -f compose.local.dev.yml ps
 
 Приложение: `http://127.0.0.1:8080`.
 Локальный full-access: `http://127.0.0.1:8080/local/mvp-subscriber`.
+Этот вход обходит обычные тарифные ограничения. Для проверки триала,
+истечения и уровней доступа использовать отдельные fixtures или
+[demo checkout](DEMO-CHECKOUT.md) с выключенными full-access overrides.
 
 Для проверки реальных источников задайте разрешённые настройки `ROSTENDER_*`,
 `SBER_AST_*`, `WORKSPACE_RU_*`, `B2B_CENTER_*`, а для частичных каталогов

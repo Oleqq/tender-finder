@@ -1,66 +1,86 @@
-# Документация Tender Finder
+# Документация TenderFinder
 
-- [Повторные закупки — ULTRA-03](REPEAT-TENDERS.md): личные подсказки,
-  ручное подтверждение, сравнение и уведомления внутри приложения для Ultra.
+Обновлено 29 октября 2026 года. Для знакомства достаточно
+[текущего состояния](CURRENT-STATE.md) и [ближайших задач](NEXT-FEATURES.md).
+Затем открывайте только документ нужной функции. Читать всю папку и архив
+перед каждой задачей не требуется.
 
+## Точки входа
 
-- [Поставки победителю — ULTRA-01](WINNER-OPPORTUNITIES.md): первая личная
-  ручная версия Ultra, источник итогов, прайс, обращение и история.
-
-
-- [PRO-03: вопросы заказчику](TENDER-QUESTIONS.md) — цитаты, редактируемые черновики, ручная отметка отправки, ответы и история для Pro / Ultra.
-
-- [PRO-02: неучтённые обязательства и расходы](COST-GAP-CHECK.md) — сравнение документов, цитаты, ручная проверка и перенос в экономику для Pro / Ultra.
-
-- [PRO-04: предложения из блоков](PROPOSAL-BUILDER.md) — личные материалы и черновики для Pro / Ultra.
-- [Демонстрация триала и покупки подписки](DEMO-CHECKOUT.md) — защищённый внешний сценарий без списаний.
-
-Начните с [актуального состояния](CURRENT-STATE.md). В нём зафиксировано, что
-работает сейчас, что сознательно выключено и в каком порядке развивать MVP.
-
-| Документ | Назначение |
+| Документ | Когда нужен |
 |---|---|
-| [CURRENT-STATE](CURRENT-STATE.md) | Канонический статус MVP, пользовательский путь и ближайшие этапы. |
-| [MAINTENANCE-2026-10-27](MAINTENANCE-2026-10-27.md) | Проверка обоих remote, планов коллеги, адаптивных форм и раскрытых мониторингов. |
-| [UI-MAINTENANCE-2026-10-26](UI-MAINTENANCE-2026-10-26.md) | Общая вводная часть вкладок, темы, диалоги и предыдущая UI-приёмка. |
-| [MAINTENANCE-2026-10-20](MAINTENANCE-2026-10-20.md) | Чекап Git, VPS, источников, интерфейса и сценария нового пользователя. |
-| [PROGRESS](PROGRESS.md) | Хронология этапов, фактические выпуски и оставшаяся приёмка. |
-| [NEXT-FEATURES](NEXT-FEATURES.md) | Приоритетный план следующих функций, критерии готовности и зависимости. |
-| [PAYMENTS-NEXT-STAGE](PAYMENTS-NEXT-STAGE.md) | Текущий выбор платёжного канала, граница Telegram и план возможной внешней ЮKassa. |
-| [SUBSCRIPTION-TARIFFS](SUBSCRIPTION-TARIFFS.md) | Цены Basic / Pro / Ultra на 1, 3 и 12 месяцев, скидки, состав тарифов и HTML-страницы предложения. |
-| [PRO-ULTRA-FEATURE-ROADMAP](PRO-ULTRA-FEATURE-ROADMAP.md) | План восьми функций Pro / Ultra: статус PRO-01, сценарии заработка, зависимости и очередь реализации. |
-| [PRICE-CATALOG-MATCHING](PRICE-CATALOG-MATCHING.md) | PRO-01: личный Excel-прайс, подбор тендеров, сравнение спецификации и ручное подтверждение позиций. |
-| [COMPANY-REQUISITES](COMPANY-REQUISITES.md) | Публичная страница реквизитов ИП, исходный PDF и порядок обновления данных. |
-| [TENDER-ANALYTICS-AND-SOURCES](TENDER-ANALYTICS-AND-SOURCES.md) | Краткая аналитика в карточке, выбор площадок мониторинга и множественный фильтр ленты. |
-| [TENDER-ANALYTICS-TIERS](TENDER-ANALYTICS-TIERS.md) | Разделение аналитики Basic / Pro / Ultra, методика расчётов и серверный контроль доступа. |
-| [DEVELOPER-PLAN-SWITCHING](DEVELOPER-PLAN-SWITCHING.md) | Переключение Basic / Pro / Ultra в Developer Mode, разрешения, сохранение выбора и сброс. |
-| [YOOKASSA-INTEGRATION](YOOKASSA-INTEGRATION.md) | Реализованная серверная основа ЮKassa и оставшиеся шаги до тестового платежа. |
-| [TELEGRAM-STARS-RUNBOOK](TELEGRAM-STARS-RUNBOOK.md) | Архив решения о выводе Stars из эксплуатации и порядок разбора неожиданного старого события. |
-| [LEGAL-PRODUCTION-HANDOFF](LEGAL-PRODUCTION-HANDOFF.md) | Перечень документов и решений для юриста и бухгалтера перед публичным платным запуском; не готовые юридические тексты. |
-| [TEKTORG-FABRIKANT-DISCOVERY](TEKTORG-FABRIKANT-DISCOVERY.md) | Проверка прямых источников ТЭК-Торг и Фабриканта и блокеры подключения. |
-| [BIDZAAR-AND-REGION](BIDZAAR-AND-REGION.md) | Порядок получения доступа и включения Bidzaar, статус ЭТП РЕГИОН. |
-| [EXTERNAL-SOURCE-DISCOVERY](EXTERNAL-SOURCE-DISCOVERY.md) | Что проверено по Росэлторгу и РТС-Тендер и какие разрешения ещё нужны. |
-| [SUPPORT-WORKSPACE](SUPPORT-WORKSPACE.md) | Возможности поддержки, границы доступа и статус production-выпуска. |
-| [VPS-DEPLOYMENT](VPS-DEPLOYMENT.md) | Фактический VPS-релиз, резервные копии и проверки production. |
-| [MOBILE-LOAD-INCIDENT-2026-10-19](MOBILE-LOAD-INCIDENT-2026-10-19.md) | Факты по зависанию Mini App и порядок разбора повторного случая по HTTP-логам. |
-| [INTEGRATION-STATUS](INTEGRATION-STATUS.md) | Архивный снимок интеграции веток от 2 сентября; не текущий статус. |
-| [NEW-DEVELOPER](NEW-DEVELOPER.md) | Быстрое введение нового разработчика: границы, код и команды. |
-| [LOCAL-RUNTIME](LOCAL-RUNTIME.md) | Запуск Docker и проверка мониторинга RosTender. |
-| [LOCAL-TELEGRAM-BOT](LOCAL-TELEGRAM-BOT.md) | Локальная проверка Laravel Telegram webhook, очереди и Mini App. |
-| [B2B-CENTER-SOURCE](B2B-CENTER-SOURCE.md) | Публичный каталог B2B-Center, настройки и ограничения. |
-| [ETP-GPB-SOURCE](ETP-GPB-SOURCE.md) | Официальный RSS ЭТП ГПБ, настройки и проверка перед включением. |
-| [RSS-MVP-SOURCE](RSS-MVP-SOURCE.md) | Архив выведенной из эксплуатации интеграции ЕИС. |
-| [PARTICIPATION-AND-CALENDAR](PARTICIPATION-AND-CALENDAR.md) | Участие, чек-листы, календарь, экспорт и проверка. |
-| [PARTICIPATION-LIFECYCLE](PARTICIPATION-LIFECYCLE.md) | Удаление и восстановление заявок, просроченные записи, статистика и остановка уведомлений. |
-| [TEAM-WORKSPACES](TEAM-WORKSPACES.md) | Команды, роли, ответственные, шаблоны и напоминания по задачам. |
-| [DATABASE](DATABASE.md) | Схема данных и правила хранения. |
-| [DEPLOYMENT](DEPLOYMENT.md) | Исторический чек-лист VPS cutover; текущий порядок — в VPS-DEPLOYMENT. |
-| [DESIGN-SYSTEM](DESIGN-SYSTEM.md) | Компоненты и правила UI. |
-| [TESTING](TESTING.md) | Повторяемые проверки продукта и границы beta-приёмки. |
-| [ADMIN-DASHBOARD](ADMIN-DASHBOARD.md) | Границы, формулы и проверка закрытой маркетинговой админки. |
-| [LEGAL-DRAFTS](LEGAL-DRAFTS.md) | Материал для юридической проверки, не публичные документы. |
-| [ТЗ бот тг+подписка](ТЗ%20бот%20тг%2Bподписка.md) | Исходные требования; не текущий статус разработки. |
+| [CURRENT-STATE](CURRENT-STATE.md) | Что выпущено, ограничения, платежи и источники на дату проверки. |
+| [NEXT-FEATURES](NEXT-FEATURES.md) | Ближайшая приёмка, зависимости и отложенные направления. |
+| [NEW-DEVELOPER](NEW-DEVELOPER.md) | Код, стек, локальный старт и правила разработки. |
+| [PRO-ULTRA-FEATURE-ROADMAP](PRO-ULTRA-FEATURE-ROADMAP.md) | Сценарии и критерии восьми уже реализованных первых версий. |
 
-Исторические планы, hand-off, отчёты прежних запусков и документация
-неиспользуемого TenderGuru preview удалены из рабочей папки. История изменений
-остаётся в Git; не используйте её как инструкцию к текущему MVP.
+## Функции Pro и Ultra
+
+| Функция | Описание |
+|---|---|
+| [Мой прайс — PRO-01](PRICE-CATALOG-MATCHING.md) | Excel, подбор своих тендеров, спецификация, ручные сопоставления. |
+| [Неучтённые расходы — PRO-02](COST-GAP-CHECK.md) | Документы, цитаты, проверка и перенос сумм в экономику. |
+| [Вопросы заказчику — PRO-03](TENDER-QUESTIONS.md) | Основания, черновики, ручная отправка, ответы и история. |
+| [Предложения — PRO-04](PROPOSAL-BUILDER.md) | Личная библиотека, шаблоны, сборка и TXT. |
+| [Поставки победителю — ULTRA-01](WINNER-OPPORTUNITIES.md) | Ручная проверенная подборка, прайс, обращение и результат. |
+| [Объединение закупок — ULTRA-02](PROCUREMENT-CONSOLIDATION.md) | Потребности контрактов, предложения и распределение затрат. |
+| [Повторные закупки — ULTRA-03](REPEAT-TENDERS.md) | Подсказки, подтверждённые связи и уведомления внутри приложения. |
+| [Контроль прибыли — ULTRA-04](EXECUTION-PROFIT-CONTROL.md) | План, факт, остаток и прогноз исполнения. |
+| [Восстановление текста](TEXT-DRAFT-RECOVERY.md) | Временные правки в текущей вкладке и конфликты редакций. |
+
+## Основной продукт и команды
+
+- [Мониторинги, напоминания и обратная связь](FOLLOW-UP-FEATURES.md),
+  [свежесть источников](SOURCE-FRESHNESS.md),
+  [аналитика и площадки](TENDER-ANALYTICS-AND-SOURCES.md),
+  [аналитика по тарифам](TENDER-ANALYTICS-TIERS.md).
+- [Участие, документы и календарь](PARTICIPATION-AND-CALENDAR.md),
+  [удаление и восстановление](PARTICIPATION-LIFECYCLE.md),
+  [обсуждения и экономика](PARTICIPATION-COLLABORATION-ANALYTICS.md).
+- [Команды и шаблоны](TEAM-WORKSPACES.md), [командная лента](TEAM-TENDER-FEED.md),
+  [распределение и согласование](TEAM-WORKFLOW-AUTOMATION.md).
+- [Поддержка](SUPPORT-WORKSPACE.md), [маркетинговая админка](ADMIN-DASHBOARD.md),
+  [Telegram-уведомления](TELEGRAM-NOTIFICATION-FLOW.md).
+
+## Доступ, оплата и юридическая подготовка
+
+- [Тарифы и цены](SUBSCRIPTION-TARIFFS.md),
+  [Developer Mode](DEVELOPER-PLAN-SWITCHING.md),
+  [состояния доступа](TRIAL-TO-PAID-FLOW.md), [demo checkout](DEMO-CHECKOUT.md).
+- [План настоящих платежей](PAYMENTS-NEXT-STAGE.md),
+  [API-клиент ЮKassa](YOOKASSA-INTEGRATION.md),
+  [обработка старых событий Stars](TELEGRAM-STARS-RUNBOOK.md).
+- [Задание юристу](LEGAL-PRODUCTION-HANDOFF.md), [реквизиты](COMPANY-REQUISITES.md).
+- Автономные страницы тарифов: [светлая](subscription-offer-preview.html) и
+  [тёмная](subscription-offer-preview-dark.html). Это проверяемые HTML-артефакты;
+  их исходные шаблоны — `resources/pricing`, цены — `SubscriptionCatalog`.
+
+## Источники и исследования
+
+Работающий на дату проверки набор указан только в [CURRENT-STATE](CURRENT-STATE.md).
+Наличие адаптера или исследовательской заметки не означает, что источник включён.
+
+- [Workspace.ru](WORKSPACE-RU-SOURCE.md), [B2B-Center](B2B-CENTER-SOURCE.md),
+  [Bidzaar и ЭТП РЕГИОН](BIDZAAR-AND-REGION.md),
+  [Сбер АСТ и его частичный каталог](SBER-AST-SOURCE.md).
+- [RosTender](ROSTENDER-INTEGRATION.md) — работа отложена;
+  [ЭТП ГПБ](ETP-GPB-SOURCE.md), [ТЭК-Торг и Фабрикант](TEKTORG-FABRIKANT-DISCOVERY.md)
+  — не включены.
+- [LLM-скоринг](LLM-TENDER-SCORING.md) — будущий этап, внешний LLM не подключён.
+
+## Разработка и эксплуатация
+
+[Локальный контур](LOCAL-RUNTIME.md) · [тестовый Telegram-бот](LOCAL-TELEGRAM-BOT.md) ·
+[база данных](DATABASE.md) · [дизайн-система](DESIGN-SYSTEM.md) ·
+[проверки](TESTING.md) · [VPS и выпуск](VPS-DEPLOYMENT.md).
+
+## Архив и порядок обновления
+
+[Архив](archive/README.md) содержит прежние отчёты, исходное ТЗ и снимки
+старых сводок. Они сохранены для расследований и истории, не для выбора
+следующей задачи. История правок также доступна в Git.
+
+Менять текущий статус следует в `CURRENT-STATE`, очередь — в `NEXT-FEATURES`,
+контракт функции — в её документе. Не добавлять одинаковые дневники релизов
+в несколько сводок; для нового статуса достаточно ссылки на профильный файл.
+Одноразовые подробные протоколы хранить отдельно от повседневных инструкций.

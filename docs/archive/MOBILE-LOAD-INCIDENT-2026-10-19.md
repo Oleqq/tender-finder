@@ -1,3 +1,6 @@
+> Архивный документ, перенесён 29 октября 2026 года. Описывает прежнее состояние;
+> текущий статус — [CURRENT-STATE](../CURRENT-STATE.md), инструкции — [индекс](../README.md).
+
 # Загрузка Mini App на телефонах · 19 октября 2026
 
 Коллега сообщил в 14:58 МСК, что у двух получивших доступ сотрудников Mini
@@ -94,7 +97,7 @@ Laravel. URL с query string, тело запроса и Telegram `initData` в 
 маскированным IP и путём только для `/`, `/open`, `/health`,
 `/telegram/session` и файлов Mini App. `request_id` связывает записи Caddy и
 Laravel для ответа приложения; детали хранения — в
-[VPS-DEPLOYMENT](VPS-DEPLOYMENT.md). Эти изменения ещё не развернуты, поэтому
+[VPS-DEPLOYMENT](../VPS-DEPLOYMENT.md). Эти изменения ещё не развернуты, поэтому
 искать такие события в старых логах VPS бесполезно.
 
 После релиза для новой попытки записать время по Москве, сеть и состояние VPN.
@@ -127,5 +130,5 @@ docker compose -f compose.production.yml exec caddy tail -n 200 /var/log/caddy/a
    `APP_DOMAIN`, `APP_URL`, `TELEGRAM_MINI_APP_URL` и URL Mini App у бота;
    сначала проверить TLS, редиректы, вход и платежи на новом origin.
 
-См. также [TELEGRAM-NOTIFICATION-FLOW](TELEGRAM-NOTIFICATION-FLOW.md):
+См. также [TELEGRAM-NOTIFICATION-FLOW](../TELEGRAM-NOTIFICATION-FLOW.md):
 исправление кнопок и пустого командного дайджеста — отдельная задача.

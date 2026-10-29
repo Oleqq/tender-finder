@@ -1,3 +1,6 @@
+> Архивный документ, перенесён 29 октября 2026 года. Описывает прежнее состояние;
+> текущий статус — [CURRENT-STATE](../CURRENT-STATE.md), инструкции — [индекс](../README.md).
+
 # Архив: источник ЕИС RSS
 
 Интеграция выведена из эксплуатации 26 сентября 2026 года.
@@ -12,4 +15,4 @@
 старые ленты и мониторинги без RosTender в состояние `paused`.
 
 Активный источник мониторинга описан в
-[ROSTENDER-INTEGRATION](ROSTENDER-INTEGRATION.md).
+[ROSTENDER-INTEGRATION](../ROSTENDER-INTEGRATION.md).

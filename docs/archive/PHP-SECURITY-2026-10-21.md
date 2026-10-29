@@ -1,3 +1,6 @@
+> Архивный документ, перенесён 29 октября 2026 года. Описывает прежнее состояние;
+> текущий статус — [CURRENT-STATE](../CURRENT-STATE.md), инструкции — [индекс](../README.md).
+
 # PHP security update, 21 October 2026
 
 PHP 8.3 releases before 8.3.36 are affected by two critical RCE issues,

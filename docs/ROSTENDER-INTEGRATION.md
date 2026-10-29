@@ -1,10 +1,10 @@
 # RosTender API integration
 
-> The production feed is configured, but cannot currently import new cards:
-> on 14 October 2026 the authenticated, quota-free `info` endpoint reported
-> `daily_limit=0`, `used_today=0`, `remaining=0`. See the incident below.
+> Development and recovery are postponed by the owner as of 29 October 2026.
+> The feed remains configured; this documentation cleanup does not change its
+> flags or schedule. Do not select recovery as the next task automatically.
 
-## Production diagnosis, 14 October 2026
+## Confirmed diagnosis, 29 October 2026
 
 The VPS has a configured API key and one active saved-template feed (ID
 `2305550`). The last successful poll was 16 September. The latest poll failed
@@ -14,9 +14,10 @@ was accepted. Its reported `daily_limit=0`, `used_today=0`, and `remaining=0`
 explain why a data request is denied. This is an account/tariff entitlement
 problem, not a broken SSH connection or an exhausted 200-call allowance.
 
-The same quota-free check was repeated at 17:35 Moscow time on 14 October:
-HTTP 200, `daily_limit=0`, `used_today=0`, `remaining=0`. No account change
-had taken effect by that time.
+The read-only, quota-free check repeated on 29 October at 13:57 UTC again
+returned HTTP 200, `success=true`, `daily_limit=0`, `used_today=0`, `remaining=0`.
+Do not log or paste the raw `info` response: it includes the full API key.
+Only retain allowlisted diagnostic fields.
 
 The local `ROSTENDER_DAILY_QUOTA_LIMIT=200` is only our safety setting. It
 does **not** grant 200 requests at RosTender. Likewise, a local
@@ -25,7 +26,7 @@ not evidence of 200 successful calls: the guard reconciles a remote
 `X-RateLimit-Remaining: 0` against its configured 200-call limit. Read the
 supplier's `info` response or cabinet journal for actual entitlement and use.
 
-Next steps for the account owner:
+Conditions for returning to recovery when the owner resumes this direction:
 
 1. In the RosTender cabinet, check **Profile → Integrations → API** for the
    active tariff/add-on, daily limit, and request journal. Ask RosTender
@@ -75,7 +76,10 @@ The adapter follows the official Client API documentation:
   100 items per page.
 - `{id}` obtains a detail card. `updated_at`, `files`, EIS number and other
   card data are retained with the tender.
-- A successful request consumes quota; `info` is not used by background work.
+- Provider quota is charged for successful list/detail data methods, not
+  `info` or `templates`. `info` is not used by background work. The current
+  client still reserves local quota for the template catalog: local guard
+  counts are not identical to provider usage.
 
 The implementation intentionally performs only page 1 for a shared saved
 template. It does not create arbitrary user search requests, scrape HTML, use
