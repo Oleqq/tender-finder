@@ -1,0 +1,29 @@
+.tender-questions { display: grid; gap: 24px; min-width: 0; color: var(--tf-ink); }
+.tender-questions h2, .tender-questions h3, .tender-questions h4, .tender-questions p { margin: 0; overflow-wrap: anywhere; }
+.tender-questions h2 { font-size: 20px; font-weight: 650; line-height: 1.45; }
+.tender-questions h3 { font-size: 18px; font-weight: 650; line-height: 1.45; }
+.tender-questions h4 { font-size: 14px; font-weight: 650; }
+.tender-questions p, .tender-questions cite { font-size: 13px; line-height: 1.7; color: var(--tf-muted); }
+.tender-questions a { color: var(--tf-accent); font-size: 13px; overflow-wrap: anywhere; }
+.tender-questions a:not(.button) { text-decoration: underline; }
+.tq-card { display: grid; gap: 18px; padding: 24px; min-width: 0; }
+.tq-intro, .tq-list { display: grid; gap: 18px; min-width: 0; }
+.tq-form { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.tq-form label { font-size: 13px; font-weight: 550; line-height: 1.6; }
+.tender-questions input:not([type='checkbox']), .tender-questions textarea, .tender-questions select { width: 100%; min-width: 0; max-width: 100%; padding: 12px; border: 1px solid var(--tf-input-line); border-radius: 12px; background: var(--tf-input-bg); color: var(--tf-ink); font: inherit; font-size: 16px; }
+.tender-questions textarea { resize: vertical; line-height: 1.6; }
+.tq-check { display: flex; align-items: flex-start; gap: 12px; padding-block: 6px; cursor: pointer; }
+.tq-check input { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 2px; accent-color: var(--tf-accent-fill); }
+.tq-actions, .tq-filters, .tq-heading { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.tq-heading { justify-content: space-between; scroll-margin-top: 24px; }
+.tq-filters button { border: 1px solid var(--tf-input-line); background: var(--tf-input-bg); color: var(--tf-ink); border-radius: 12px; padding: 9px 12px; font-size: 12px; line-height: 1.5; }
+.tq-filters button[aria-pressed='true'] { color: var(--tf-accent); border-color: var(--tf-accent); }
+.tender-questions blockquote { display: grid; gap: 8px; margin: 0; padding: 16px; background: var(--tf-input-bg); border-left: 3px solid var(--tf-accent); border-radius: 0 12px 12px 0; overflow-wrap: anywhere; }
+.tender-questions blockquote p { color: var(--tf-ink); white-space: pre-wrap; }
+.tender-questions cite { font-style: normal; font-size: 12px; }
+.tender-questions summary { font-size: 14px; line-height: 1.6; cursor: pointer; overflow-wrap: anywhere; }
+.tender-questions details > .tq-form, .tender-questions details > .tq-text { margin-top: 14px; }
+.tender-questions .tq-text { white-space: pre-wrap; color: var(--tf-ink); }
+.tq-answer { display: grid; gap: 12px; padding: 16px; background: var(--tf-input-bg); border-radius: 12px; }
+.tq-source-scroll { max-height: 360px; overflow-y: auto; display: grid; gap: 14px; margin-top: 14px; }
+@media(max-width: 480px) { .tq-card { padding: 18px; } .tq-actions { flex-direction: column; align-items: stretch; } .tq-actions .button { width: 100%; } }

@@ -83,6 +83,14 @@ export default function TenderDetail() {
                         Проверить неучтённые расходы
                     </Link>
                 ) : null}
+                {tender.analytics.tier !== 'basic' ? (
+                    <Link
+                        className="button button--secondary button--md"
+                        href={`/tenders/${tender.id}/questions`}
+                    >
+                        Вопросы заказчику
+                    </Link>
+                ) : null}
                 <TenderAnalytics
                     key={tender.id}
                     summary={tender.summary}

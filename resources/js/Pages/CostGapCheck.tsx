@@ -327,6 +327,7 @@ export default function CostGapCheckPage() {
                                                 'Поставщик'
                                             }
                                             onSave={(value) => review(row.key, value)}
+                                            questionHref={`/tenders/${tender.id}/questions?cost_key=${encodeURIComponent(row.key)}${teamId ? `&team_id=${teamId}` : ''}`}
                                             onTransfer={() => {
                                                 setTransferKey(row.key);
                                                 setNewExpense(false);
@@ -342,6 +343,7 @@ export default function CostGapCheckPage() {
                                           (side) => (
                                               <SourceView
                                                   key={side}
+                                                  id={`cost-source-${side}`}
                                                   label={
                                                       side === 'customer'
                                                           ? 'Заказчик'
@@ -596,6 +598,7 @@ function RequirementCard({
     supplierTitle,
     onSave,
     onTransfer,
+    questionHref,
 }: {
     row: GapRow;
     decision?: GapDecision;
@@ -605,6 +608,7 @@ function RequirementCard({
     supplierTitle: string;
     onSave: (value: GapDecision) => Promise<GapDecision | null>;
     onTransfer: () => void;
+    questionHref: string;
 }) {
     const [status, setStatus] = useState(decision?.status ?? row.status);
     const [note, setNote] = useState(decision?.note ?? '');
@@ -638,6 +642,9 @@ function RequirementCard({
                 </Badge>
             </div>
             <p>{row.reason}</p>
+            <Link href={questionHref}>
+                Подготовить вопрос заказчику по этому условию
+            </Link>
             <div className="cost-gap__evidence">
                 <Quotes
                     title={`Заказчик · ${customerTitle}`}
@@ -767,9 +774,21 @@ function Quotes({ title, evidence }: { title: string; evidence: Evidence[] }) {
         </div>
     );
 }
-function SourceView({ label, source }: { label: string; source: GapSource }) {
+function SourceView({
+    label,
+    source,
+    id,
+}: {
+    label: string;
+    source: GapSource;
+    id: string;
+}) {
     return (
-        <details className="cost-gap__source-text">
+        <details
+            className="cost-gap__source-text"
+            id={id}
+            open={window.location.hash === `#${id}`}
+        >
             <summary>
                 {label}: {source.title} ·{' '}
                 {source.kind === 'text' ? 'текст пользователя' : 'извлечено из файла'}

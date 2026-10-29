@@ -1,5 +1,6 @@
 import { scopedUrl } from '../lib/workspace';
 import axios from 'axios';
+import { Link } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import { Badge, Button, GlassCard } from './ui';
 import type { TeamScope } from './WorkspacePicker';
@@ -24,12 +25,14 @@ export function ParticipationEconomics({
     root,
     team,
     canEdit,
+    questionsHref,
 }: {
     initial: Economics;
     initialApproval: ApprovalState;
     root: string;
     team: TeamScope['team'];
     canEdit: boolean;
+    questionsHref?: string;
 }) {
     const [economics, setEconomics] = useState(initial);
     const [approval, setApproval] = useState(initialApproval);
@@ -139,6 +142,11 @@ export function ParticipationEconomics({
             <div className="economics-heading">
                 <div>
                     <h2>Экономика заявки</h2>
+                    {questionsHref ? (
+                        <Link href={questionsHref}>
+                            Вопросы и ответы по условиям расчёта
+                        </Link>
+                    ) : null}
                     <p>Оцените затраты и зафиксируйте решение до подачи.</p>
                 </div>
                 {economics.decision ? (

@@ -291,6 +291,14 @@ export default function TenderWork() {
                         Проверить неучтённые расходы
                     </Link>
                 ) : null}
+                {tender.analytics.tier !== 'basic' ? (
+                    <Link
+                        className="button button--secondary button--md"
+                        href={scopedUrl(`/tenders/${tender.id}/questions`, team)}
+                    >
+                        Вопросы заказчику
+                    </Link>
+                ) : null}
                 <TenderAnalytics
                     key={tender.id}
                     summary={tender.summary}
@@ -558,6 +566,11 @@ export default function TenderWork() {
                 ) : null}
                 {participation ? (
                     <ParticipationEconomics
+                        questionsHref={
+                            tender.analytics.tier !== 'basic'
+                                ? scopedUrl(`/tenders/${tender.id}/questions`, team)
+                                : undefined
+                        }
                         initial={participation.economics}
                         initialApproval={participation.approval}
                         root={root}
