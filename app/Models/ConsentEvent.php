@@ -22,6 +22,8 @@ class ConsentEvent extends Model
         'action',
         'ip_hash',
         'occurred_at',
+        'source',
+        'telegram_update_id',
     ];
 
     protected function casts(): array

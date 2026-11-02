@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\TelegramUpdate;
 use App\Services\TelegramBotClient;
 use App\Services\TelegramCommands;
+use App\Services\TelegramConsentService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -22,6 +23,7 @@ class ProcessTelegramUpdate implements ShouldQueue
         public readonly int $updateId,
         public readonly string $command,
         public readonly string $chatId,
+        public readonly ?string $telegramUserId = null,
     ) {}
 
     public function handle(TelegramBotClient $bot): void
@@ -33,8 +35,17 @@ class ProcessTelegramUpdate implements ShouldQueue
         }
 
         try {
-            foreach (app(TelegramCommands::class)->messages($this->command) as $text) {
-                $bot->sendMessage($this->chatId, $text, ['screen' => in_array($this->command, ['/paysupport', '/support'], true) ? 'support' : 'tenders']);
+            $consents = app(TelegramConsentService::class);
+            // Jobs queued by the previous release have no actor property.
+            $telegramUserId = $this->telegramUserId ?? null;
+            if ($this->command === '/start' && $telegramUserId !== null && $consents->needsPrompt($telegramUserId, $this->chatId)) {
+                $bot->sendMessage($this->chatId,
+                    'Добро пожаловать в TenderFinder! Перед началом прочитайте согласие на обработку персональных данных: /consent. Для подтверждения нажмите «Я согласен на обработку ПДн».',
+                    [], $consents->keyboard($telegramUserId));
+            } else {
+                foreach (app(TelegramCommands::class)->messages($this->command) as $text) {
+                    $bot->sendMessage($this->chatId, $text, ['screen' => in_array($this->command, ['/paysupport', '/support'], true) ? 'support' : 'tenders']);
+                }
             }
             $update->forceFill([
                 'status' => 'processed',

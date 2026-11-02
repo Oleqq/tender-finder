@@ -6,7 +6,7 @@ final class LegalDocumentRegistry
 {
     public const TYPES = ['terms', 'privacy', 'consent', 'offer'];
 
-    public const EDITION = '2026-11-02';
+    public const EDITION = '2026-11-02-r2';
 
     /** @return array<string, mixed> */
     public function document(string $type): array

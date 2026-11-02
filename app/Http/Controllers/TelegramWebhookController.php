@@ -6,6 +6,8 @@ use App\Jobs\ProcessTelegramUpdate;
 use App\Models\TelegramUpdate;
 use App\Services\TelegramBotClient;
 use App\Services\TelegramCommands;
+use App\Services\TelegramConsentService;
+use App\Telegram\TelegramDeliveryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +29,15 @@ class TelegramWebhookController extends Controller
             'message' => ['nullable', 'array'],
             'message.text' => ['nullable', 'string', 'max:4096'],
             'message.chat.id' => ['nullable'],
+            'message.chat.type' => ['nullable', 'string', 'max:32'],
+            'message.from.id' => ['nullable', 'integer', 'min:1'],
+            'callback_query' => ['nullable', 'array'],
+            'callback_query.id' => ['required_with:callback_query', 'string', 'max:128'],
+            'callback_query.data' => ['nullable', 'string', 'max:64'],
+            'callback_query.from.id' => ['required_with:callback_query', 'integer', 'min:1'],
+            'callback_query.from.is_bot' => ['nullable', 'boolean'],
+            'callback_query.message.chat.id' => ['nullable'],
+            'callback_query.message.chat.type' => ['nullable', 'string', 'max:32'],
             'message.successful_payment' => ['nullable', 'array'],
             'message.successful_payment.currency' => ['nullable', 'string', 'max:8'],
             'message.successful_payment.total_amount' => ['nullable', 'integer', 'min:1'],
@@ -54,6 +65,7 @@ class TelegramWebhookController extends Controller
         ]);
 
         $created = false;
+        $callbackAnswer = 'Запрос уже обработан.';
         $type = $this->updateType($validated);
         $isPaymentUpdate = in_array($type, ['successful_payment', 'refunded_payment', 'subscription'], true);
         $paymentPayload = match ($type) {
@@ -63,15 +75,15 @@ class TelegramWebhookController extends Controller
             default => null,
         };
 
-        DB::transaction(function () use ($validated, $type, $paymentPayload, &$created): void {
+        DB::transaction(function () use ($validated, $type, $paymentPayload, &$created, &$callbackAnswer): void {
             $now = now();
             $created = DB::table('telegram_updates')->insertOrIgnore([
                 'telegram_update_id' => $validated['update_id'],
                 'type' => $type,
-                'status' => $type === 'message' ? 'received' : 'ignored',
+                'status' => in_array($type, ['message', 'callback_query'], true) ? 'received' : 'ignored',
                 'payment_payload' => $paymentPayload === null ? null : json_encode($paymentPayload, JSON_THROW_ON_ERROR),
                 'received_at' => $now,
-                'processed_at' => $type === 'message' ? null : $now,
+                'processed_at' => in_array($type, ['message', 'callback_query'], true) ? null : $now,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]) === 1;
@@ -83,6 +95,13 @@ class TelegramWebhookController extends Controller
             $update = TelegramUpdate::query()
                 ->where('telegram_update_id', $validated['update_id'])
                 ->firstOrFail();
+
+            if ($type === 'callback_query') {
+                $callbackAnswer = app(TelegramConsentService::class)->accept($validated['callback_query'], (int) $validated['update_id']);
+                $update->forceFill(['status' => 'processed', 'processed_at' => now()])->save();
+
+                return;
+            }
 
             $command = $this->commandFrom($validated['message']['text'] ?? null);
             $chatId = $validated['message']['chat']['id'] ?? null;
@@ -97,8 +116,24 @@ class TelegramWebhookController extends Controller
                 return;
             }
 
-            ProcessTelegramUpdate::dispatch($validated['update_id'], $command, (string) $chatId)->afterCommit();
+            $actor = data_get($validated, 'message.chat.type') === 'private' ? data_get($validated, 'message.from.id') : null;
+            ProcessTelegramUpdate::dispatch($validated['update_id'], $command, (string) $chatId, $actor === null ? null : (string) $actor)->afterCommit();
         });
+
+        if ($type === 'callback_query') {
+            try {
+                app(TelegramBotClient::class)->answerCallbackQuery($validated['callback_query']['id'], $callbackAnswer);
+            } catch (TelegramDeliveryException $exception) {
+                if ($exception->retryable) {
+                    throw $exception;
+                }
+                // An expired callback cannot be acknowledged, but the durable
+                // consent/update must not be replayed indefinitely by Telegram.
+                Log::warning('telegram.consent_callback_ack_failed', [
+                    'update_id' => $validated['update_id'], 'failure_code' => $exception->failureCode,
+                ]);
+            }
+        }
 
         if ($type === 'pre_checkout_query') {
             $queryId = $validated['pre_checkout_query']['id'] ?? null;
@@ -137,6 +172,9 @@ class TelegramWebhookController extends Controller
     /** @param array<string, mixed> $update */
     private function updateType(array $update): string
     {
+        if (isset($update['callback_query'])) {
+            return 'callback_query';
+        }
         if (isset($update['pre_checkout_query'])) {
             return 'pre_checkout_query';
         }

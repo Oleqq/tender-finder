@@ -11,9 +11,10 @@ use Illuminate\Support\Facades\DB;
 class ConsentService
 {
     /** @param array<ConsentDocument> $documents */
-    public function acceptCurrent(User $user, array $documents, ?string $ipAddress): void
+    public function acceptCurrent(User $user, array $documents, ?string $ipAddress, ?int $telegramUpdateId = null): void
     {
-        DB::transaction(function () use ($user, $documents, $ipAddress): void {
+        DB::transaction(function () use ($user, $documents, $ipAddress, $telegramUpdateId): void {
+            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
             foreach ($documents as $document) {
                 $version = $this->currentVersion($document);
                 $latest = ConsentEvent::query()
@@ -32,6 +33,8 @@ class ConsentService
                     'action' => ConsentAction::Accepted,
                     'ip_hash' => $this->ipHash($ipAddress),
                     'occurred_at' => now(),
+                    'source' => $telegramUpdateId === null ? 'mini_app' : 'telegram_button',
+                    'telegram_update_id' => $telegramUpdateId,
                 ]);
             }
         });
@@ -40,6 +43,7 @@ class ConsentService
     public function revoke(User $user, ConsentDocument $document, ?string $ipAddress): void
     {
         DB::transaction(function () use ($user, $document, $ipAddress): void {
+            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
             $latest = ConsentEvent::query()
                 ->where('user_id', $user->id)
                 ->latestForDocument($document)
