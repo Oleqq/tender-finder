@@ -25,22 +25,30 @@ final class TelegramCommands
         $email = (string) config('company.support_email');
         if (in_array($type, LegalDocumentRegistry::TYPES, true)) {
             if (! config('tender.legal.documents_published', false)) {
-                return ['Документы временно недоступны. Поддержка: '.$email];
+                return app(TelegramDocumentFormatter::class)->plain('Документы временно недоступны. Поддержка: '.$email, 'Документы');
             }
             $documents = app(LegalDocumentRegistry::class);
-            $text = $documents->text($type)."\n\nНа сайте: {$base}/{$type}\nОригинал Word: {$base}/legal/{$type}/download";
 
-            // Stay below Telegram's 4096-character limit even for non-BMP text.
-            return mb_str_split($text, 1800);
+            return app(TelegramDocumentFormatter::class)->document($documents->document($type));
         }
 
-        return [match ($command) {
+        $text = match ($command) {
             '/start' => "Добро пожаловать в TenderFinder! Откройте Mini App кнопкой меню.\n\nДокументы: /terms /offer /privacy /consent\nО сервисе: /info\nПоддержка: /support /paysupport",
             '/support' => "Поддержка TenderFinder: {$email}\nВ приложении: Профиль → Мои обращения.\nОпишите проблему и время её возникновения. Не отправляйте пароли и данные карты.",
             '/paysupport' => "Вопросы оплаты и возвратов: {$email}\nВ приложении: Профиль → Мои обращения. Укажите тариф, дату и номер заказа, если он есть. Не отправляйте данные карты.\nУсловия: {$base}/offer",
             '/info' => "TenderFinder — мониторинг закупок и подготовка заявок.\nBasic: 3 мониторинга, Pro: 10, Ultra: 30.\nУслуга предоставляется в электронной форме через Telegram-аккаунт.\n".config('company.short_name')."\nИНН: ".config('company.inn')."\nОГРНИП: ".config('company.ogrnip')."\nКонтакты: {$email}\nО сервисе: {$base}/info\nТарифы: {$base}/pricing\nРеквизиты: {$base}/requisites\nДокументы: /terms /offer /privacy /consent",
             '/subscribe' => 'Оплата подписки в Telegram отключена. По вопросам доступа используйте /support.',
             default => implode("\n", array_map(fn (array $item): string => '/'.$item['command'].' — '.$item['description'], self::menu())),
-        }];
+        };
+        $title = match ($command) {
+            '/start' => 'Добро пожаловать в TenderFinder',
+            '/info' => 'О сервисе TenderFinder',
+            '/support' => 'Поддержка',
+            '/paysupport' => 'Оплата и возвраты',
+            '/subscribe' => 'Доступ к сервису',
+            default => 'Команды TenderFinder',
+        };
+
+        return app(TelegramDocumentFormatter::class)->plain($text, $title);
     }
 }

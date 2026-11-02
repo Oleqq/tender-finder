@@ -59,6 +59,17 @@ class TelegramBotClient
         $this->sendMessage($chatId, $text, $destination);
     }
 
+    /** @param array<string, mixed> $destination */
+    public function sendCommandMessage(string $chatId, string $html, bool $last, array $destination = []): void
+    {
+        $parameters = ['chat_id' => $chatId, 'text' => $html, 'parse_mode' => 'HTML', 'disable_web_page_preview' => true];
+        $keyboard = $last ? $this->miniAppKeyboard($destination) : null;
+        if ($keyboard !== null) {
+            $parameters['reply_markup'] = $keyboard;
+        }
+        $this->call('sendMessage', $parameters);
+    }
+
     public function answerPreCheckoutQuery(string $queryId, bool $ok, ?string $errorMessage = null): void
     {
         $parameters = ['pre_checkout_query_id' => $queryId, 'ok' => $ok];
