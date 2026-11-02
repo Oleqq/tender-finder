@@ -2,15 +2,20 @@
 
 use App\Enums\SubscriptionSource;
 use App\Enums\SubscriptionStatus;
+use App\Jobs\ProcessTelegramUpdate;
 use App\Models\Entitlement;
 use App\Models\Subscription;
 use App\Models\SubscriptionOrder;
 use App\Models\SubscriptionRenewal;
+use App\Models\TelegramUpdate;
 use App\Models\User;
 use App\Services\PlanCatalog;
 use App\Services\SubscriptionCatalog;
 use App\Services\SubscriptionRenewalService;
-use App\Services\TelegramCommands;
+use App\Services\TelegramBotClient;
+use App\Services\YooKassaApiException;
+use App\Services\YooKassaClient;
+use App\Telegram\TelegramDeliveryException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +31,9 @@ beforeEach(function () {
     config()->set('tender.telegram.bot_token', 'renewal-test-token');
     config()->set('tender.telegram.webhook_secret', 'renewal-test-secret');
     config()->set('tests.renewal_failure', false);
-    Http::fake(fn () => config('tests.renewal_failure') ? Http::response(['ok' => false], 403) : Http::response(['ok' => true, 'result' => true]));
+    Http::fake(fn (Request $request) => str_starts_with($request->url(), 'https://api.yookassa.ru/')
+        ? Http::response(['id' => 'test-payment', 'status' => 'pending'])
+        : (config('tests.renewal_failure') ? Http::response(['ok' => false], 403) : Http::response(['ok' => true, 'result' => true])));
 });
 afterEach(fn () => Carbon::setTestNow());
 
@@ -40,9 +47,9 @@ function renewalDemoGuest(): User
     return $user->refresh();
 }
 
-function renewalRealFixture(): array
+function renewalRealFixture(?User $owner = null): array
 {
-    $user = User::factory()->create(['telegram_id' => '99887766']);
+    $user = $owner ?? User::factory()->create(['telegram_id' => '99887766']);
     $subscription = Subscription::query()->create([
         'user_id' => $user->id, 'plan_id' => app(PlanCatalog::class)->pro()->id,
         'source' => SubscriptionSource::YooKassa, 'status' => SubscriptionStatus::Active,
@@ -155,15 +162,6 @@ it('keeps demo renewal notices local and does not call payment or Telegram APIs'
     Http::assertNothingSent();
 });
 
-it('lists cancellation only for the verified private Telegram actor and never creates an account from cancel', function () {
-    [$owner, , , $renewal] = renewalRealFixture();
-    $messages = app(TelegramCommands::class)->messages('/cancel', $owner->telegram_id);
-    expect(html_entity_decode(implode('', $messages)))->toContain(app(SubscriptionRenewalService::class)->cancelUrl($renewal));
-    $other = app(TelegramCommands::class)->messages('/cancel', '44556677');
-    expect(implode('', $other))->not->toContain($renewal->id);
-    expect(User::query()->count())->toBe(1);
-});
-
 it('keeps a failed notice ineligible for a charge and retries without shortening the cancellation window', function () {
     [, , , $renewal] = renewalRealFixture();
     $service = app(SubscriptionRenewalService::class);
@@ -187,6 +185,139 @@ it('handles cancel through the webhook using the private chat actor', function (
             'chat' => ['id' => (int) $owner->telegram_id, 'type' => 'private']],
     ])->assertOk();
     Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/sendMessage')
-        && str_contains(html_entity_decode($request['text']), app(SubscriptionRenewalService::class)->cancelUrl($renewal)));
-    expect($renewal->refresh()->state)->toBe('active');
+        && str_contains(html_entity_decode($request['text']), 'Автопродление отключено'));
+    expect($renewal->refresh()->state)->toBe('cancelled')->and($renewal->subscription->auto_renew)->toBeFalse();
+});
+
+function sendRenewalCancel(User $user, int $updateId = 944001, array $message = []): void
+{
+    test()->withHeader('X-Telegram-Bot-Api-Secret-Token', 'renewal-test-secret')->postJson('/telegram/webhook', [
+        'update_id' => $updateId,
+        'message' => array_replace_recursive(['text' => '/cancel', 'from' => ['id' => (int) $user->telegram_id],
+            'chat' => ['id' => (int) $user->telegram_id, 'type' => 'private']], $message),
+    ])->assertOk();
+}
+
+it('cancels all owned renewals immediately without touching other users or paid access', function () {
+    [$owner, $subscription, , $first] = renewalRealFixture();
+    [, $secondSubscription, , $second] = renewalRealFixture($owner);
+    $other = User::factory()->create(['telegram_id' => '44556677']);
+    [, $otherSubscription, , $otherRenewal] = renewalRealFixture($other);
+    $entitlement = Entitlement::query()->create(['user_id' => $owner->id, 'subscription_id' => $subscription->id,
+        'plan_id' => $subscription->plan_id, 'code' => 'active_queries', 'value' => 10,
+        'status' => SubscriptionStatus::Active, 'starts_at' => now(), 'ends_at' => $subscription->ends_at]);
+    $end = $subscription->ends_at->toAtomString();
+    $first->forceFill(['retry_at' => now()->addMinutes(5), 'notice_status' => 'failed'])->save();
+    sendRenewalCancel($owner);
+    expect($first->refresh()->state)->toBe('cancelled')->and($first->retry_at)->toBeNull()
+        ->and($second->refresh()->state)->toBe('cancelled')
+        ->and($subscription->refresh()->auto_renew)->toBeFalse()->and($secondSubscription->refresh()->auto_renew)->toBeFalse()
+        ->and($otherRenewal->refresh()->state)->toBe('active')->and($otherSubscription->refresh()->auto_renew)->toBeTrue()
+        ->and($subscription->ends_at->toAtomString())->toBe($end)->and($subscription->status)->toBe(SubscriptionStatus::Active)
+        ->and($entitlement->refresh()->status)->toBe(SubscriptionStatus::Active)
+        ->and(TelegramUpdate::query()->sole()->command_result)->toBe(['outcome' => 'cancelled', 'cancelled_count' => 2]);
+});
+
+it('does not repeat a cancellation when the webhook is replayed after a new opt in', function () {
+    [$owner, , , $old] = renewalRealFixture();
+    sendRenewalCancel($owner);
+    [, , , $new] = renewalRealFixture($owner);
+    sendRenewalCancel($owner);
+    expect($new->refresh()->state)->toBe('active')
+        ->and(DB::table('subscription_renewal_events')->where('action', 'cancelled')->count())->toBe(1);
+    sendRenewalCancel($owner, 944002);
+    expect($new->refresh()->state)->toBe('cancelled');
+});
+
+it('keeps a durable result when the bot reply fails so retry cannot revoke a later consent', function () {
+    [$owner, , , $old] = renewalRealFixture();
+    $update = TelegramUpdate::query()->create(['telegram_update_id' => 944003, 'type' => 'message', 'status' => 'received', 'received_at' => now()]);
+    $job = new ProcessTelegramUpdate(944003, '/cancel', $owner->telegram_id, $owner->telegram_id);
+    config()->set('tests.renewal_failure', true);
+    expect(fn () => $job->handle(app(TelegramBotClient::class)))->toThrow(TelegramDeliveryException::class);
+    expect($old->refresh()->state)->toBe('cancelled')->and($update->refresh()->command_result['cancelled_count'])->toBe(1);
+    [, , , $new] = renewalRealFixture($owner);
+    config()->set('tests.renewal_failure', false);
+    $job->handle(app(TelegramBotClient::class));
+    expect($new->refresh()->state)->toBe('active')->and($update->refresh()->status)->toBe('processed');
+});
+
+it('rejects group bot and mismatched private actors without disclosing subscription links', function (array $message) {
+    [$owner, $subscription, , $renewal] = renewalRealFixture();
+    sendRenewalCancel($owner, 944004, $message);
+    expect($renewal->refresh()->state)->toBe('active')->and($subscription->refresh()->auto_renew)->toBeTrue();
+    Http::assertSent(fn (Request $request) => str_contains($request['text'], 'личный чат') && ! str_contains($request['text'], $renewal->id));
+})->with([
+    'group' => [['chat' => ['id' => -12345, 'type' => 'group']]],
+    'another private chat' => [['chat' => ['id' => 44556677]]],
+    'bot actor' => [['from' => ['is_bot' => true]]],
+]);
+
+it('handles cancel for an unknown actor without creating an account or subscription', function () {
+    $actor = User::factory()->make(['telegram_id' => '99887766']);
+    sendRenewalCancel($actor);
+    expect(User::query()->count())->toBe(0)->and(SubscriptionRenewal::query()->count())->toBe(0);
+    Http::assertSent(fn (Request $request) => str_contains($request['text'], 'Автопродление не включено'));
+});
+
+it('disables recurring flags even when a real schedule was never registered', function () {
+    [$owner, $subscription, , $renewal] = renewalRealFixture();
+    $renewal->delete();
+    sendRenewalCancel($owner);
+    expect($subscription->refresh()->auto_renew)->toBeFalse()->and($subscription->status)->toBe(SubscriptionStatus::Active);
+});
+
+it('does not send notices or retries after a Telegram cancellation made before or after notification', function (bool $afterNotice) {
+    [$owner, , , $renewal] = renewalRealFixture();
+    $service = app(SubscriptionRenewalService::class);
+    Carbon::setTestNow($renewal->notice_due_at);
+    if ($afterNotice) {
+        expect($service->processDue())->toBe(1);
+    }
+    sendRenewalCancel($owner);
+    Http::fake();
+    Carbon::setTestNow($renewal->next_charge_at->copy()->addDays(3));
+    expect($service->processDue())->toBe(0)->and($service->readyForCharge($renewal))->toBeFalse();
+    Http::assertNothingSent();
+})->with([false, true]);
+
+it('serializes real saved method requests with cancellation and refuses a stale queued attempt', function () {
+    [$owner, $subscription, , $renewal] = renewalRealFixture();
+    $service = app(SubscriptionRenewalService::class);
+    Carbon::setTestNow($renewal->notice_due_at);
+    expect($service->processDue())->toBe(1);
+    Carbon::setTestNow($renewal->refresh()->charge_not_before);
+    config()->set('tender.payments.yookassa.enabled', true);
+    config()->set('tender.payments.yookassa.shop_id', 'test-shop');
+    config()->set('tender.payments.yookassa.secret_key', 'test-only-secret');
+    Http::fake(['https://api.yookassa.ru/*' => Http::response(['id' => 'test-payment', 'status' => 'pending'])]);
+    $client = app(YooKassaClient::class);
+    $payload = ['payment_method_id' => 'verified-test-method', 'capture' => true, 'amount' => ['value' => '0.01', 'currency' => 'USD']];
+    expect($client->createRenewalPayment($renewal, $payload, 'test-cycle-one')['id'])->toBe('test-payment');
+    Http::assertSent(fn (Request $request) => $request->url() === 'https://api.yookassa.ru/v3/payments'
+        && $request['amount'] === ['value' => '599.00', 'currency' => 'RUB']
+        && $request['metadata']['renewal_id'] === $renewal->id && $request->hasHeader('Idempotence-Key', 'test-cycle-one'));
+    $service->cancel($renewal->fresh());
+    Http::fake();
+    expect($client->createRenewalPayment($renewal, $payload, 'test-cycle-one'))->toBeNull();
+    Http::assertNothingSent();
+    expect($subscription->refresh()->auto_renew)->toBeFalse();
+});
+
+it('cannot bypass cancellation guards through the low level saved method API', function () {
+    expect(fn () => app(YooKassaClient::class)->createPayment(['payment_method_id' => 'test-method'], 'test-cycle'))
+        ->toThrow(YooKassaApiException::class, 'yookassa_renewal_context_required');
+    Http::assertNothingSent();
+});
+
+it('repairs a cancelled schedule from the prior release without adding another cancellation event', function () {
+    [, $subscription, , $renewal] = renewalRealFixture();
+    $service = app(SubscriptionRenewalService::class);
+    $service->cancel($renewal);
+    $subscription->forceFill(['auto_renew' => true])->save();
+    $renewal->forceFill(['retry_at' => now()->addMinutes(5), 'charge_not_before' => now()->addDay()])->save();
+    $service->cancel($renewal);
+    expect($renewal->refresh()->retry_at)->toBeNull()->and($renewal->charge_not_before)->toBeNull()
+        ->and($subscription->refresh()->auto_renew)->toBeFalse()
+        ->and(DB::table('subscription_renewal_events')->where('action', 'cancelled')->count())->toBe(1);
 });

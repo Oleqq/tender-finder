@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\TelegramUpdate;
+use App\Services\SubscriptionRenewalService;
 use App\Services\TelegramBotClient;
 use App\Services\TelegramCommands;
 use App\Services\TelegramConsentService;
@@ -43,7 +44,10 @@ class ProcessTelegramUpdate implements ShouldQueue
                     'Добро пожаловать в TenderFinder! Перед началом прочитайте согласие на обработку персональных данных: /consent. Для подтверждения нажмите «Я согласен на обработку ПДн».',
                     [], $consents->keyboard($telegramUserId));
             } else {
-                $messages = app(TelegramCommands::class)->messages($this->command, $telegramUserId);
+                $commands = app(TelegramCommands::class);
+                $messages = $this->command === '/cancel'
+                    ? $commands->cancellationMessages(app(SubscriptionRenewalService::class)->cancelFromTelegram($update, $telegramUserId, $this->chatId))
+                    : $commands->messages($this->command, $telegramUserId);
                 $screen = match ($this->command) {
                     '/paysupport', '/support' => 'support', '/cancel' => 'plans', default => 'tenders',
                 };

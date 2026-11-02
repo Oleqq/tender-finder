@@ -113,7 +113,7 @@ docker compose --env-file .env.production -f compose.production.yml exec -T web 
 Действующий webhook — `/telegram/webhook`, без префикса `/api`.
 В `getWebhookInfo` проверяются адрес, отсутствие последней ошибки и очередь.
 Bot API secret должен совпадать с `TELEGRAM_WEBHOOK_SECRET`. При настройке
-сохранить обработку `message`, `pre_checkout_query` и `subscription`;
+сохранить обработку `message`, `callback_query`, `pre_checkout_query` и `subscription`;
 старый checkout получает явный отказ. [События Stars](TELEGRAM-STARS-RUNBOOK.md).
 
 Laravel пишет JSON в Docker и ротационный файл `application_logs` (14 дней).

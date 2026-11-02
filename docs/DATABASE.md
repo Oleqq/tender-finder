@@ -1,6 +1,6 @@
 # База данных и путь данных
 
-Сверено с кодом на 29 октября 2026 года. Production использует PostgreSQL 16
+Сверено с кодом на 2 ноября 2026 года. Production использует PostgreSQL 16
 и Redis в Docker Compose. Текущий подтверждённый выпуск указан в
 [CURRENT-STATE](CURRENT-STATE.md), точная схема — в `database/migrations`.
 Ни этот документ, ни миграции не содержат production-секретов.
@@ -89,7 +89,7 @@ erDiagram
 |---|---|---|---|
 | `users` | verified `telegram_id`, безопасные display fields, роль, `last_seen_at`, `trial_used_at` | единый человек в продукте | уникальный `telegram_id`; роль только `subscriber` или `super_admin` на уровне кода |
 | `consent_events` | документ, версия, `accepted`/`revoked`, время, IP HMAC | доказуемая история legal choice без перезаписи | индекс `(user_id, document, occurred_at)`; append-only на уровне сервиса |
-| `telegram_updates` | update ID, тип, status, время обработки, безопасный failure code | дедупликация webhook | уникальный `telegram_update_id`; raw payload отсутствует |
+| `telegram_updates` | update ID, тип, status, время обработки, безопасный failure code и nullable `command_result` | дедупликация webhook и квитанция прямой отмены до ответа бота | уникальный `telegram_update_id`; старый update не отменяет новое согласие; raw payload отсутствует |
 
 У `users` сохранены nullable `email` и `password` как временные legacy-поля
 Laravel. Они не участвуют в Telegram-авторизации. Старая роль `admin` при
@@ -138,6 +138,16 @@ lifecycle не продлевает доступ.
 `is_browser_guest` относится к прежнему временному общему окну.
 Demo не привязано к Telegram. Настоящая ЮKassa в эти таблицы ещё не подключена.
 [Контракт](DEMO-CHECKOUT.md).
+
+### Автопродление
+
+`subscription_renewals` хранит явное согласие, провайдера, цену/период,
+расписание, предварительное уведомление, повтор и отмену одной подписки.
+`subscription_renewal_events` сохраняет неизменяемые снимки событий.
+Отмена меняет расписание и `auto_renew`, сохраняя оплаченные сроки/entitlement.
+Все пути отмены и окончательного запроса провайдеру сериализуются user →
+renewal → subscription. Реальная оплата выключена; контракт —
+[SUBSCRIPTION-AUTORENEWAL](SUBSCRIPTION-AUTORENEWAL.md).
 
 ### Tender core
 

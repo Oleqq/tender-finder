@@ -8,12 +8,15 @@ final class LegalDocumentRegistry
 
     public const EDITION = '2026-11-02-r2';
 
+    private const DOCUMENT_EDITIONS = ['privacy' => '2026-11-02-r3'];
+
     /** @return array<string, mixed> */
     public function document(string $type): array
     {
         abort_unless(in_array($type, self::TYPES, true), 404);
-        $document = json_decode((string) file_get_contents(resource_path('legal/'.self::EDITION.'/'.$type.'.json')), true, 512, JSON_THROW_ON_ERROR);
-        $document['version'] = self::EDITION.'-'.$type.'-'.substr($document['sha256'], 0, 12);
+        $edition = self::DOCUMENT_EDITIONS[$type] ?? self::EDITION;
+        $document = json_decode((string) file_get_contents(resource_path('legal/'.$edition.'/'.$type.'.json')), true, 512, JSON_THROW_ON_ERROR);
+        $document['version'] = $edition.'-'.$type.'-'.substr($document['sha256'], 0, 12);
 
         return $document;
     }
@@ -22,7 +25,7 @@ final class LegalDocumentRegistry
     {
         $this->document($type);
 
-        return resource_path('legal/'.self::EDITION.'/'.$type.'.docx');
+        return resource_path('legal/'.(self::DOCUMENT_EDITIONS[$type] ?? self::EDITION).'/'.$type.'.docx');
     }
 
     public function text(string $type): string

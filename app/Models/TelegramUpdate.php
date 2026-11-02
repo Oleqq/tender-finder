@@ -4,7 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/** @property array<string, mixed>|null $payment_payload */
+/**
+ * @property array<string, mixed>|null $payment_payload
+ * @property array{outcome: string, cancelled_count: int}|null $command_result
+ */
 class TelegramUpdate extends Model
 {
     protected $fillable = [
@@ -16,6 +19,7 @@ class TelegramUpdate extends Model
         'failure_code',
         'payment_payload',
         'payment_attempts',
+        'command_result',
     ];
 
     protected function casts(): array
@@ -25,6 +29,7 @@ class TelegramUpdate extends Model
             'processed_at' => 'datetime',
             'payment_payload' => 'array',
             'payment_attempts' => 'integer',
+            'command_result' => 'array',
         ];
     }
 }

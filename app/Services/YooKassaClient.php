@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\SubscriptionRenewal;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -19,6 +20,39 @@ final class YooKassaClient
      * @return array<string, mixed>
      */
     public function createPayment(array $payment, string $idempotenceKey): array
+    {
+        if (array_key_exists('payment_method_id', $payment)) {
+            throw new YooKassaApiException('yookassa_renewal_context_required');
+        }
+
+        return $this->sendNewPayment($payment, $idempotenceKey);
+    }
+
+    /**
+     * The future billing caller must supply a verified saved method and receipt.
+     * All saved-method requests share the lock used by /cancel and web cancellation.
+     * Returns null if an old queued attempt is no longer authorized.
+     *
+     * @param  array<string, mixed>  $payment
+     * @return array<string, mixed>|null
+     */
+    public function createRenewalPayment(SubscriptionRenewal $renewal, array $payment, string $idempotenceKey): ?array
+    {
+        return app(SubscriptionRenewalService::class)->withChargeLock($renewal, function (SubscriptionRenewal $current) use ($payment, $idempotenceKey): array {
+            if (! is_string($payment['payment_method_id'] ?? null) || preg_match('/\A[A-Za-z0-9-]{1,64}\z/D', $payment['payment_method_id']) !== 1) {
+                throw new YooKassaApiException('yookassa_invalid_saved_method');
+            }
+            $payment['amount'] = ['value' => sprintf('%d.%02d', intdiv($current->amount_minor, 100), $current->amount_minor % 100), 'currency' => $current->currency];
+            $payment['metadata'] = ['renewal_id' => $current->id, 'subscription_id' => (string) $current->subscription_id];
+
+            return $this->sendNewPayment($payment, $idempotenceKey);
+        });
+    }
+
+    /** @param array<string, mixed> $payment
+     * @return array<string, mixed>
+     */
+    private function sendNewPayment(array $payment, string $idempotenceKey): array
     {
         if (config('tender.payments.yookassa.enabled') !== true) {
             throw new YooKassaApiException('yookassa_new_payments_disabled');

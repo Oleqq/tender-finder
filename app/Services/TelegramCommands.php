@@ -2,9 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\SubscriptionRenewal;
-use App\Models\User;
-
 final class TelegramCommands
 {
     /** @return list<array{command: string, description: string}> */
@@ -36,7 +33,7 @@ final class TelegramCommands
         }
 
         $text = match ($command) {
-            '/cancel' => $this->cancellationText($telegramId),
+            '/cancel' => 'Отправьте /cancel в личном чате с ботом, чтобы отключить будущие автоматические продления. Оплаченный доступ сохранится до конца срока.',
             '/start' => "Добро пожаловать в TenderFinder! Откройте Mini App кнопкой меню.\n\nДокументы: /terms /offer /privacy /consent\nО сервисе: /info\nПоддержка: /support /paysupport",
             '/support' => "Поддержка TenderFinder: {$email}\nВ приложении: Профиль → Мои обращения.\nОпишите проблему и время её возникновения. Не отправляйте пароли и данные карты.",
             '/paysupport' => "Вопросы оплаты и возвратов: {$email}\nВ приложении: Профиль → Мои обращения. Укажите тариф, дату и номер заказа, если он есть. Не отправляйте данные карты.\nУсловия: {$base}/offer",
@@ -57,22 +54,17 @@ final class TelegramCommands
         return app(TelegramDocumentFormatter::class)->plain($text, $title);
     }
 
-    private function cancellationText(?string $telegramId): string
+    /** @param array{outcome: string, cancelled_count: int} $result
+     * @return list<string>
+     */
+    public function cancellationMessages(array $result): array
     {
-        if ($telegramId === null) {
-            return 'Для отмены откройте личный чат с ботом и отправьте /cancel.';
-        }
-        $user = User::query()->where('telegram_id', $telegramId)->first();
-        $items = $user === null ? collect() : SubscriptionRenewal::query()
-            ->where('user_id', $user->id)->where('state', 'active')->limit(10)->get();
-        if ($items->isEmpty()) {
-            return 'Автопродление не включено. Будущие автоматические списания не запланированы. Оплаченный доступ сохраняется до конца срока. По вопросам платежей: /paysupport.';
-        }
-        $text = 'Откройте ссылку нужного тарифа и подтвердите отмену. Оплаченный доступ сохранится до конца срока.';
-        foreach ($items as $item) {
-            $text .= "\n\n".strtoupper($item->plan_code).': '.app(SubscriptionRenewalService::class)->cancelUrl($item);
-        }
+        $text = match ($result['outcome']) {
+            'private_chat_required' => 'Для отмены откройте личный чат с ботом и отправьте /cancel.',
+            'cancelled' => 'Автопродление отключено. Будущие автоматические списания отменены. Оплаченный доступ сохранится до конца срока. Уже проведённые платежи эта команда не возвращает. По вопросам платежей: /paysupport.',
+            default => 'Автопродление не включено. Будущие автоматические списания не запланированы. Оплаченный доступ сохраняется до конца срока. По вопросам платежей: /paysupport.',
+        };
 
-        return $text;
+        return app(TelegramDocumentFormatter::class)->plain($text, 'Отмена автопродления');
     }
 }

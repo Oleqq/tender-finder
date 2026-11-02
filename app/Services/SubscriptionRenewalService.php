@@ -7,6 +7,7 @@ use App\Enums\SubscriptionStatus;
 use App\Models\Subscription;
 use App\Models\SubscriptionOrder;
 use App\Models\SubscriptionRenewal;
+use App\Models\TelegramUpdate;
 use App\Models\User;
 use App\Telegram\TelegramDeliveryException;
 use Illuminate\Support\Facades\DB;
@@ -59,15 +60,59 @@ final class SubscriptionRenewalService
         return DB::transaction(function () use ($renewal): SubscriptionRenewal {
             User::query()->whereKey($renewal->user_id)->lockForUpdate()->firstOrFail();
             $renewal = SubscriptionRenewal::query()->lockForUpdate()->findOrFail($renewal->id);
+            // Repair the flag even on an idempotent retry, without shortening paid access.
+            $renewal->subscription()->where('user_id', $renewal->user_id)->lockForUpdate()->first()?->forceFill(['auto_renew' => false])->save();
             if ($renewal->state === 'cancelled') {
+                if ($renewal->retry_at !== null || $renewal->charge_not_before !== null) {
+                    $renewal->forceFill(['retry_at' => null, 'charge_not_before' => null])->save();
+                }
+
                 return $renewal;
             }
-            $renewal->forceFill(['state' => 'cancelled', 'cancelled_at' => now()])->save();
-            // Preserve paid entitlement and end date; only future renewal stops.
-            $renewal->subscription()->update(['auto_renew' => false]);
+            $renewal->forceFill(['state' => 'cancelled', 'cancelled_at' => now(), 'retry_at' => null, 'charge_not_before' => null])->save();
             $this->event($renewal, 'cancelled');
 
             return $renewal;
+        });
+    }
+
+    /**
+     * Commit cancellation before replying to Telegram. A lost reply must not
+     * cancel a new consent when the same update/job is retried later.
+     *
+     * @return array{outcome: string, cancelled_count: int}
+     */
+    public function cancelFromTelegram(TelegramUpdate $update, ?string $actor, string $chatId): array
+    {
+        return DB::transaction(function () use ($update, $actor, $chatId): array {
+            $privateActor = $actor !== null && preg_match('/\A[1-9]\d*\z/D', $actor) === 1 && $actor === $chatId;
+            $user = $privateActor ? User::query()->where('telegram_id', $actor)->lockForUpdate()->first() : null;
+            $update = TelegramUpdate::query()->lockForUpdate()->findOrFail($update->id);
+            if ($update->command_result !== null) {
+                return $update->command_result;
+            }
+
+            $ids = collect();
+            if ($user !== null) {
+                $items = SubscriptionRenewal::query()->where('user_id', $user->id)->where('state', 'active')->orderBy('id')->get();
+                foreach ($items as $item) {
+                    $this->cancel($item);
+                    $ids->push($item->subscription_id);
+                }
+                // Stop future recurring use even if registration of its schedule failed.
+                $subscriptions = Subscription::query()->where('user_id', $user->id)->where('auto_renew', true)
+                    ->whereIn('source', [SubscriptionSource::YooKassa, SubscriptionSource::Demo])->orderBy('id')->lockForUpdate()->get();
+                foreach ($subscriptions as $subscription) {
+                    $subscription->forceFill(['auto_renew' => false])->save();
+                    $ids->push($subscription->id);
+                }
+            }
+
+            $result = ['outcome' => $privateActor ? ($ids->isEmpty() ? 'none' : 'cancelled') : 'private_chat_required',
+                'cancelled_count' => $ids->unique()->count()];
+            $update->forceFill(['command_result' => $result])->save();
+
+            return $result;
         });
     }
 
@@ -166,18 +211,54 @@ final class SubscriptionRenewalService
         });
     }
 
-    /** Future charge workers must recheck this under the same user/renewal lock. No charge worker is enabled here. */
+    /** Read-only diagnostic; payment creation uses withChargeLock instead. */
     public function readyForCharge(SubscriptionRenewal $renewal): bool
     {
         $renewal->refresh();
 
+        return $this->chargeAllowed($renewal, $renewal->subscription);
+    }
+
+    /**
+     * Serialize the final provider request with every cancellation path.
+     * No scheduler or charge worker is activated by this boundary.
+     *
+     * @param  callable(SubscriptionRenewal): array<string, mixed>  $charge
+     * @return array<string, mixed>|null
+     */
+    public function withChargeLock(SubscriptionRenewal $candidate, callable $charge): ?array
+    {
+        return DB::transaction(function () use ($candidate, $charge): ?array {
+            $user = User::query()->whereKey($candidate->user_id)->lockForUpdate()->first();
+            $renewal = SubscriptionRenewal::query()->whereKey($candidate->id)->where('user_id', $candidate->user_id)->lockForUpdate()->first();
+            if ($user === null || $user->is_demo_guest || $user->telegram_id === null || $renewal === null) {
+                return null;
+            }
+            $subscription = $renewal->subscription()->lockForUpdate()->first();
+            if (! $this->chargeAllowed($renewal, $subscription)) {
+                return null;
+            }
+
+            return $charge($renewal);
+        });
+    }
+
+    private function chargeAllowed(SubscriptionRenewal $renewal, ?Subscription $subscription): bool
+    {
+        if ($subscription === null) {
+            return false;
+        }
+
         return $renewal->provider === 'yookassa' && $renewal->state === 'active'
+            && $renewal->consent_version === self::CONSENT_VERSION
+            && $renewal->currency === 'RUB' && $renewal->amount_minor > 0
+            && $renewal->next_charge_at->lte(now())
             && $renewal->notice_status === 'sent' && $renewal->notice_sent_at !== null
             && $renewal->notice_sent_at->copy()->addHours(24)->lte(now())
             && $renewal->charge_not_before !== null && $renewal->charge_not_before->lte(now())
-            && $renewal->subscription?->auto_renew === true
-            && $renewal->subscription->source === SubscriptionSource::YooKassa
-            && $renewal->subscription->status !== SubscriptionStatus::Cancelled;
+            && $subscription->user_id === $renewal->user_id && $subscription->auto_renew
+            && $subscription->source === SubscriptionSource::YooKassa
+            && $subscription->status !== SubscriptionStatus::Cancelled;
     }
 
     private function event(SubscriptionRenewal $renewal, string $action): void

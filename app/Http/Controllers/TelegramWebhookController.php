@@ -31,6 +31,7 @@ class TelegramWebhookController extends Controller
             'message.chat.id' => ['nullable'],
             'message.chat.type' => ['nullable', 'string', 'max:32'],
             'message.from.id' => ['nullable', 'integer', 'min:1'],
+            'message.from.is_bot' => ['nullable', 'boolean'],
             'callback_query' => ['nullable', 'array'],
             'callback_query.id' => ['required_with:callback_query', 'string', 'max:128'],
             'callback_query.data' => ['nullable', 'string', 'max:64'],
@@ -116,7 +117,10 @@ class TelegramWebhookController extends Controller
                 return;
             }
 
-            $actor = data_get($validated, 'message.chat.type') === 'private' ? data_get($validated, 'message.from.id') : null;
+            $from = data_get($validated, 'message.from.id');
+            $actor = data_get($validated, 'message.chat.type') === 'private'
+                && ! data_get($validated, 'message.from.is_bot', false)
+                && (string) $from === (string) $chatId ? $from : null;
             ProcessTelegramUpdate::dispatch($validated['update_id'], $command, (string) $chatId, $actor === null ? null : (string) $actor)->afterCommit();
         });
 
