@@ -20,18 +20,25 @@ final class SubscriptionOrderService
         private readonly CheckoutProvider $provider,
     ) {}
 
-    public function create(User $user, string $code, int $months, string $key): SubscriptionOrder
+    public function create(User $user, string $code, int $months, string $key, bool $autoRenew = false): SubscriptionOrder
     {
-        return DB::transaction(function () use ($user, $code, $months, $key): SubscriptionOrder {
+        return DB::transaction(function () use ($user, $code, $months, $key, $autoRenew): SubscriptionOrder {
             $user = User::query()->lockForUpdate()->findOrFail($user->id);
             $this->assertDemoUser($user);
             $terms = $this->catalog->offer($code, $months);
+            $terms['auto_renew'] = $autoRenew;
+            if ($autoRenew) {
+                $terms['auto_renew_consent_version'] = SubscriptionRenewalService::CONSENT_VERSION;
+                $terms['auto_renew_consented_at'] = now()->toAtomString();
+                $terms['auto_renew_consent_provider'] = 'demo';
+            }
             foreach (LegalDocumentRegistry::TYPES as $type) {
                 $terms[$type.'_version'] = app(LegalDocumentRegistry::class)->document($type)['version'];
             }
             $existing = SubscriptionOrder::query()->where('user_id', $user->id)->where('idempotency_key', $key)->first();
             if ($existing !== null) {
-                abort_unless($existing->plan_code === $code && $existing->duration_months === $months, 409, 'Ключ заказа уже использован с другими условиями.');
+                abort_unless($existing->plan_code === $code && $existing->duration_months === $months
+                    && ($existing->terms['auto_renew'] ?? false) === $autoRenew, 409, 'Ключ заказа уже использован с другими условиями.');
 
                 return $existing;
             }
@@ -41,7 +48,8 @@ final class SubscriptionOrderService
             app(AccessFreezeService::class)->freezeIfInactive($user, now());
             $pending = SubscriptionOrder::query()->where('user_id', $user->id)->where('status', 'pending')->first();
             if ($pending !== null && $pending->expires_at->isFuture()) {
-                abort_unless($pending->plan_code === $code && $pending->duration_months === $months, 409, 'Сначала отмените открытый заказ.');
+                abort_unless($pending->plan_code === $code && $pending->duration_months === $months
+                    && ($pending->terms['auto_renew'] ?? false) === $autoRenew, 409, 'Сначала отмените открытый заказ.');
 
                 return $pending;
             }
@@ -87,7 +95,7 @@ final class SubscriptionOrderService
                 $subscription = Subscription::query()->create([
                     'user_id' => $user->id, 'plan_id' => $plan->id,
                     'source' => SubscriptionSource::Demo, 'status' => SubscriptionStatus::Active,
-                    'starts_at' => $order->starts_at, 'ends_at' => $order->ends_at, 'auto_renew' => false,
+                    'starts_at' => $order->starts_at, 'ends_at' => $order->ends_at, 'auto_renew' => ($order->terms['auto_renew'] ?? false) === true,
                 ]);
                 Entitlement::query()->create([
                     'user_id' => $user->id, 'subscription_id' => $subscription->id, 'plan_id' => $plan->id,
@@ -99,6 +107,9 @@ final class SubscriptionOrderService
             }
             if ($status !== 'pending') {
                 $this->transition($order, $status);
+            }
+            if ($status === 'succeeded') {
+                app(SubscriptionRenewalService::class)->registerConfirmed($order);
             }
 
             return $order;

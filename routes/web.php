@@ -38,6 +38,7 @@ use App\Http\Controllers\RepeatTenderController;
 use App\Http\Controllers\SavedSearchRunController;
 use App\Http\Controllers\SavedSearchRunHistoryController;
 use App\Http\Controllers\SearchQueryController;
+use App\Http\Controllers\SubscriptionRenewalController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamTenderFeedController;
@@ -112,6 +113,8 @@ foreach (LegalDocumentRegistry::TYPES as $document) {
     Route::get('/'.$document, [LegalDocumentController::class, 'show'])->defaults('document', $document)->name('legal.'.$document);
 }
 Route::get('/info', [LegalDocumentController::class, 'info'])->name('legal.info');
+Route::match(['GET', 'POST'], '/renewal/{renewal}/cancel', [SubscriptionRenewalController::class, 'cancelLink'])
+    ->whereUuid('renewal')->middleware(['signed', 'throttle:30,1'])->name('renewals.cancel-link');
 Route::get('/legal/{document}/download', [LegalDocumentController::class, 'download'])
     ->whereIn('document', LegalDocumentRegistry::TYPES)->name('legal.download');
 Route::get('/requisites', fn () => Inertia::render('Requisites', [
@@ -273,6 +276,9 @@ Route::middleware(['auth', EnforceWorkspaceAccess::class])->group(function () {
     Route::put('/profile/notification-preferences', [NotificationPreferenceController::class, 'update'])
         ->name('profile.notification-preferences.update');
     Route::get('/plans', [BillingController::class, 'index'])->name('plans');
+    Route::get('/subscriptions/renewals', [SubscriptionRenewalController::class, 'index'])->name('renewals.index');
+    Route::post('/subscriptions/renewals/{renewal}/cancel', [SubscriptionRenewalController::class, 'cancel'])
+        ->whereUuid('renewal')->middleware('throttle:30,1')->name('renewals.cancel');
     Route::get('/operations', [OperationsDashboardController::class, 'show'])
         ->middleware('super_admin')
         ->name('operations.dashboard');

@@ -40,6 +40,9 @@ final class TelegramDocumentFormatter
                 continue;
             }
             $text = $block['text'];
+            if (preg_match('/^\s*(?:Доступно\s+в\s+боте|На\s+сайте|Оригинал\s+Word)\s*:/iu', $text)) {
+                continue;
+            }
             $heading = preg_match('/^\d+\.\s+\p{Lu}/u', $text) === 1;
             $blocks[] = ['text' => $text, 'style' => $heading ? 'b' : (str_starts_with($text, 'Дата последнего обновления:') ? 'i' : ''), 'heading' => $heading];
         }

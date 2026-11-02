@@ -47,6 +47,7 @@
 - [Тарифы и цены](SUBSCRIPTION-TARIFFS.md),
   [Developer Mode](DEVELOPER-PLAN-SWITCHING.md),
   [состояния доступа](TRIAL-TO-PAID-FLOW.md), [demo checkout](DEMO-CHECKOUT.md).
+- [Автопродление, уведомления и отмена](SUBSCRIPTION-AUTORENEWAL.md).
 - [План настоящих платежей](PAYMENTS-NEXT-STAGE.md),
   [API-клиент ЮKassa](YOOKASSA-INTEGRATION.md),
   [обработка старых событий Stars](TELEGRAM-STARS-RUNBOOK.md).

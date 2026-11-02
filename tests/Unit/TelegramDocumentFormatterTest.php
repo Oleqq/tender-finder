@@ -12,7 +12,7 @@ it('keeps legal paragraphs prices and table rows complete and highlights section
     $messages = (new TelegramDocumentFormatter)->document($document);
     $all = implode("\n\n", $messages);
     expect($all)->toStartWith('<b>📄 '.$document['title'].'</b>')
-        ->not->toContain('На сайте:', 'Оригинал Word:', '<h2>', '<h3>');
+        ->not->toContain('Доступно в боте:', 'На сайте:', 'Оригинал Word:', '<h2>', '<h3>');
     foreach ($messages as $message) {
         expect(intdiv(strlen(mb_convert_encoding(telegramVisibleText($message), 'UTF-16LE', 'UTF-8')), 2))->toBeLessThanOrEqual(4096);
         $dom = new DOMDocument;
@@ -26,6 +26,9 @@ it('keeps legal paragraphs prices and table rows complete and highlights section
                 expect(count(array_filter($containing, fn ($m) => count(array_filter($row, fn ($cell) => str_contains(telegramVisibleText($m), $cell))) === count($row))))->toBeGreaterThan(0);
             }
         } else {
+            if (str_starts_with($block['text'], 'Доступно в боте:')) {
+                continue;
+            }
             expect(telegramVisibleText($all))->toContain($block['text']);
             if (preg_match('/^\d+\.\s+\p{Lu}/u', $block['text'])) {
                 expect($all)->toContain('<b>'.TelegramDocumentFormatter::escape($block['text']).'</b>');

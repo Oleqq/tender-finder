@@ -43,9 +43,12 @@ class ProcessTelegramUpdate implements ShouldQueue
                     'Добро пожаловать в TenderFinder! Перед началом прочитайте согласие на обработку персональных данных: /consent. Для подтверждения нажмите «Я согласен на обработку ПДн».',
                     [], $consents->keyboard($telegramUserId));
             } else {
-                $messages = app(TelegramCommands::class)->messages($this->command);
+                $messages = app(TelegramCommands::class)->messages($this->command, $telegramUserId);
+                $screen = match ($this->command) {
+                    '/paysupport', '/support' => 'support', '/cancel' => 'plans', default => 'tenders',
+                };
                 foreach ($messages as $index => $text) {
-                    $bot->sendCommandMessage($this->chatId, $text, $index === array_key_last($messages), ['screen' => in_array($this->command, ['/paysupport', '/support'], true) ? 'support' : 'tenders']);
+                    $bot->sendCommandMessage($this->chatId, $text, $index === array_key_last($messages), ['screen' => $screen]);
                 }
             }
             $update->forceFill([

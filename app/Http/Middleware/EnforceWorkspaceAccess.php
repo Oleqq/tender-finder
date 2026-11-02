@@ -23,7 +23,7 @@ final class EnforceWorkspaceAccess
         app(AccessFreezeService::class)->freezeIfInactive($user, now());
         $read = in_array($request->method(), ['GET', 'HEAD'], true)
             && ! $request->routeIs('*.export');
-        $account = $request->is('consents*', 'trial/start', 'support*', 'profile*', 'demo*')
+        $account = $request->is('consents*', 'trial/start', 'support*', 'profile*', 'demo*', 'subscriptions/renewals*')
             || $request->routeIs('queries.pause', 'queries.freeze', 'queries.destroy', 'calendar.subscription.destroy');
         if (! $read && ! $account) {
             if ($request->expectsJson()) {

@@ -7,12 +7,14 @@ use App\Enums\SubscriptionStatus;
 use App\Enums\UserRole;
 use App\Models\Entitlement;
 use App\Models\SubscriptionOrder;
+use App\Models\SubscriptionRenewal;
 use App\Models\User;
 use App\Services\AccessFreezeService;
 use App\Services\AccessService;
 use App\Services\DemoCheckoutGate;
 use App\Services\SubscriptionCatalog;
 use App\Services\SubscriptionOrderService;
+use App\Services\SubscriptionRenewalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,6 +48,8 @@ final class DemoCheckoutController extends Controller
 
         return Inertia::render('DemoCheckout', [
             'offers' => $catalog->all(), 'order' => $order,
+            'renewals' => $user ? SubscriptionRenewal::query()->where('user_id', $user->id)->latest()->get()
+                ->map(fn (SubscriptionRenewal $renewal) => app(SubscriptionRenewalService::class)->present($renewal))->all() : [],
             'previewEnds' => collect([1, 3, 12])->mapWithKeys(fn (int $months) => [$months => $catalog->endAt(now(), $months)->toAtomString()]),
         ]);
     }
@@ -68,14 +72,15 @@ final class DemoCheckoutController extends Controller
     public function create(Request $request, DemoCheckoutGate $gate, SubscriptionOrderService $orders): JsonResponse
     {
         $user = $gate->authorize($request);
-        $this->onlyFields($request, ['plan_code', 'duration_months', 'idempotency_key']);
+        $this->onlyFields($request, ['plan_code', 'duration_months', 'idempotency_key', 'auto_renew']);
         $data = $request->validate([
             'plan_code' => ['required', Rule::in(['basic', 'pro', 'ultra'])],
             'duration_months' => ['required', 'integer', Rule::in([1, 3, 12])],
             'idempotency_key' => ['required', 'uuid'],
+            'auto_renew' => ['sometimes', 'boolean'],
         ]);
 
-        return response()->json(['order' => $orders->create($user, $data['plan_code'], (int) $data['duration_months'], $data['idempotency_key'])]);
+        return response()->json(['order' => $orders->create($user, $data['plan_code'], (int) $data['duration_months'], $data['idempotency_key'], (bool) ($data['auto_renew'] ?? false))]);
     }
 
     public function confirm(Request $request, string $order, DemoCheckoutGate $gate, SubscriptionOrderService $orders): JsonResponse
@@ -111,6 +116,9 @@ final class DemoCheckoutController extends Controller
                     $entitlement->subscription?->update(['ends_at' => now(), 'status' => SubscriptionStatus::Expired]);
                 });
             app(AccessFreezeService::class)->freezeIfInactive($user, now());
+            foreach (SubscriptionRenewal::query()->where('user_id', $user->id)->where('provider', 'demo')->where('state', 'active')->get() as $renewal) {
+                app(SubscriptionRenewalService::class)->cancel($renewal);
+            }
             // A QA time jump finishes only this guest's demo access, never a real account.
             foreach (SubscriptionOrder::query()->where('user_id', $user->id)->where('status', 'succeeded')->get() as $order) {
                 DB::table('subscription_order_events')->insert(['order_id' => $order->id, 'from_status' => 'succeeded', 'to_status' => 'demo_period_ended', 'created_at' => now()]);

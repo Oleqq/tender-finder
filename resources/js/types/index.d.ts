@@ -43,6 +43,7 @@ export interface PurchasePlan {
     duration_months: number;
     active_query_limit: number | null;
     terms_url: string;
+    auto_renew?: boolean;
 }
 
 export type ExternalCheckout =

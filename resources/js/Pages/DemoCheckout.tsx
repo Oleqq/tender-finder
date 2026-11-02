@@ -5,6 +5,7 @@ import { AppShell } from '../Components/AppShell';
 import { Badge, Button, GlassCard, InlineAlert } from '../Components/ui';
 import { useAccessPresentation } from '../lib/useAccessPresentation';
 import type { PageProps, PurchasePlan } from '../types';
+import { RenewalCard, type Renewal } from './SubscriptionRenewals';
 
 type Order = {
     id: string;
@@ -20,6 +21,7 @@ type Props = {
     offers: PurchasePlan[];
     order: Order | null;
     previewEnds: Record<number, string>;
+    renewals: Renewal[];
 };
 const date = (value: string) =>
     new Intl.DateTimeFormat('ru-RU', {
@@ -40,6 +42,7 @@ export default function DemoCheckout() {
         offers,
         order: serverOrder,
         previewEnds,
+        renewals,
     } = usePage<PageProps<Props>>().props;
     const access = useAccessPresentation(auth.access);
     const [order, setOrder] = useState(serverOrder);
@@ -48,6 +51,7 @@ export default function DemoCheckout() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
+    const [autoRenew, setAutoRenew] = useState(false);
     const key = useRef(crypto.randomUUID());
     const locked = useRef(false);
     const offer = offers.find(
@@ -92,7 +96,7 @@ export default function DemoCheckout() {
             if (data.outcome === 'pending')
                 setNotice('Платёж ожидает подтверждения. Доступ пока не выдан.');
             if (method === 'get') setNotice('Статус проверен на сервере.');
-            router.reload({ only: ['auth', 'previewEnds'] });
+            router.reload({ only: ['auth', 'previewEnds', 'renewals'] });
         } catch (reason) {
             setError(
                 axios.isAxiosError(reason)
@@ -118,7 +122,8 @@ export default function DemoCheckout() {
             >
                 <InlineAlert title="Тестовая оплата · без списаний">
                     Это изолированная демонстрация. Деньги не списываются, банковская
-                    карта не нужна. Автопродления нет.
+                    карта не нужна. Можно проверить согласие на автопродление и его
+                    отмену.
                 </InlineAlert>
                 {!auth.user ? (
                     <GlassCard className="demo-card">
@@ -203,6 +208,7 @@ export default function DemoCheckout() {
                                             aria-pressed={months === value}
                                             onClick={() => {
                                                 setMonths(value);
+                                                setAutoRenew(false);
                                                 key.current = crypto.randomUUID();
                                             }}
                                         >
@@ -224,6 +230,7 @@ export default function DemoCheckout() {
                                                 disabled={busy}
                                                 onClick={() => {
                                                     setPlan(item.code);
+                                                    setAutoRenew(false);
                                                     key.current = crypto.randomUUID();
                                                 }}
                                             >
@@ -251,8 +258,31 @@ export default function DemoCheckout() {
                                         подтверждением.
                                     </p>
                                     <p>
-                                        Разовая покупка, без автоматического продления.
+                                        {autoRenew
+                                            ? 'Тестовое автопродление включится только после подтверждения этого заказа.'
+                                            : 'Разовая покупка, без автоматического продления.'}
                                     </p>
+                                    <label className="demo-renew-consent">
+                                        <input
+                                            type="checkbox"
+                                            checked={autoRenew}
+                                            disabled={busy}
+                                            onChange={(event) => {
+                                                setAutoRenew(event.target.checked);
+                                                key.current = crypto.randomUUID();
+                                            }}
+                                        />
+                                        <span>
+                                            Разрешаю автопродление тарифа {offer.name}{' '}
+                                            каждые {months} мес. на{' '}
+                                            {money(offer.amount_minor)} за период.
+                                            Предварительное уведомление — не позднее чем
+                                            за 24 часа. Отмена доступна в разделе
+                                            «Автопродление» и по ссылке из уведомления.
+                                            В этой демонстрации реальные списания не
+                                            выполняются.
+                                        </span>
+                                    </label>
                                     <Button
                                         disabled={busy}
                                         onClick={() =>
@@ -260,6 +290,7 @@ export default function DemoCheckout() {
                                                 plan_code: plan,
                                                 duration_months: months,
                                                 idempotency_key: key.current,
+                                                auto_renew: autoRenew,
                                             })
                                         }
                                     >
@@ -302,7 +333,10 @@ export default function DemoCheckout() {
                                 <p>
                                     Доступ до {date(order.ends_at)} МСК. До{' '}
                                     {order.terms.active_query_limit} активных
-                                    мониторингов. Без автопродления.
+                                    мониторингов.{' '}
+                                    {order.terms.auto_renew
+                                        ? 'Вы отдельно выбрали тестовое автопродление.'
+                                        : 'Без автопродления.'}
                                 </p>
                                 <p className="demo-order-id">Заказ {order.id}</p>
                                 {order.status === 'pending' ? (
@@ -370,6 +404,9 @@ export default function DemoCheckout() {
                     </>
                 )}
                 {busy ? <p role="status">Запрос обрабатывается…</p> : null}
+                {renewals.map((item) => (
+                    <RenewalCard key={item.id} renewal={item} />
+                ))}
                 {notice ? <p role="status">{notice}</p> : null}
                 {error ? (
                     <div role="alert">

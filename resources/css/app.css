@@ -1484,6 +1484,8 @@ textarea:focus-visible {
 .demo-card { display: grid; gap: 16px; margin-block: 20px; }
 .demo-card h2, .demo-card h3, .demo-card p { margin: 0; }
 .demo-card p { line-height: 1.6; }
+.demo-renew-consent { display: grid; grid-template-columns: 24px minmax(0,1fr); align-items: start; gap: 12px; padding: 16px; border: 1px solid var(--tf-border); border-radius: 12px; font-size: 14px; line-height: 1.65; cursor: pointer; }
+.demo-renew-consent input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--tf-accent); }
 .demo-periods, .demo-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .demo-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .demo-plan { display: flex; flex-direction: column; gap: 12px; text-align: left; padding: 18px; border: 2px solid var(--tf-line); border-radius: 20px; background: transparent; color: inherit; cursor: pointer; }
