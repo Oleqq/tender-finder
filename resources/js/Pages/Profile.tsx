@@ -304,13 +304,24 @@ export default function Profile() {
                     <Link className="profile-support-entry__link" href="/requisites">
                         Реквизиты <Icon name="chevron-right" size={17} />
                     </Link>
-                    <Link className="profile-support-entry__link" href="/offer">
+                    <a className="profile-support-entry__link" href="/info">
+                        О сервисе и контакты <Icon name="chevron-right" size={17} />
+                    </a>
+                    <a className="profile-support-entry__link" href="/terms">
+                        Пользовательское соглашение{' '}
+                        <Icon name="chevron-right" size={17} />
+                    </a>
+                    <a className="profile-support-entry__link" href="/offer">
                         Оферта <Icon name="chevron-right" size={17} />
-                    </Link>
-                    <Link className="profile-support-entry__link" href="/privacy">
+                    </a>
+                    <a className="profile-support-entry__link" href="/privacy">
                         Политика конфиденциальности{' '}
                         <Icon name="chevron-right" size={17} />
-                    </Link>
+                    </a>
+                    <a className="profile-support-entry__link" href="/consent">
+                        Согласие на обработку ПДн{' '}
+                        <Icon name="chevron-right" size={17} />
+                    </a>
                 </GlassCard>
 
                 {isSuperAdmin ? (

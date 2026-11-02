@@ -50,6 +50,7 @@
 - [План настоящих платежей](PAYMENTS-NEXT-STAGE.md),
   [API-клиент ЮKassa](YOOKASSA-INTEGRATION.md),
   [обработка старых событий Stars](TELEGRAM-STARS-RUNBOOK.md).
+- [Размещение предоставленных документов](LEGAL-DOCUMENT-PUBLICATION.md).
 - [Задание юристу](LEGAL-PRODUCTION-HANDOFF.md), [реквизиты](COMPANY-REQUISITES.md).
 - Автономные страницы тарифов: [светлая](subscription-offer-preview.html) и
   [тёмная](subscription-offer-preview-dark.html). Это проверяемые HTML-артефакты;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\ProcessTelegramUpdate;
 use App\Models\TelegramUpdate;
 use App\Services\TelegramBotClient;
+use App\Services\TelegramCommands;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -130,15 +131,7 @@ class TelegramWebhookController extends Controller
         $command = strtolower((string) ($parts[0] ?? ''));
         $command = (string) preg_replace('/@[^\s]+\z/u', '', $command);
 
-        if (in_array($command, ['/start', '/help'], true)) {
-            return $command;
-        }
-
-        if ($command === '/paysupport') {
-            return $command;
-        }
-
-        return $command === '/subscribe' ? '/subscribe' : null;
+        return TelegramCommands::accepts($command) ? $command : null;
     }
 
     /** @param array<string, mixed> $update */

@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\ConsentDocument;
 use App\Models\ConsentEvent;
 use App\Models\Entitlement;
 use App\Models\User;
+use App\Services\ConsentService;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 
 beforeEach(function (): void {
@@ -20,16 +22,16 @@ it('records current consents and starts a single 72 hour trial in one action', f
     $user = User::factory()->create(['telegram_id' => '7001']);
 
     $this->actingAs($user)
-        ->postJson('/consents', ['documents' => ['offer', 'privacy']])
+        ->postJson('/consents', ['documents' => ['offer', 'privacy', 'terms', 'consent']])
         ->assertCreated()
         ->assertJsonPath('status', 'trial_started')
         ->assertJsonPath('access.state', 'trialing')
         ->assertJsonPath('access.active_query_limit', 3);
     $this->actingAs($user)
-        ->postJson('/consents', ['documents' => ['privacy', 'offer']])
+        ->postJson('/consents', ['documents' => ['consent', 'terms', 'privacy', 'offer']])
         ->assertOk();
 
-    expect(ConsentEvent::query()->where('user_id', $user->id)->count())->toBe(2);
+    expect(ConsentEvent::query()->where('user_id', $user->id)->count())->toBe(4);
 
     $entitlement = Entitlement::query()->where('user_id', $user->id)->firstOrFail();
     expect($entitlement->starts_at?->diffInHours($entitlement->ends_at))->toBe(72.0);
@@ -51,9 +53,22 @@ it('does not record consents while legal documents are not explicitly published'
     $user = User::factory()->create(['telegram_id' => '7003']);
 
     $this->actingAs($user)
-        ->postJson('/consents', ['documents' => ['offer', 'privacy']])
+        ->postJson('/consents', ['documents' => ['offer', 'privacy', 'terms', 'consent']])
         ->assertServiceUnavailable()
         ->assertJsonPath('message', 'Юридические документы пока не опубликованы.');
 
     expect(ConsentEvent::query()->where('user_id', $user->id)->count())->toBe(0);
+});
+
+it('rejects the old two-document form and records the separate current consent', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy']])->assertUnprocessable();
+    expect(ConsentEvent::query()->count())->toBe(0);
+    $this->postJson('/consents', ['documents' => ['terms', 'offer', 'privacy', 'consent']])->assertCreated();
+    foreach (ConsentDocument::cases() as $type) {
+        expect(ConsentEvent::query()->where('document', $type->value)->value('document_version'))
+            ->toBe(app(ConsentService::class)->currentVersion($type));
+    }
+    $this->postJson('/consents/revoke', ['document' => 'consent'])->assertOk();
+    expect(app(ConsentService::class)->hasCurrentRequiredConsents($user))->toBeFalse();
 });

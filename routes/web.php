@@ -56,6 +56,7 @@ use App\Http\Controllers\TrialController;
 use App\Http\Controllers\WinnerOpportunityController;
 use App\Http\Middleware\EnforceWorkspaceAccess;
 use App\Services\AccessService;
+use App\Services\LegalDocumentRegistry;
 use App\Services\LocalMvpSubscriberService;
 use App\Services\TemporaryFullAccessService;
 use Illuminate\Http\Request;
@@ -107,8 +108,12 @@ Route::get('/onboarding', fn (LocalMvpSubscriberService $subscriber, TemporaryFu
     'localSubscriberEntryEnabled' => $subscriber->isEnabled(),
     'temporaryFullAccessEnabled' => ! request()->user()?->is_demo_guest && $temporary->isActive(),
 ]))->name('onboarding');
-Route::get('/offer', [LegalDocumentController::class, 'offer'])->name('legal.offer');
-Route::get('/privacy', [LegalDocumentController::class, 'privacy'])->name('legal.privacy');
+foreach (LegalDocumentRegistry::TYPES as $document) {
+    Route::get('/'.$document, [LegalDocumentController::class, 'show'])->defaults('document', $document)->name('legal.'.$document);
+}
+Route::get('/info', [LegalDocumentController::class, 'info'])->name('legal.info');
+Route::get('/legal/{document}/download', [LegalDocumentController::class, 'download'])
+    ->whereIn('document', LegalDocumentRegistry::TYPES)->name('legal.download');
 Route::get('/requisites', fn () => Inertia::render('Requisites', [
     'company' => config('company'),
 ]))->name('legal.requisites');

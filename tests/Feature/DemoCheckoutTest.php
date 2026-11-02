@@ -62,7 +62,7 @@ function demoOrderPayload(string $code = 'pro', int $months = 1): array
 function expiredDemoGuest(): User
 {
     $user = demoGuest();
-    test()->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy']])->assertCreated();
+    test()->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy', 'terms', 'consent']])->assertCreated();
     test()->postJson('/demo/expire')->assertOk();
 
     return $user->refresh();
@@ -82,7 +82,7 @@ it('isolates a new browser guest from the expired public timer and starts trial 
     $user = auth()->user();
     expect($user->is_demo_guest)->toBeTrue()->and($user->telegram_id)->toBeNull();
     $this->postJson('/trial/start')->assertUnprocessable();
-    $this->postJson('/consents', ['documents' => ['offer', 'privacy']])->assertCreated()->assertJsonPath('access.state', 'trialing');
+    $this->postJson('/consents', ['documents' => ['offer', 'privacy', 'terms', 'consent']])->assertCreated()->assertJsonPath('access.state', 'trialing');
     $this->postJson('/trial/start')->assertUnprocessable();
     $this->post('/demo/session')->assertConflict();
     expect(Subscription::query()->count())->toBe(1);
@@ -92,7 +92,7 @@ it('isolates a new browser guest from the expired public timer and starts trial 
 
 it('closes HTTP actions and matching at exactly 72 hours without the scheduler', function () {
     $user = demoGuest();
-    $this->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy']])->assertCreated();
+    $this->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy', 'terms', 'consent']])->assertCreated();
     $query = SearchQuery::query()->create(['user_id' => $user->id, 'name' => 'Test', 'keywords' => ['сайт'], 'status' => QueryStatus::Active]);
     Carbon::setTestNow(now()->addHours(72)->subSecond());
     expect(app(AccessService::class)->hasActiveAccess($user))->toBeTrue();
@@ -215,7 +215,7 @@ it('retains owner and admin grants when an old trial expires', function () {
 
 it('stops matching scoped feed polling and queued deliveries at expiry without scheduler', function () {
     $user = demoGuest();
-    $this->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy']])->assertCreated();
+    $this->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy', 'terms', 'consent']])->assertCreated();
     $query = SearchQuery::query()->create(['user_id' => $user->id, 'name' => 'Test', 'keywords' => ['сайт'], 'status' => 'active']);
     $tender = Tender::query()->create(['source' => 'workspace_ru', 'external_id' => 'demo-match', 'title' => 'Сайт', 'canonical_url' => 'https://example.test/demo', 'canonical_url_hash' => hash('sha256', 'demo')]);
     $delivery = NotificationDelivery::query()->create(['user_id' => $user->id, 'type' => 'tender_card', 'status' => 'failed', 'failure_code' => 'telegram_network_unavailable', 'idempotency_key' => 'old-demo', 'payload' => [], 'scheduled_at' => now()]);
@@ -232,7 +232,7 @@ it('stops matching scoped feed polling and queued deliveries at expiry without s
 it('keeps demo guests on a real trial even while a public full-access window is active', function () {
     config()->set('tender.temporary_full_access_until', now()->addDays(2)->format('Y-m-d\TH:i:s\Z'));
     $user = demoGuest();
-    $this->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy']])->assertCreated()->assertJsonPath('access.state', 'trialing')->assertJsonPath('access.active_query_limit', 3);
+    $this->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy', 'terms', 'consent']])->assertCreated()->assertJsonPath('access.state', 'trialing')->assertJsonPath('access.active_query_limit', 3);
     expect($user->refresh()->trial_used_at)->not->toBeNull();
     $this->postJson('/team-invitations/any-token')->assertForbidden();
 });

@@ -94,7 +94,8 @@ export function useGapAction() {
         } catch (reason) {
             if (axios.isAxiosError(reason)) {
                 const errors = reason.response?.data?.errors as
-                    Record<string, string[]> | undefined;
+                    | Record<string, string[]>
+                    | undefined;
                 setError(
                     errors
                         ? Object.values(errors).flat().join(' ')

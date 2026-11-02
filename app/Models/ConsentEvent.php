@@ -42,6 +42,6 @@ class ConsentEvent extends Model
     /** @param Builder<ConsentEvent> $query */
     public function scopeLatestForDocument(Builder $query, ConsentDocument $document): void
     {
-        $query->where('document', $document->value)->latest('occurred_at');
+        $query->where('document', $document->value)->latest('occurred_at')->latest('id');
     }
 }

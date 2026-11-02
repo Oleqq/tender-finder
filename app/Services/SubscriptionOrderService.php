@@ -26,8 +26,9 @@ final class SubscriptionOrderService
             $user = User::query()->lockForUpdate()->findOrFail($user->id);
             $this->assertDemoUser($user);
             $terms = $this->catalog->offer($code, $months);
-            $terms['offer_version'] = config('tender.legal.offer_version');
-            $terms['privacy_version'] = config('tender.legal.privacy_version');
+            foreach (LegalDocumentRegistry::TYPES as $type) {
+                $terms[$type.'_version'] = app(LegalDocumentRegistry::class)->document($type)['version'];
+            }
             $existing = SubscriptionOrder::query()->where('user_id', $user->id)->where('idempotency_key', $key)->first();
             if ($existing !== null) {
                 abort_unless($existing->plan_code === $code && $existing->duration_months === $months, 409, 'Ключ заказа уже использован с другими условиями.');

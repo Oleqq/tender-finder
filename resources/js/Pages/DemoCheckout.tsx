@@ -380,8 +380,8 @@ export default function DemoCheckout() {
                 ) : null}
                 <div className="billing-links">
                     <a href="/pricing">Тарифы и цены</a>
-                    <Link href="/offer">Условия</Link>
-                    <Link href="/privacy">Политика</Link>
+                    <a href="/offer">Условия</a>
+                    <a href="/privacy">Политика</a>
                     {auth.user ? <Link href="/support">Поддержка</Link> : null}
                 </div>
             </AppShell>

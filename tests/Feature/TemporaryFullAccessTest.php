@@ -32,7 +32,7 @@ afterEach(function (): void {
 
 it('opens unlimited review access to consenting subscribers and restores normal rules at the deadline', function (): void {
     $subscriber = User::factory()->create(['trial_used_at' => now()->subWeek()]);
-    app(ConsentService::class)->acceptCurrent($subscriber, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($subscriber, ConsentDocument::cases(), null);
     $owner = User::factory()->create(['role' => UserRole::SuperAdmin]);
 
     for ($index = 0; $index < 30; $index++) {
@@ -75,7 +75,7 @@ it('creates an isolated browser guest with a cookie session and does not consume
         ->and(auth()->id())->toBe($guest->id);
     $this->get('/operations')->assertForbidden();
 
-    $this->postJson('/consents', ['documents' => ['offer', 'privacy']])
+    $this->postJson('/consents', ['documents' => ['offer', 'privacy', 'terms', 'consent']])
         ->assertCreated()
         ->assertJsonPath('status', 'access_granted')
         ->assertJsonPath('access.mode', 'temporary_full_access')
@@ -104,7 +104,7 @@ it('preserves paid access without renewed consent and freezes only monitoring ab
     ]);
     expect(app(AccessService::class)->snapshotFor($paid)->activeQueryLimit)->toBe(3);
 
-    app(ConsentService::class)->acceptCurrent($paid, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($paid, ConsentDocument::cases(), null);
     expect(app(AccessService::class)->snapshotFor($paid)->mode)->toBe('temporary_full_access');
     foreach (range(1, 5) as $index) {
         SearchQuery::query()->create([
@@ -122,7 +122,7 @@ it('preserves paid access without renewed consent and freezes only monitoring ab
 
 it('keeps Telegram trial available after the review window without consuming it during review', function (): void {
     $user = User::factory()->create(['telegram_id' => '77112233']);
-    $this->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy']])
+    $this->actingAs($user)->postJson('/consents', ['documents' => ['offer', 'privacy', 'terms', 'consent']])
         ->assertCreated()->assertJsonPath('status', 'access_granted');
     expect($user->fresh()->trial_used_at)->toBeNull();
 

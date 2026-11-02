@@ -36,7 +36,7 @@ it('grants bounded Basic access only to the ticket owner and writes an audit ent
     $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
     $owner = User::factory()->create();
     $ticket = app(SupportTicketService::class)->create($owner, 'access', 'Не могу работать с мониторингом.');
-    app(ConsentService::class)->acceptCurrent($owner, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($owner, ConsentDocument::cases(), null);
 
     $this->actingAs($owner)->post("/support/admin/{$ticket->id}/access", [
         'days' => 3, 'reason' => 'Компенсация за технический сбой.',
@@ -89,7 +89,7 @@ it('requires current legal consent and never changes an existing trial or paid e
         'days' => 2, 'reason' => 'Проверка неопубликованных документов.',
     ])->assertSessionHasErrors('days');
     config()->set('tender.legal.documents_published', true);
-    app(ConsentService::class)->acceptCurrent($owner, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($owner, ConsentDocument::cases(), null);
 
     $plan = app(PlanCatalog::class)->basic();
     $subscription = Subscription::query()->create([
@@ -124,7 +124,7 @@ it('revokes only the manual grant and freezes work when no access remains', func
     $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
     $owner = User::factory()->create();
     $ticket = app(SupportTicketService::class)->create($owner, 'access', 'Нужно исправить доступ.');
-    app(ConsentService::class)->acceptCurrent($owner, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($owner, ConsentDocument::cases(), null);
     $this->actingAs($admin)->post("/support/admin/{$ticket->id}/access", [
         'days' => 2, 'reason' => 'Временное восстановление доступа.',
     ])->assertRedirect();
@@ -172,7 +172,7 @@ it('expires a manual grant automatically without sending a trial reminder', func
     $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
     $owner = User::factory()->create();
     $ticket = app(SupportTicketService::class)->create($owner, 'access', 'Нужна временная помощь.');
-    app(ConsentService::class)->acceptCurrent($owner, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($owner, ConsentDocument::cases(), null);
     $this->actingAs($admin)->post("/support/admin/{$ticket->id}/access", [
         'days' => 1, 'reason' => 'Временный доступ для проверки.',
     ])->assertRedirect();
@@ -198,7 +198,7 @@ it('keeps paid access and active work when a later payment overlaps a manual gra
     $admin = User::factory()->create(['role' => UserRole::SuperAdmin]);
     $owner = User::factory()->create();
     $ticket = app(SupportTicketService::class)->create($owner, 'access', 'Проверка двух источников доступа.');
-    app(ConsentService::class)->acceptCurrent($owner, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($owner, ConsentDocument::cases(), null);
     $this->actingAs($admin)->post("/support/admin/{$ticket->id}/access", [
         'days' => 1, 'reason' => 'Временная помощь до подтверждения оплаты.',
     ])->assertRedirect();

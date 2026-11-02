@@ -38,7 +38,7 @@ it('grants one audited permanent Pro developer access, restores work, and queues
         'telegram_id' => '415595220',
         'role' => UserRole::Subscriber,
     ]);
-    app(ConsentService::class)->acceptCurrent($user, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($user, ConsentDocument::cases(), null);
     $query = SearchQuery::query()->create([
         'user_id' => $user->id,
         'name' => 'Замороженный мониторинг',
@@ -105,7 +105,7 @@ it('delivers account changes even after access ends and never sends one event tw
         'digest_time' => '09:00',
         'timezone' => 'Europe/Moscow',
     ]);
-    app(ConsentService::class)->acceptCurrent($user, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($user, ConsentDocument::cases(), null);
     $entitlement = app(PermanentProGrantService::class)->grant(
         '415595220',
         true,
@@ -160,7 +160,7 @@ it('delivers account changes even after access ends and never sends one event tw
 
 it('prefers permanent Pro when another shorter entitlement is active', function () {
     $user = User::factory()->create(['telegram_id' => '415595220']);
-    app(ConsentService::class)->acceptCurrent($user, [ConsentDocument::Offer, ConsentDocument::Privacy], null);
+    app(ConsentService::class)->acceptCurrent($user, ConsentDocument::cases(), null);
     $permanent = app(PermanentProGrantService::class)->grant(
         '415595220',
         true,

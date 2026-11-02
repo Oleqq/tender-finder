@@ -2,6 +2,7 @@
 
 // Public details supplied by the operator in «Реквизиты.PDF.pdf» on 22 October 2026.
 return [
+    'support_email' => 'tenderfinder-client@yandex.ru',
     'name' => 'ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ КАЛИНОВСКИЙ РОМАН МИХАЙЛОВИЧ',
     'short_name' => 'ИП Калиновский Роман Михайлович',
     'legal_address' => '143405, РОССИЯ, МОСКОВСКАЯ ОБЛ, Г КРАСНОГОРСК, УЛ ВОКЗАЛЬНАЯ, Д 19А, КВ 1',

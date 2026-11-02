@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\TelegramUpdate;
 use App\Services\TelegramBotClient;
+use App\Services\TelegramCommands;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -31,16 +32,10 @@ class ProcessTelegramUpdate implements ShouldQueue
             return;
         }
 
-        $text = match ($this->command) {
-            '/start' => 'Добро пожаловать в Tender Finder. Откройте Mini App кнопкой меню, чтобы настроить мониторинг.',
-            '/help' => 'Tender Finder помогает отслеживать подходящие закупки. Откройте Mini App кнопкой меню для начала.',
-            '/paysupport' => 'По вопросам оплаты и возврата откройте Tender Finder → Профиль → Мои обращения. Укажите тариф и дату платежа; не отправляйте данные карты.',
-            '/subscribe' => 'Оплата подписки в Telegram отключена. По вопросам доступа откройте Tender Finder → Профиль → Мои обращения.',
-            default => 'Команда недоступна. Откройте Mini App кнопкой меню.',
-        };
-
         try {
-            $bot->sendMessage($this->chatId, $text, ['screen' => $this->command === '/paysupport' ? 'support' : 'tenders']);
+            foreach (app(TelegramCommands::class)->messages($this->command) as $text) {
+                $bot->sendMessage($this->chatId, $text, ['screen' => in_array($this->command, ['/paysupport', '/support'], true) ? 'support' : 'tenders']);
+            }
             $update->forceFill([
                 'status' => 'processed',
                 'processed_at' => now(),

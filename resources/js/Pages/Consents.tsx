@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState, type ReactNode } from 'react';
 import { AppShell } from '../Components/AppShell';
 import { Icon } from '../Components/Icon';
@@ -11,9 +11,10 @@ export default function Consents({
 }) {
     const [offerAccepted, setOfferAccepted] = useState(false);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const [consentAccepted, setConsentAccepted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
-    const canContinue = offerAccepted && privacyAccepted;
+    const canContinue = offerAccepted && privacyAccepted && consentAccepted;
 
     const acceptAndContinue = async (): Promise<void> => {
         if (!canContinue || isSubmitting) {
@@ -25,7 +26,7 @@ export default function Consents({
 
         try {
             await window.axios.post('/consents', {
-                documents: ['offer', 'privacy'],
+                documents: ['terms', 'offer', 'privacy', 'consent'],
             });
             router.visit('/dashboard');
         } catch (requestError) {
@@ -88,21 +89,53 @@ export default function Consents({
                 <GlassCard className="consent-card page-enter page-enter--delay">
                     <ConsentRow checked={offerAccepted} onChange={setOfferAccepted}>
                         Принимаю условия{' '}
-                        <Link className="future-link" href="/offer">
+                        <a
+                            className="future-link"
+                            href="/terms"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            пользовательского соглашения
+                        </a>{' '}
+                        и{' '}
+                        <a
+                            className="future-link"
+                            href="/offer"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
                             оферты
-                        </Link>
+                        </a>
                     </ConsentRow>
                     <div className="consent-divider" />
                     <ConsentRow checked={privacyAccepted} onChange={setPrivacyAccepted}>
-                        Даю согласие на обработку персональных данных на условиях{' '}
-                        <Link className="future-link" href="/privacy">
-                            политики обработки данных
-                        </Link>
+                        Ознакомился с{' '}
+                        <a
+                            className="future-link"
+                            href="/privacy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            политикой обработки данных
+                        </a>
+                    </ConsentRow>
+                    <div className="consent-divider" />
+                    <ConsentRow checked={consentAccepted} onChange={setConsentAccepted}>
+                        Даю отдельное{' '}
+                        <a
+                            className="future-link"
+                            href="/consent"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            согласие на обработку персональных данных
+                        </a>
                     </ConsentRow>
                 </GlassCard>
                 <p className="consent-note">
-                    Согласия независимы: оферта задаёт условия доступа, политика —
-                    обработку персональных данных. Их версии сохраняются на сервере.
+                    Согласие на обработку данных оформляется отдельно от условий
+                    использования. Версии всех четырёх документов сохраняются на
+                    сервере.
                 </p>
                 <div className="consent-actions page-enter page-enter--later">
                     {canContinue ? (
@@ -127,7 +160,7 @@ export default function Consents({
                             disabled
                             type="button"
                         >
-                            <span>Примите оба условия</span>
+                            <span>Подтвердите условия и согласие</span>
                             <Icon name="arrow-right" size={20} />
                         </button>
                     )}

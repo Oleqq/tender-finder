@@ -132,8 +132,8 @@ export default function Plans() {
                             Оплатил, но доступа нет
                         </Link>
                         <Link href="/support">Другой вопрос</Link>
-                        <Link href="/offer">Оферта</Link>
-                        <Link href="/privacy">Политика</Link>
+                        <a href="/offer">Оферта</a>
+                        <a href="/privacy">Политика</a>
                     </div>
                 </GlassCard>
             </AppShell>

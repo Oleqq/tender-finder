@@ -62,7 +62,7 @@ class ConsentService
 
     public function hasCurrentRequiredConsents(User $user): bool
     {
-        foreach ([ConsentDocument::Offer, ConsentDocument::Privacy] as $document) {
+        foreach (ConsentDocument::cases() as $document) {
             $latest = ConsentEvent::query()
                 ->where('user_id', $user->id)
                 ->latestForDocument($document)
@@ -82,16 +82,7 @@ class ConsentService
             throw new LegalDocumentsUnavailableException;
         }
 
-        $key = $document === ConsentDocument::Offer ? 'offer_version' : 'privacy_version';
-        $urlKey = $document === ConsentDocument::Offer ? 'offer_url' : 'privacy_url';
-        $version = config("tender.legal.{$key}");
-        $url = config("tender.legal.{$urlKey}");
-
-        if (! is_string($version) || $version === '' || ! is_string($url) || $url === '') {
-            throw new LegalDocumentsUnavailableException;
-        }
-
-        return $version;
+        return app(LegalDocumentRegistry::class)->document($document->value)['version'];
     }
 
     private function ipHash(?string $ipAddress): ?string

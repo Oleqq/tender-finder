@@ -68,6 +68,13 @@ class TelegramBotClient
         $this->call('answerPreCheckoutQuery', $parameters);
     }
 
+    public function syncCommands(): void
+    {
+        foreach (['', 'ru'] as $language) {
+            $this->call('setMyCommands', ['commands' => TelegramCommands::menu(), 'language_code' => $language]);
+        }
+    }
+
     /** @param array<string, mixed> $destination
      * @return array{inline_keyboard: list<list<array<string, mixed>>>}|null
      */

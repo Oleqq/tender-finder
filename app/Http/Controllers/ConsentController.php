@@ -24,7 +24,7 @@ class ConsentController extends Controller
         AccessService $accessService,
     ): JsonResponse {
         $validated = $request->validate([
-            'documents' => ['required', 'array', 'size:2'],
+            'documents' => ['required', 'array', 'size:4'],
             'documents.*' => ['required', 'string', 'distinct', Rule::in(array_column(ConsentDocument::cases(), 'value'))],
         ]);
 
@@ -35,7 +35,7 @@ class ConsentController extends Controller
 
         if (count(array_diff(array_column(ConsentDocument::cases(), 'value'), $validated['documents'])) > 0) {
             throw ValidationException::withMessages([
-                'documents' => 'Для продолжения нужно принять оферту и политику конфиденциальности.',
+                'documents' => 'Подтвердите условия документов и отдельное согласие на обработку персональных данных.',
             ]);
         }
 

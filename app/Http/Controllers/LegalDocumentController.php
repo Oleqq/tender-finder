@@ -2,31 +2,40 @@
 
 namespace App\Http\Controllers;
 
-use Inertia\Inertia;
-use Inertia\Response;
+use App\Services\LegalDocumentRegistry;
+use App\Services\SubscriptionCatalog;
+use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class LegalDocumentController extends Controller
 {
-    public function offer(): Response
+    public function show(string $document, LegalDocumentRegistry $documents): Response
     {
-        return $this->show('offer', 'Публичная оферта — черновик');
+        $this->ensurePublished();
+
+        return response()->view('legal', ['document' => $documents->document($document), 'company' => config('company')]);
     }
 
-    public function privacy(): Response
+    public function info(): Response
     {
-        return $this->show('privacy', 'Политика обработки данных — черновик');
+        $this->ensurePublished();
+
+        return response()->view('legal', ['document' => null, 'company' => config('company'), 'offers' => SubscriptionCatalog::OFFERS]);
     }
 
-    private function show(string $type, string $title): Response
+    public function download(string $document, LegalDocumentRegistry $documents): BinaryFileResponse
+    {
+        $this->ensurePublished();
+        $record = $documents->document($document);
+
+        return response()->download($documents->originalPath($document), $record['filename'], [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    private function ensurePublished(): void
     {
         abort_unless((bool) config('tender.legal.documents_published', false), 503, 'Юридический документ пока не опубликован.');
-
-        return Inertia::render('LegalDocument', [
-            'document' => [
-                'type' => $type,
-                'title' => $title,
-                'version' => config("tender.legal.{$type}_version"),
-            ],
-        ]);
     }
 }
