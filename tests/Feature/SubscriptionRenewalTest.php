@@ -281,7 +281,7 @@ it('does not send notices or retries after a Telegram cancellation made before o
     Http::assertNothingSent();
 })->with([false, true]);
 
-it('serializes real saved method requests with cancellation and refuses a stale queued attempt', function () {
+it('blocks retired saved method payments and refuses a stale queued attempt', function () {
     [$owner, $subscription, , $renewal] = renewalRealFixture();
     $service = app(SubscriptionRenewalService::class);
     Carbon::setTestNow($renewal->notice_due_at);
@@ -293,10 +293,9 @@ it('serializes real saved method requests with cancellation and refuses a stale 
     Http::fake(['https://api.yookassa.ru/*' => Http::response(['id' => 'test-payment', 'status' => 'pending'])]);
     $client = app(YooKassaClient::class);
     $payload = ['payment_method_id' => 'verified-test-method', 'capture' => true, 'amount' => ['value' => '0.01', 'currency' => 'USD']];
-    expect($client->createRenewalPayment($renewal, $payload, 'test-cycle-one')['id'])->toBe('test-payment');
-    Http::assertSent(fn (Request $request) => $request->url() === 'https://api.yookassa.ru/v3/payments'
-        && $request['amount'] === ['value' => '599.00', 'currency' => 'RUB']
-        && $request['metadata']['renewal_id'] === $renewal->id && $request->hasHeader('Idempotence-Key', 'test-cycle-one'));
+    expect(fn () => $client->createRenewalPayment($renewal, $payload, 'test-cycle-one'))
+        ->toThrow(YooKassaApiException::class, 'yookassa_new_payments_disabled');
+    Http::assertNothingSent();
     $service->cancel($renewal->fresh());
     Http::fake();
     expect($client->createRenewalPayment($renewal, $payload, 'test-cycle-one'))->toBeNull();

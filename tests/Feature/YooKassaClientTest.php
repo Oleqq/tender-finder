@@ -2,7 +2,6 @@
 
 use App\Services\YooKassaApiException;
 use App\Services\YooKassaClient;
-use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 it('does not create payments while the sales switch is off', function () {
@@ -16,30 +15,16 @@ it('does not create payments while the sales switch is off', function () {
     Http::assertNothingSent();
 });
 
-it('sends an idempotent payment request with server-side shop credentials', function () {
+it('keeps retired YooKassa creation blocked even with a stale enabled flag', function () {
     config()->set('tender.payments.yookassa.enabled', true);
     config()->set('tender.payments.yookassa.shop_id', 'test-shop');
     config()->set('tender.payments.yookassa.secret_key', 'test-secret');
-    Http::fake(['https://api.yookassa.ru/v3/payments' => Http::response([
-        'id' => '25bfb3dd-000f-5000-8000-11e71bbcf10d',
-        'status' => 'pending',
-    ])]);
+    Http::fake();
 
-    $payment = [
-        'amount' => ['value' => '100.00', 'currency' => 'RUB'],
-        'capture' => true,
-        'confirmation' => ['type' => 'redirect', 'return_url' => 'https://shop.example.test/return'],
-        'metadata' => ['order_id' => 'internal-123'],
-    ];
-    $response = app(YooKassaClient::class)->createPayment($payment, 'internal-123');
-
-    expect($response['status'])->toBe('pending');
-    Http::assertSentCount(1);
-    Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
-        && $request->url() === 'https://api.yookassa.ru/v3/payments'
-        && $request->hasHeader('Authorization', 'Basic '.base64_encode('test-shop:test-secret'))
-        && $request->hasHeader('Idempotence-Key', 'internal-123')
-        && $request->data() === $payment);
+    expect(fn () => app(YooKassaClient::class)->createPayment([
+        'amount' => ['value' => '349.00', 'currency' => 'RUB'],
+    ], 'order-1'))->toThrow(YooKassaApiException::class, 'yookassa_new_payments_disabled');
+    Http::assertNothingSent();
 });
 
 it('allows verified payment lookups after new sales are disabled', function () {

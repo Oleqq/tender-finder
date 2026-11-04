@@ -49,7 +49,8 @@
   [состояния доступа](TRIAL-TO-PAID-FLOW.md), [demo checkout](DEMO-CHECKOUT.md).
 - [Автопродление, уведомления и отмена](SUBSCRIPTION-AUTORENEWAL.md).
 - [План настоящих платежей](PAYMENTS-NEXT-STAGE.md),
-  [API-клиент ЮKassa](YOOKASSA-INTEGRATION.md),
+  [фундамент Т-Банка](TBANK-INTEGRATION.md),
+  [прежний вариант ЮKassa](YOOKASSA-INTEGRATION.md),
   [обработка старых событий Stars](TELEGRAM-STARS-RUNBOOK.md).
 - [Размещение предоставленных документов](LEGAL-DOCUMENT-PUBLICATION.md).
 - [Задание юристу](LEGAL-PRODUCTION-HANDOFF.md), [реквизиты](COMPANY-REQUISITES.md).

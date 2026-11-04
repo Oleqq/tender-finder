@@ -54,20 +54,8 @@ final class YooKassaClient
      */
     private function sendNewPayment(array $payment, string $idempotenceKey): array
     {
-        if (config('tender.payments.yookassa.enabled') !== true) {
-            throw new YooKassaApiException('yookassa_new_payments_disabled');
-        }
-
-        if (preg_match('/\A[A-Za-z0-9-]{1,64}\z/D', $idempotenceKey) !== 1) {
-            throw new YooKassaApiException('yookassa_invalid_idempotence_key');
-        }
-
-        return $this->send(
-            'POST',
-            '/payments',
-            $payment,
-            ['Idempotence-Key' => $idempotenceKey],
-        );
+        // Retired by the owner: even a stale flag cannot create an initial or recurring payment.
+        throw new YooKassaApiException('yookassa_new_payments_disabled');
     }
 
     /**

@@ -33,10 +33,25 @@ return [
 
     'payments' => [
         'demo_enabled' => (bool) env('DEMO_CHECKOUT_ENABLED', false),
+        'tbank' => [
+            'enabled' => (bool) env('TBANK_ENABLED', false),
+            'notifications_enabled' => (bool) env('TBANK_NOTIFICATIONS_ENABLED', false),
+            'terminal_key' => env('TBANK_TERMINAL_KEY'),
+            'password' => env('TBANK_PASSWORD'),
+            'public_base_url' => env('TBANK_PUBLIC_BASE_URL'),
+            'request_timeout_seconds' => (int) env('TBANK_REQUEST_TIMEOUT_SECONDS', 15),
+            'receipt' => [
+                'taxation' => env('TBANK_RECEIPT_TAXATION'),
+                'tax' => env('TBANK_RECEIPT_TAX'),
+                'payment_method' => env('TBANK_RECEIPT_PAYMENT_METHOD'),
+                'payment_object' => env('TBANK_RECEIPT_PAYMENT_OBJECT'),
+            ],
+        ],
         // Reserved integration boundary for a future external web checkout.
         // Do not enable inside Telegram for digital services: Telegram requires XTR there.
         'yookassa' => [
-            'enabled' => (bool) env('YOOKASSA_ENABLED', false),
+            // Retired for new sales. Preserve credentials only for historical lookups.
+            'enabled' => false,
             'shop_id' => env('YOOKASSA_SHOP_ID'),
             'secret_key' => env('YOOKASSA_SECRET_KEY'),
             'request_timeout_seconds' => (int) env('YOOKASSA_REQUEST_TIMEOUT_SECONDS', 15),
