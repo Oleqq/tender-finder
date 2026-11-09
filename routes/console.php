@@ -30,3 +30,5 @@ Schedule::command('teams:process-tender-reviews')
 
 Schedule::command('tenders:check-repeats')->hourly()->withoutOverlapping();
 Schedule::command('subscriptions:send-renewal-notices')->everyMinute()->withoutOverlapping(15)->runInBackground();
+
+Schedule::command('payments:reconcile-tbank')->everyMinute()->withoutOverlapping(60)->runInBackground();

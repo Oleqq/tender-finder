@@ -106,7 +106,7 @@ class AccessService
         $hasExpiredAccess = $user->trial_used_at !== null || Entitlement::query()
             ->where('user_id', $user->id)
             ->where('code', 'active_queries')
-            ->whereHas('subscription', fn ($subscription) => $subscription->whereIn('source', [SubscriptionSource::TelegramStars, SubscriptionSource::Demo]))
+            ->whereHas('subscription', fn ($subscription) => $subscription->whereIn('source', [SubscriptionSource::TelegramStars, SubscriptionSource::TBank, SubscriptionSource::Demo]))
             ->exists();
 
         $lastEntitlement = $hasExpiredAccess ? Entitlement::query()

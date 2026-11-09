@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\CommittedDatabaseTestCase;
 use Tests\TestCase;
 
 /*
@@ -17,6 +18,10 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
+
+// Payment Init tests require real commits before outbound requests, not an enclosing test transaction.
+pest()->extend(CommittedDatabaseTestCase::class)
+    ->in('Integration');
 
 /*
 |--------------------------------------------------------------------------

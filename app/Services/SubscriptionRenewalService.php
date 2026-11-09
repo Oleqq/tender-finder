@@ -101,7 +101,7 @@ final class SubscriptionRenewalService
                 }
                 // Stop future recurring use even if registration of its schedule failed.
                 $subscriptions = Subscription::query()->where('user_id', $user->id)->where('auto_renew', true)
-                    ->whereIn('source', [SubscriptionSource::YooKassa, SubscriptionSource::Demo])->orderBy('id')->lockForUpdate()->get();
+                    ->whereIn('source', [SubscriptionSource::YooKassa, SubscriptionSource::TBank, SubscriptionSource::Demo])->orderBy('id')->lockForUpdate()->get();
                 foreach ($subscriptions as $subscription) {
                     $subscription->forceFill(['auto_renew' => false])->save();
                     $ids->push($subscription->id);

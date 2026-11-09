@@ -35,7 +35,7 @@ final class AdminAccessAnalyticsService
         $customerUsers = $this->customerUsers();
         $registered = (clone $customerUsers)->count();
         $trialsTotal = (clone $customerUsers)->whereNotNull('trial_used_at')->count();
-        $paid = $this->activeUsersWithSource($activeSources, SubscriptionSource::TelegramStars);
+        $paid = count(array_filter($activeSources, fn (?SubscriptionSource $source): bool => in_array($source, [SubscriptionSource::TelegramStars, SubscriptionSource::TBank], true)));
 
         return [
             'period' => [

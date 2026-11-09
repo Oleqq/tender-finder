@@ -46,6 +46,13 @@ TypeScript typecheck, JavaScript-тесты (`npm run test:ui`), ESLint и сб�
   неверный webhook, дубли/порядок уведомлений и ошибка БД до ACK. Inbox сам
   доступ не выдаёт. Только HTTP fake, без настоящих ключей и запросов в банк;
   приёмка тестового терминала и полный путь покупки пока не выполнены.
+- Т-Банк (`tests/Integration/TBankBillingTest.php`): заказ и snapshot владельца,
+  шифрование, один Init с реально закоммиченным маркером до HTTP, тайм-аут/падение,
+  восстановление CheckOrder, ложные суммы/ID, дубли и ранний webhook, backoff,
+  занятая lease, атомарный откат при ошибке БД, позднее изменение доступа/согласий,
+  возврат и expiry. Для этой группы `CommittedDatabaseTestCase` использует
+  migrate:fresh и реальные коммиты, только SQLite `:memory:` или PostgreSQL
+  `*_testing`; каждый тест очищает выделенную БД. HTTP только fake, без банка.
 
 ## Приёмка Mini App
 

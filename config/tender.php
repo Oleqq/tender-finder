@@ -36,6 +36,7 @@ return [
         'tbank' => [
             'enabled' => (bool) env('TBANK_ENABLED', false),
             'notifications_enabled' => (bool) env('TBANK_NOTIFICATIONS_ENABLED', false),
+            'reconciliation_enabled' => (bool) env('TBANK_RECONCILIATION_ENABLED', false),
             'terminal_key' => env('TBANK_TERMINAL_KEY'),
             'password' => env('TBANK_PASSWORD'),
             'public_base_url' => env('TBANK_PUBLIC_BASE_URL'),

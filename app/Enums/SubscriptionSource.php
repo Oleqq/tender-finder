@@ -7,6 +7,7 @@ enum SubscriptionSource: string
     case Trial = 'trial';
     case Demo = 'demo';
     case YooKassa = 'yookassa';
+    case TBank = 'tbank';
     case TelegramStars = 'telegram_stars';
     case AdminGrant = 'admin_grant';
 }

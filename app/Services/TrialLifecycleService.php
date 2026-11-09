@@ -45,7 +45,7 @@ class TrialLifecycleService
                 $entitlement === null
                 || $entitlement->status !== SubscriptionStatus::Active
                 || $entitlement->ends_at === null
-                || ! in_array($entitlement->subscription?->source, [SubscriptionSource::Trial, SubscriptionSource::AdminGrant, SubscriptionSource::TelegramStars, SubscriptionSource::Demo], true)
+                || ! in_array($entitlement->subscription?->source, [SubscriptionSource::Trial, SubscriptionSource::AdminGrant, SubscriptionSource::TelegramStars, SubscriptionSource::TBank, SubscriptionSource::Demo], true)
             ) {
                 return;
             }

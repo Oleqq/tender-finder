@@ -42,7 +42,7 @@ class ResetTrialPreview extends Command
         $stillConfiguredOwner = in_array($telegramId, $configuredIds, true);
         $hasBillingHistory = Payment::query()->where('user_id', $user->id)->exists()
             || Subscription::query()->where('user_id', $user->id)
-                ->where('source', SubscriptionSource::TelegramStars)->exists();
+                ->whereIn('source', [SubscriptionSource::TelegramStars, SubscriptionSource::TBank])->exists();
         $this->line('Current role: '.$user->role->value);
         $this->line('Current access: '.$access->snapshotFor($user)->state->value);
         $this->line('Trial previously started: '.($user->trial_used_at === null ? 'no' : 'yes'));
@@ -72,7 +72,7 @@ class ResetTrialPreview extends Command
             $user = User::query()->where('telegram_id', $telegramId)->lockForUpdate()->firstOrFail();
             if (Payment::query()->where('user_id', $user->id)->exists()
                 || Subscription::query()->where('user_id', $user->id)
-                    ->where('source', SubscriptionSource::TelegramStars)->exists()) {
+                    ->whereIn('source', [SubscriptionSource::TelegramStars, SubscriptionSource::TBank])->exists()) {
                 throw new \RuntimeException('Billing history appeared while resetting access.');
             }
             $now = now();
