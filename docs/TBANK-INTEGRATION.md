@@ -144,29 +144,24 @@
 
 ## Проверки
 
-CI коммита `b067614` от 4 ноября завершён успешно: 567 PHP-тестов /
-6780 assertions, 17 JS-тестов, PHPStan/Pint, Vite и ESLint.
-[Проверенный запуск](https://github.com/slsforme/saas-bot/actions/runs/41886607366).
-Это проверка исходного фундамента. Результат выпуска и текущие флаги —
-в [CURRENT-STATE](CURRENT-STATE.md).
+Код 9 ноября: 609 PHP-тестов / 7120 assertions, 17 JS-тестов,
+PHPStan/Pint, Vite и ESLint. CI точного SHA:
+[основной](https://github.com/slsforme/saas-bot/actions/runs/42585171623),
+[зеркало](https://github.com/Oleqq/tender-finder/actions/runs/42585176210).
+Установка прошла; завершающие проверки VPS ожидают восстановления SSH.
+Подтверждённые факты и резервная копия — [CURRENT-STATE](CURRENT-STATE.md).
 
-Исходный фундамент локально проверялся без настоящих ключей и банковских запросов: 123 PHP-теста /
-1037 assertions (Т-Банк, отключение ЮKassa, demo, автопродление и юридические
-команды), PHPStan и Pint. База тестов — отдельная SQLite `:memory:`.
-Проверены официальный пример Token, `true`/`false`, дубли и перестановка
-уведомлений, подмена суммы/заказа/терминала/подписи, ошибка БД до ACK,
-ошибки банка/сети, отключённые флаги и отсутствие выдачи доступа из inbox.
-Это не приёмка настоящего тестового терминала банка.
+`TBankIntegrationTest` покрывает Token, transport, фабрику чека и приём inbox.
+Новый `TBankBillingTest`: 42 сценария / 340 assertions, реальные коммиты без
+внешней транзакции раннера, Init один раз, сбои сети/процесса/БД, CheckOrder,
+чужие заказы, шифрование, повтор/ранний webhook, backoff и lease, изменение
+согласий или доступа, возврат и истечение подписки. Только HTTP fake и
+изолированная тестовая БД; никаких настоящих ключей и банковских запросов.
+Это не приёмка банковского терминала, внешнего checkout или полного фискального цикла.
 
 ```sh
-docker --context default compose -f compose.local.yml -f compose.local.dev.yml run --rm --no-deps --entrypoint php test artisan test --compact --filter='TBankIntegrationTest|YooKassaClientTest'
+docker --context default compose -f compose.local.yml -f compose.local.dev.yml run --rm --no-deps --entrypoint php test artisan test --compact --filter='TBankIntegrationTest|TBankBillingTest|YooKassaClientTest'
 ```
-
-Новый `TBankBillingTest` проверяет реальные коммиты без внешней транзакции
-тестового раннера: Init один раз, сбои сети/процесса/БД, CheckOrder, чужие
-заказы, шифрование, повтор/ранний webhook, backoff и lease, изменение согласий
-или доступа, возврат и нормальное истечение подписки. Только HTTP fake и
-изолированная тестовая БД. Приёмка банковского терминала остаётся отдельной.
 
 ## Официальные источники
 

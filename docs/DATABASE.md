@@ -31,7 +31,7 @@
 
 Для аналитики это значит: `subscriber` — право доступа к продукту, а не
 тип оплаты. Воронка строится по состоянию доступа и источнику подписки:
-`preview`, `trial`, ручная выдача и истёкший доступ. Demo помечено отдельно,
+`preview`, `trial`, платный Т-Банк, ручная выдача и истёкший доступ. Demo помечено отдельно,
 старый источник Stars остаётся только для совместимости и истории.
 
 ### Что база принципиально не хранит
@@ -275,7 +275,7 @@ entitlement. Новая миграция не нужна.
 | subscription/entitlement | `active`, `expired`, `cancelled` | Trial, support grant и billing domain |
 | query | `active`, `paused`, `frozen`, `deleted` | authenticated query service |
 | local MVP tender state | `new`, `favorite`, `potential`, `dismissed`, `archived` | исторические технические карточки доступны без обновления источника |
-| marketing admin analytics | подтверждённая аудитория, регистрации/входы/trial за 7/30/90 дней и историческая классификация Stars-доступа, `preview`, `trialing`, `paid`, `granted`, `expired` | read-only aggregate только для `super_admin`; строится из существующих дат и актуального entitlement, без Telegram ID, иных персональных данных или новых таблиц событий |
+| marketing admin analytics | подтверждённая аудитория, регистрации/входы/trial за 7/30/90 дней и классификация платного Т-Банка/исторических Stars, `preview`, `trialing`, `paid`, `granted`, `expired` | read-only aggregate только для `super_admin`; строится из существующих дат и актуального entitlement, без Telegram ID, иных персональных данных или новых таблиц событий |
 | notification | `queued`, `sent`, `failed`, `skipped` | queue transport |
 | source run | `running`, `succeeded`, `failed` | опросы действующих публичных/API-источников; прежние запуски ЕИС только читаются |
 
